@@ -12,8 +12,15 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { PREGUNTAS_INHABILIDADES } from "./constantes"
 
+export interface DetalleRemocionQ7 {
+  institucion: string
+  cargo: string
+  fechaFin: string
+  motivo: string
+}
+
 export interface Seccion9Data {
-  [key: string]: string | undefined
+  [key: string]: string | DetalleRemocionQ7 | undefined
   q1: string
   q2: string
   q3: string
@@ -21,16 +28,13 @@ export interface Seccion9Data {
   q5: string
   q6: string
   q7: string
+  q7Detalles?: DetalleRemocionQ7
   q8: string
   q9: string
   q10: string
   q11: string
   q12: string
   q13: string
-  q7Institucion?: string
-  q7Cargo?: string
-  q7FechaFin?: string
-  q7Motivo?: string
 }
 
 export interface Seccion9InhabilidadesProps {
@@ -45,17 +49,39 @@ export function Seccion9Inhabilidades({
   disabled = false,
 }: Seccion9InhabilidadesProps) {
   function actualizarRespuesta(id: string, valor: "Sí" | "No") {
-    const nuevos = {
+    const nuevos: Seccion9Data = {
       ...datos,
       [id]: valor,
     }
-    if (id === "q7" && valor === "No") {
-      delete nuevos.q7Institucion
-      delete nuevos.q7Cargo
-      delete nuevos.q7FechaFin
-      delete nuevos.q7Motivo
+    if (id === "q7") {
+      if (valor === "No") {
+        delete nuevos.q7Detalles
+      } else if (!nuevos.q7Detalles) {
+        nuevos.q7Detalles = {
+          institucion: "",
+          cargo: "",
+          fechaFin: "",
+          motivo: "",
+        }
+      }
     }
     onChange(nuevos)
+  }
+
+  function actualizarDetalleQ7(campo: keyof DetalleRemocionQ7, valor: string) {
+    const detallesActuales: DetalleRemocionQ7 = datos.q7Detalles || {
+      institucion: "",
+      cargo: "",
+      fechaFin: "",
+      motivo: "",
+    }
+    onChange({
+      ...datos,
+      q7Detalles: {
+        ...detallesActuales,
+        [campo]: valor,
+      },
+    })
   }
 
   return (
@@ -76,7 +102,7 @@ export function Seccion9Inhabilidades({
       <div className="flex flex-col gap-4">
         {PREGUNTAS_INHABILIDADES.map((pregunta) => {
           const valorActual =
-            (datos as Record<string, string | undefined>)[pregunta.id] || ""
+            ((datos as Record<string, unknown>)[pregunta.id] as string) || ""
           const esQ7 = pregunta.id === "q7"
           const mostrarDetalleQ7 = esQ7 && valorActual === "Sí"
 
@@ -127,9 +153,9 @@ export function Seccion9Inhabilidades({
                         Institución u Organismo de Control *
                       </Label>
                       <Input
-                        value={datos.q7Institucion || ""}
+                        value={datos.q7Detalles?.institucion || ""}
                         onChange={(e) =>
-                          onChange({ ...datos, q7Institucion: e.target.value })
+                          actualizarDetalleQ7("institucion", e.target.value)
                         }
                         disabled={disabled}
                         placeholder="Nombre de la institución"
@@ -139,9 +165,9 @@ export function Seccion9Inhabilidades({
                     <div className="flex flex-col gap-1">
                       <Label className="text-xs">Cargo que Desempeñaba *</Label>
                       <Input
-                        value={datos.q7Cargo || ""}
+                        value={datos.q7Detalles?.cargo || ""}
                         onChange={(e) =>
-                          onChange({ ...datos, q7Cargo: e.target.value })
+                          actualizarDetalleQ7("cargo", e.target.value)
                         }
                         disabled={disabled}
                         placeholder="Cargo ejercido"
@@ -154,9 +180,9 @@ export function Seccion9Inhabilidades({
                       </Label>
                       <Input
                         type="date"
-                        value={datos.q7FechaFin || ""}
+                        value={datos.q7Detalles?.fechaFin || ""}
                         onChange={(e) =>
-                          onChange({ ...datos, q7FechaFin: e.target.value })
+                          actualizarDetalleQ7("fechaFin", e.target.value)
                         }
                         disabled={disabled}
                       />
@@ -165,9 +191,9 @@ export function Seccion9Inhabilidades({
                     <div className="flex flex-col gap-1 sm:col-span-2">
                       <Label className="text-xs">Motivo de la Remoción *</Label>
                       <Textarea
-                        value={datos.q7Motivo || ""}
+                        value={datos.q7Detalles?.motivo || ""}
                         onChange={(e) =>
-                          onChange({ ...datos, q7Motivo: e.target.value })
+                          actualizarDetalleQ7("motivo", e.target.value)
                         }
                         disabled={disabled}
                         rows={2}

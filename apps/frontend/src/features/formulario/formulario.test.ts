@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import {
   CONSENTIMIENTO_DEFAULT,
@@ -6,6 +6,7 @@ import {
   PUNTOS_CONSENTIMIENTO_EF12,
   SECCIONES_EF12_INFO,
 } from "./constantes"
+import { validarSeccionEF12 } from "@/utils/validar-formulario"
 import { calcularDuracionExperiencia } from "@/utils/validators"
 
 describe("Formulario EF-12 (FT5 / FT6)", () => {
@@ -25,6 +26,109 @@ describe("Formulario EF-12 (FT5 / FT6)", () => {
       expect(PREGUNTAS_INHABILIDADES[6].numero).toBe("1.9.7")
       expect(PREGUNTAS_INHABILIDADES[6].tieneDetalle).toBe(true)
       expect(PREGUNTAS_INHABILIDADES[12].numero).toBe("1.9.13")
+    })
+
+    it("unifica el contrato con q7Detalles anidado cuando q7 es 'Sí'", () => {
+      // Incompleto sin q7Detalles al validar sección completa
+      const s9Incompleta = {
+        q1: "No",
+        q2: "No",
+        q3: "No",
+        q4: "No",
+        q5: "No",
+        q6: "No",
+        q7: "Sí",
+        q8: "No",
+        q9: "No",
+        q10: "No",
+        q11: "No",
+        q12: "No",
+        q13: "No",
+      }
+      const resIncompleto = validarSeccionEF12(s9Incompleta, 9, true)
+      expect(resIncompleto.esValido).toBe(false)
+      expect(resIncompleto.errores[0].mensaje).toBe(
+        "Complete los detalles de remoción.",
+      )
+
+      // Inválido si q7 es No pero envía q7Detalles (falla incluso en borrador)
+      const s9ConDetalleSobrante = {
+        ...s9Incompleta,
+        q7: "No",
+        q7Detalles: {
+          institucion: "Ministerio",
+          cargo: "Cargo",
+          fechaFin: "2023-01-01",
+          motivo: "Motivo",
+        },
+      }
+      const resSobrante = validarSeccionEF12(s9ConDetalleSobrante, 9, false)
+      expect(resSobrante.esValido).toBe(false)
+      expect(resSobrante.errores[0].mensaje).toBe(
+        "Los detalles solo corresponden a una respuesta Sí.",
+      )
+
+      // Completo con q7Detalles estructurado
+      const s9Completa = {
+        ...s9Incompleta,
+        q7: "Sí",
+        q7Detalles: {
+          institucion: "Ministerio del Trabajo",
+          cargo: "Especialista",
+          fechaFin: "2023-08-31",
+          motivo: "Supresión de partida",
+        },
+      }
+      const resCompleto = validarSeccionEF12(s9Completa, 9, true)
+      expect(resCompleto.esValido).toBe(true)
+    })
+  })
+
+  describe("Control de guardado y prevención de secciones inválidas (FT5)", () => {
+    it("impide enviar una sección inválida a la API cuando validarSeccionEF12 devuelve errores", async () => {
+      const mockMutateAsync = vi.fn().mockResolvedValue({})
+
+      async function guardarSeccionSimulada(
+        seccion: number,
+        datos: unknown,
+      ): Promise<boolean> {
+        const resultado = validarSeccionEF12(datos, seccion, false)
+        if (!resultado.esValido && resultado.errores.length > 0) {
+          return false
+        }
+        await mockMutateAsync({ seccion, datos })
+        return true
+      }
+
+      // Sección 1 con cédula inválida (falla la validación incluso en borrador)
+      const seccionInvalida = {
+        nombres: "Juan",
+        apellidos: "Pérez",
+        cedula: "12345", // cédula inválida no ecuatoriana
+        genero: "Masculino",
+        fechaNacimiento: "1990-01-01",
+        nacionalidad: "Ecuatoriana",
+        estadoCivil: "Soltero/a",
+      }
+      const resultadoGuardado = await guardarSeccionSimulada(1, seccionInvalida)
+
+      expect(resultadoGuardado).toBe(false)
+      expect(mockMutateAsync).not.toHaveBeenCalled()
+
+      // Sección 1 con datos válidos
+      const seccionValida = {
+        nombres: "Damian",
+        apellidos: "Torres",
+        cedula: "1710034008",
+        genero: "Masculino",
+        fechaNacimiento: "1990-01-01",
+        nacionalidad: "Ecuatoriana",
+        estadoCivil: "Soltero/a",
+      }
+      const resultadoValido = await guardarSeccionSimulada(1, seccionValida)
+
+      expect(resultadoValido).toBe(true)
+      expect(mockMutateAsync).toHaveBeenCalledTimes(1)
     })
   })
 

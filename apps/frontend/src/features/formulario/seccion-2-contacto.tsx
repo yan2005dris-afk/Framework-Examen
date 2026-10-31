@@ -1,5 +1,5 @@
 import { MapPinIcon } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -44,8 +44,12 @@ export function Seccion2Contacto({
   const { postulante } = useSesion()
   const { data: listaPaises = [] } = useCatalogosPaises()
 
+  const haPrecargadoRef = useRef(false)
+
   useEffect(() => {
+    if (haPrecargadoRef.current) return
     if (postulante?.correo && !datos.correo1) {
+      haPrecargadoRef.current = true
       onChange({
         ...datos,
         correo1: postulante.correo,

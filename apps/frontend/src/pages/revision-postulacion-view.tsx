@@ -152,9 +152,9 @@ export function RevisionPostulacionView() {
         consentimiento,
       },
       {
-        onSuccess: () => {
+        onSuccess: (postulacionSellada) => {
           toast.success(
-            "¡Postulación sellada y enviada! Se ha notificado al correo registrado.",
+            `¡Postulación sellada y enviada exitosamente! Código: ${postulacionSellada.code || "registrado"}.`,
           )
         },
       },
@@ -1031,18 +1031,37 @@ export function RevisionPostulacionView() {
                   return (
                     <div
                       key={p.id}
-                      className="flex items-center justify-between border-b py-1 last:border-b-0"
+                      className="flex flex-col border-b py-1 last:border-b-0"
                     >
-                      <span className="pr-4 text-muted-foreground">
-                        <strong className="text-foreground">{p.numero}</strong>{" "}
-                        {p.texto}
-                      </span>
-                      <Badge
-                        variant={val === "Sí" ? "default" : "outline"}
-                        className="shrink-0 text-2xs"
-                      >
-                        {val}
-                      </Badge>
+                      <div className="flex items-center justify-between">
+                        <span className="pr-4 text-muted-foreground">
+                          <strong className="text-foreground">
+                            {p.numero}
+                          </strong>{" "}
+                          {p.texto}
+                        </span>
+                        <Badge
+                          variant={val === "Sí" ? "default" : "outline"}
+                          className="shrink-0 text-2xs"
+                        >
+                          {val}
+                        </Badge>
+                      </div>
+                      {p.id === "q7" && val === "Sí" && s9.q7Detalles && (
+                        <div className="mt-1.5 rounded bg-muted/20 p-2 text-2xs text-muted-foreground">
+                          <p>
+                            <strong>Institución:</strong>{" "}
+                            {s9.q7Detalles.institucion}
+                          </p>
+                          <p>
+                            <strong>Cargo:</strong> {s9.q7Detalles.cargo} ·{" "}
+                            <strong>Fecha:</strong> {s9.q7Detalles.fechaFin}
+                          </p>
+                          <p>
+                            <strong>Motivo:</strong> {s9.q7Detalles.motivo}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )
                 })}

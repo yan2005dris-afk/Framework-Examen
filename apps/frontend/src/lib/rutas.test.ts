@@ -104,6 +104,32 @@ describe("Rutas del portal (rutas.ts)", () => {
       expect(puedeAcceder("con-rol-admin", ANALISTA)).toBe(false)
       expect(puedeAcceder("con-rol-admin", ADMINISTRADOR)).toBe(true)
     })
+
+    it("impide terminantemente que un postulante acceda a /dashboard y que un analista acceda a /admin/*", () => {
+      // Postulante intentando acceder a rutas de analista
+      const accesoDashboard = ACCESO_POR_RUTA[RUTAS.dashboard]
+      const accesoDashboardPostulaciones =
+        ACCESO_POR_RUTA[RUTAS.dashboardPostulaciones]
+      expect(puedeAcceder(accesoDashboard, POSTULANTE)).toBe(false)
+      expect(puedeAcceder(accesoDashboardPostulaciones, POSTULANTE)).toBe(false)
+
+      // Postulante intentando acceder a rutas de administrador
+      const accesoAdminConvocatorias = ACCESO_POR_RUTA[RUTAS.adminConvocatorias]
+      const accesoAdminFases = ACCESO_POR_RUTA[RUTAS.adminFases]
+      const accesoAdminPreguntas = ACCESO_POR_RUTA[RUTAS.adminPreguntas]
+      expect(puedeAcceder(accesoAdminConvocatorias, POSTULANTE)).toBe(false)
+      expect(puedeAcceder(accesoAdminFases, POSTULANTE)).toBe(false)
+      expect(puedeAcceder(accesoAdminPreguntas, POSTULANTE)).toBe(false)
+
+      // Analista intentando acceder a rutas de administrador (debe dar 403 / denegado)
+      expect(puedeAcceder(accesoAdminConvocatorias, ANALISTA)).toBe(false)
+      expect(puedeAcceder(accesoAdminFases, ANALISTA)).toBe(false)
+      expect(puedeAcceder(accesoAdminPreguntas, ANALISTA)).toBe(false)
+
+      // Analista accediendo a su propio dashboard
+      expect(puedeAcceder(accesoDashboard, ANALISTA)).toBe(true)
+      expect(puedeAcceder(accesoDashboardPostulaciones, ANALISTA)).toBe(true)
+    })
   })
 
   describe("rutaInicial", () => {
@@ -163,6 +189,22 @@ describe("Rutas del portal (rutas.ts)", () => {
       )
       expect(leerDestinoLogin("?destino=", RUTAS.postulacion)).toBe(
         RUTAS.postulacion,
+      )
+    })
+
+    it("resuelve la redirección posterior al login priorizando el destino explícito", () => {
+      // Si el guard guardó ?destino=/postulacion/5, tras login se redirige allí
+      const queryParams = "destino=%2Fpostulacion%2F5"
+      const destino = leerDestinoLogin(queryParams, "")
+      const rutaFinal = destino || rutaInicial(POSTULANTE)
+      expect(rutaFinal).toBe("/postulacion/5")
+
+      // Si no hay parámetro destino, se calcula la ruta inicial por rol
+      const sinDestino = leerDestinoLogin("", "")
+      expect(sinDestino || rutaInicial(POSTULANTE)).toBe(RUTAS.postulacion)
+      expect(sinDestino || rutaInicial(ANALISTA)).toBe(RUTAS.dashboard)
+      expect(sinDestino || rutaInicial(ADMINISTRADOR)).toBe(
+        RUTAS.adminConvocatorias,
       )
     })
   })

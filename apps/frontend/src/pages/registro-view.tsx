@@ -10,6 +10,7 @@ import {
   UserPlusIcon,
 } from "lucide-react"
 import { Link, useNavigate } from "react-router"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -69,6 +70,7 @@ export function RegistroView() {
   // Estados transversales
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
+  const [reenviandoOtp, setReenviandoOtp] = useState(false)
   const [bloqueado, setBloqueado] = useState(false)
   const [postulanteRegistrado, setPostulanteRegistrado] =
     useState<PostulanteDto | null>(null)
@@ -231,7 +233,19 @@ export function RegistroView() {
         if (err.esBloqueoIntentos()) {
           setBloqueado(true)
           setErrorGeneral(
-            "registro fallido, inténtelo nuevamente en 10 minutos",
+            err.mensaje ||
+              "registro fallido, inténtelo nuevamente en 10 minutos",
+          )
+        } else if (err.codigo === "otp_invalido" || err.esNoAutorizado()) {
+          const mensajeOtp =
+            err.mensaje ||
+            "El código de verificación es incorrecto o ha expirado."
+          setErrorOtp(mensajeOtp)
+          setErrorGeneral(mensajeOtp)
+        } else if (err.codigo === "postulante_existente" || err.esConflicto()) {
+          setErrorGeneral(
+            err.mensaje ||
+              "Ya existe un postulante registrado con este número de cédula.",
           )
         } else {
           setErrorGeneral(
@@ -243,6 +257,39 @@ export function RegistroView() {
       }
     } finally {
       setCargando(false)
+    }
+  }
+
+  async function manejarReenviarOtp() {
+    if (bloqueado || reenviandoOtp || cargando) return
+    setReenviandoOtp(true)
+    setErrorGeneral(null)
+
+    try {
+      await solicitarRegistro({
+        cedula: cedula.trim(),
+        correo: correo.trim().toLowerCase(),
+        metodo_validacion: "correo",
+      })
+      toast.success("Código de verificación reenviado a su correo.")
+    } catch (err: unknown) {
+      if (esErrorApi(err)) {
+        if (err.esBloqueoIntentos()) {
+          setBloqueado(true)
+          setErrorGeneral(
+            err.mensaje ||
+              "registro fallido, inténtelo nuevamente en 10 minutos",
+          )
+        } else {
+          setErrorGeneral(
+            err.mensaje || "No fue posible reenviar el código de verificación.",
+          )
+        }
+      } else {
+        setErrorGeneral("No fue posible conectar con el servidor.")
+      }
+    } finally {
+      setReenviandoOtp(false)
     }
   }
 
@@ -449,7 +496,23 @@ export function RegistroView() {
               ) : null}
 
               <div className="space-y-2">
-                <Label htmlFor="otp">Código de verificación (6 dígitos)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="otp">
+                    Código de verificación (6 dígitos)
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void manejarReenviarOtp()
+                    }}
+                    disabled={cargando || reenviandoOtp || bloqueado}
+                    className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                  >
+                    {reenviandoOtp
+                      ? "Reenviando…"
+                      : "¿No recibió el código? Reenviar"}
+                  </button>
+                </div>
                 <Input
                   id="otp"
                   name="otp"

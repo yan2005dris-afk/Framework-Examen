@@ -6,10 +6,23 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 type AlertaBloqueoProps = {
   /** Segundos iniciales de bloqueo (por defecto 600 s = 10 minutos). */
   segundosIniciales?: number
+  /** Momento Unix (ms) o Date de vencimiento del bloqueo informado o persistido. */
+  expiraEn?: number | Date
   /** Mensaje que describe el bloqueo. */
   mensaje?: string
   /** Callback cuando el temporizador llega a cero y se desbloquea. */
   onExpirar?: () => void
+}
+
+function calcularSegundosRestantes(
+  expiraEn?: number | Date,
+  segundosIniciales = 600,
+): number {
+  if (expiraEn) {
+    const ms = typeof expiraEn === "number" ? expiraEn : expiraEn.getTime()
+    return Math.max(0, Math.ceil((ms - Date.now()) / 1000))
+  }
+  return segundosIniciales
 }
 
 /**
@@ -18,16 +31,18 @@ type AlertaBloqueoProps = {
  */
 export function AlertaBloqueo({
   segundosIniciales = 600,
+  expiraEn,
   mensaje = "registro fallido, inténtelo nuevamente en 10 minutos",
   onExpirar,
 }: AlertaBloqueoProps) {
-  const [segundos, setSegundos] = useState(segundosIniciales)
-  const [prevSegundosIniciales, setPrevSegundosIniciales] =
-    useState(segundosIniciales)
+  const [prevExpiraEn, setPrevExpiraEn] = useState(expiraEn)
+  const [segundos, setSegundos] = useState(() =>
+    calcularSegundosRestantes(expiraEn, segundosIniciales),
+  )
 
-  if (prevSegundosIniciales !== segundosIniciales) {
-    setPrevSegundosIniciales(segundosIniciales)
-    setSegundos(segundosIniciales)
+  if (prevExpiraEn !== expiraEn) {
+    setPrevExpiraEn(expiraEn)
+    setSegundos(calcularSegundosRestantes(expiraEn, segundosIniciales))
   }
 
   useEffect(() => {
@@ -38,17 +53,20 @@ export function AlertaBloqueo({
 
     const intervalo = setInterval(() => {
       setSegundos((prev) => {
-        if (prev <= 1) {
+        const actual = expiraEn
+          ? calcularSegundosRestantes(expiraEn, segundosIniciales)
+          : prev - 1
+        if (actual <= 0) {
           clearInterval(intervalo)
           onExpirar?.()
           return 0
         }
-        return prev - 1
+        return actual
       })
     }, 1000)
 
     return () => clearInterval(intervalo)
-  }, [segundos, onExpirar])
+  }, [segundos, expiraEn, segundosIniciales, onExpirar])
 
   if (segundos <= 0) {
     return null
