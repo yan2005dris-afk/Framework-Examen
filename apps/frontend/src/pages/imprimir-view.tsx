@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import {
   PREGUNTAS_INHABILIDADES,
   PUNTOS_CONSENTIMIENTO_EF12,
+  type ConsentimientoEF12Data,
 } from "@/features/formulario/constantes"
 import { useListarPostulaciones } from "@/features/postulaciones/queries"
 import { RUTAS } from "@/lib/rutas"
@@ -52,6 +53,8 @@ export function ImprimirView() {
   const s7 = (content.seccion7 || {}) as Partial<Seccion7Data>
   const s8 = (content.seccion8 || {}) as Partial<Seccion8Data>
   const s9 = (content.seccion9 || {}) as Partial<Seccion9Data>
+  const consentimiento = (content.consentimiento ||
+    {}) as Partial<ConsentimientoEF12Data>
 
   const yaEnviada = postulacion?.status !== "draft"
 
@@ -569,7 +572,18 @@ export function ImprimirView() {
                       <td className="p-1 font-bold text-neutral-700">
                         {p.numero}
                       </td>
-                      <td className="p-1 text-neutral-800">{p.texto}</td>
+                      <td className="p-1 text-neutral-800">
+                        {p.texto}
+                        {p.id === "q7" && val === "Sí" && s9.q7Detalles && (
+                          <div className="mt-1 border-t pt-1 font-sans text-neutral-600">
+                            <strong>Detalles de remoción:</strong> Inst:{" "}
+                            {s9.q7Detalles.institucion} · Cargo:{" "}
+                            {s9.q7Detalles.cargo} · Fecha:{" "}
+                            {s9.q7Detalles.fechaFin} · Motivo:{" "}
+                            {s9.q7Detalles.motivo}
+                          </div>
+                        )}
+                      </td>
                       <td className="p-1 text-center font-bold">{val}</td>
                     </tr>
                   )
@@ -585,14 +599,19 @@ export function ImprimirView() {
             10. Consentimientos y Declaración Juramentada (EF-12 1.10.1)
           </div>
           <div className="text-2xs flex flex-col gap-2 p-3 leading-tight text-neutral-800">
-            {PUNTOS_CONSENTIMIENTO_EF12.map((punto) => (
-              <div key={punto.id} className="flex items-start gap-2">
-                <span className="font-mono font-bold shrink-0">[X]</span>
-                <p>
-                  <strong>Punto {punto.numero}:</strong> {punto.texto}
-                </p>
-              </div>
-            ))}
+            {PUNTOS_CONSENTIMIENTO_EF12.map((punto) => {
+              const aceptado = Boolean(consentimiento[punto.id])
+              return (
+                <div key={punto.id} className="flex items-start gap-2">
+                  <span className="font-mono font-bold shrink-0">
+                    {aceptado ? "[X]" : "[ ]"}
+                  </span>
+                  <p>
+                    <strong>Punto {punto.numero}:</strong> {punto.texto}
+                  </p>
+                </div>
+              )
+            })}
           </div>
         </section>
 

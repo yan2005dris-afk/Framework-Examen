@@ -35,8 +35,24 @@ export function LoginView() {
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
 
   const [cargando, setCargando] = useState(false)
-  const [bloqueado, setBloqueado] = useState(false)
-  const [intentosFallidos, setIntentosFallidos] = useState(0)
+
+  // Vencimiento de bloqueo persistido para soportar recarga de página
+  const [tiempoBloqueo, setTiempoBloqueo] = useState<number | undefined>(() => {
+    try {
+      const guardado = sessionStorage.getItem("biess_auth_lockout")
+      if (guardado) {
+        const timestamp = Number(guardado)
+        if (timestamp > Date.now()) {
+          return timestamp
+        }
+        sessionStorage.removeItem("biess_auth_lockout")
+      }
+    } catch {
+      // ignorar en entornos sin sessionStorage
+    }
+    return undefined
+  })
+  const [bloqueado, setBloqueado] = useState(Boolean(tiempoBloqueo))
 
   function manejarBlurCedula() {
     if (!cedula.trim()) {
@@ -91,22 +107,26 @@ export function LoginView() {
     } catch (err: unknown) {
       if (esErrorApi(err)) {
         if (err.esBloqueoIntentos()) {
+          const expira = Date.now() + 10 * 60 * 1000
+          try {
+            sessionStorage.setItem("biess_auth_lockout", expira.toString())
+          } catch {
+            // ignorar
+          }
+          setTiempoBloqueo(expira)
           setBloqueado(true)
           setErrorGeneral(
-            "registro fallido, inténtelo nuevamente en 10 minutos",
+            err.mensaje ||
+              "registro fallido, inténtelo nuevamente en 10 minutos",
           )
         } else if (err.esNoAutorizado()) {
-          const nuevosIntentos = intentosFallidos + 1
-          setIntentosFallidos(nuevosIntentos)
-
-          let mensaje = "sus credenciales de ingreso son incorrectas"
-          if (nuevosIntentos >= 2) {
-            const restantes = Math.max(0, 3 - nuevosIntentos)
-            if (restantes > 0) {
-              mensaje += `. Le queda ${restantes} intento${restantes > 1 ? "s" : ""}.`
-            }
-          }
-          setErrorGeneral(mensaje)
+          // El conteo de intentos restantes solo se muestra si lo informa el servidor
+          const detalle = err.detalles?.length
+            ? ` (${err.detalles.join(", ")})`
+            : ""
+          setErrorGeneral(
+            `${err.mensaje || "sus credenciales de ingreso son incorrectas"}${detalle}`,
+          )
         } else {
           setErrorGeneral(err.mensaje || "Ocurrió un error al iniciar sesión.")
         }
@@ -139,12 +159,17 @@ export function LoginView() {
           <CardContent className="space-y-4">
             {bloqueado ? (
               <AlertaBloqueo
-                segundosIniciales={600}
+                expiraEn={tiempoBloqueo}
                 mensaje="registro fallido, inténtelo nuevamente en 10 minutos"
                 onExpirar={() => {
                   setBloqueado(false)
+                  setTiempoBloqueo(undefined)
                   setErrorGeneral(null)
-                  setIntentosFallidos(0)
+                  try {
+                    sessionStorage.removeItem("biess_auth_lockout")
+                  } catch {
+                    // ignorar
+                  }
                 }}
               />
             ) : errorGeneral ? (

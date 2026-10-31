@@ -1,5 +1,5 @@
 import { AlertTriangleIcon, UserIcon } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,9 +41,13 @@ export function Seccion1Personal({
 }: Seccion1PersonalProps) {
   const { postulante } = useSesion()
 
+  const haPrecargadoRef = useRef(false)
+
   // Precarga inicial desde la sesión si los campos vienen vacíos
   useEffect(() => {
+    if (haPrecargadoRef.current) return
     if (postulante && (!datos.nombres || !datos.cedula)) {
+      haPrecargadoRef.current = true
       onChange({
         ...datos,
         nombres: datos.nombres || postulante.nombres || "",

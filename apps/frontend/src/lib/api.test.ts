@@ -130,6 +130,36 @@ describe("Cliente HTTP base (api.ts)", () => {
       expect(respuesta).toBeUndefined()
     })
 
+    it("soporta peticiones con FormData sin sobrescribir Content-Type (para multipart)", async () => {
+      const mockFetch = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ documentoId: "doc-123" }), {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      globalThis.fetch = mockFetch
+
+      const formData = new FormData()
+      formData.append(
+        "archivo",
+        new Blob(["contenido binario PDF"], { type: "application/pdf" }),
+        "documento.pdf",
+      )
+
+      const respuesta = await apiPost<{ documentoId: string }>(
+        "/documentos/upload",
+        formData,
+      )
+
+      expect(respuesta).toEqual({ documentoId: "doc-123" })
+      const [, opciones] = mockFetch.mock.calls[0] as [string, RequestInit]
+      expect(opciones.body).toBe(formData)
+      const headers = opciones.headers as Headers
+      // No debe fijar application/json para permitir el boundary nativo del multipart
+      expect(headers.get("Content-Type")).toBeNull()
+      expect(headers.get("Accept")).toBe("application/json")
+    })
+
     it("soporta peticiones PUT y PATCH", async () => {
       const mockFetch = vi.fn().mockImplementation(() =>
         Promise.resolve(

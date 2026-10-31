@@ -10,13 +10,15 @@ export interface AdjuntoInfo {
   tamano: string
   fechaSubida?: string
   base64?: string
+  referenciaId?: string
+  archivo?: File
 }
 
 export interface AdjuntoUploaderProps {
   label?: string
   maxMB: number
   valor?: AdjuntoInfo | null
-  onArchivoSeleccionado: (adjunto: AdjuntoInfo) => void
+  onArchivoSeleccionado: (adjunto: AdjuntoInfo, archivo?: File) => void
   onEliminar: () => void
   disabled?: boolean
   descripcion?: string
@@ -69,9 +71,10 @@ export function AdjuntoUploader({
       nombre: archivo.name,
       tamano: formatearTamano(archivo.size),
       fechaSubida: new Date().toISOString(),
+      archivo,
     }
 
-    onArchivoSeleccionado(adjunto)
+    onArchivoSeleccionado(adjunto, archivo)
     toast.success(`Archivo «${archivo.name}» cargado correctamente.`)
     if (inputRef.current) inputRef.current.value = ""
   }

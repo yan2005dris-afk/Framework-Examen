@@ -9,6 +9,7 @@ import {
   ShieldCheckIcon,
 } from "lucide-react"
 import { Link, useNavigate } from "react-router"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -58,6 +59,7 @@ export function RecuperarContrasenaView() {
   // Estados transversales
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
+  const [reenviandoOtp, setReenviandoOtp] = useState(false)
   const [bloqueado, setBloqueado] = useState(false)
 
   function manejarBlurCedula() {
@@ -89,19 +91,25 @@ export function RecuperarContrasenaView() {
     setCargando(true)
 
     try {
-      await solicitarRecuperacionPassword({ cedula: cedula.trim() })
+      const res = await solicitarRecuperacionPassword({ cedula: cedula.trim() })
       setPaso(2)
+      toast.info(
+        res.mensaje ||
+          "Si la cédula está registrada, se ha enviado un código de recuperación a su correo.",
+      )
     } catch (err: unknown) {
       if (esErrorApi(err)) {
         if (err.esBloqueoIntentos()) {
           setBloqueado(true)
           setErrorGeneral(
-            "registro fallido, inténtelo nuevamente en 10 minutos",
+            err.mensaje ||
+              "registro fallido, inténtelo nuevamente en 10 minutos",
           )
         } else {
-          setErrorGeneral(
-            err.mensaje ||
-              "No se encontró una cuenta con la cédula ingresada o no fue posible enviar el código.",
+          // Confirmación genérica sin revelar si la cédula existe
+          setPaso(2)
+          toast.info(
+            "Si la cédula está registrada, se ha enviado un código de recuperación a su correo.",
           )
         }
       } else {
@@ -173,8 +181,15 @@ export function RecuperarContrasenaView() {
         if (err.esBloqueoIntentos()) {
           setBloqueado(true)
           setErrorGeneral(
-            "registro fallido, inténtelo nuevamente en 10 minutos",
+            err.mensaje ||
+              "registro fallido, inténtelo nuevamente en 10 minutos",
           )
+        } else if (err.codigo === "otp_invalido" || err.esNoAutorizado()) {
+          const mensajeOtp =
+            err.mensaje ||
+            "El código de verificación es incorrecto o ha expirado."
+          setErrorOtp(mensajeOtp)
+          setErrorGeneral(mensajeOtp)
         } else {
           setErrorGeneral(
             err.mensaje || "Código de verificación incorrecto o expirado.",
@@ -185,6 +200,37 @@ export function RecuperarContrasenaView() {
       }
     } finally {
       setCargando(false)
+    }
+  }
+
+  async function manejarReenviarOtp() {
+    if (bloqueado || reenviandoOtp || cargando) return
+    setReenviandoOtp(true)
+    setErrorGeneral(null)
+
+    try {
+      const res = await solicitarRecuperacionPassword({ cedula: cedula.trim() })
+      toast.success(
+        res.mensaje || "Código de recuperación reenviado a su correo.",
+      )
+    } catch (err: unknown) {
+      if (esErrorApi(err)) {
+        if (err.esBloqueoIntentos()) {
+          setBloqueado(true)
+          setErrorGeneral(
+            err.mensaje ||
+              "registro fallido, inténtelo nuevamente en 10 minutos",
+          )
+        } else {
+          toast.info(
+            "Si la cédula está registrada, se ha enviado el código de recuperación.",
+          )
+        }
+      } else {
+        setErrorGeneral("No fue posible conectar con el servidor.")
+      }
+    } finally {
+      setReenviandoOtp(false)
     }
   }
 
@@ -336,7 +382,23 @@ export function RecuperarContrasenaView() {
               ) : null}
 
               <div className="space-y-2">
-                <Label htmlFor="otp-rec">Código de seguridad (6 dígitos)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="otp-rec">
+                    Código de seguridad (6 dígitos)
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void manejarReenviarOtp()
+                    }}
+                    disabled={cargando || reenviandoOtp || bloqueado}
+                    className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                  >
+                    {reenviandoOtp
+                      ? "Reenviando…"
+                      : "¿No recibió el código? Reenviar"}
+                  </button>
+                </div>
                 <Input
                   id="otp-rec"
                   name="otp"

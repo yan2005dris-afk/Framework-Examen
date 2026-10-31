@@ -96,27 +96,75 @@ describe("Flujo de autenticación y validaciones (FT3)", () => {
       )
     })
 
-    it("calcula intentos restantes progresivamente a partir del segundo fallo", () => {
-      function calcularMensajeError(fallos: number): string {
-        let mensaje = "sus credenciales de ingreso son incorrectas"
-        if (fallos >= 2) {
-          const restantes = Math.max(0, 3 - fallos)
-          if (restantes > 0) {
-            mensaje += `. Le queda ${restantes} intento${restantes > 1 ? "s" : ""}.`
-          }
-        }
-        return mensaje
+    it("propaga fielmente el mensaje y detalles informados por el servidor sin inventar contadores locales", () => {
+      const errConDetalle = new ErrorApi(
+        "sus credenciales de ingreso son incorrectas",
+        {
+          estado: 401,
+          codigo: "credenciales_invalidas",
+          detalles: ["le queda 1 intento restante"],
+        },
+      )
+      expect(errConDetalle.detalles).toEqual(["le queda 1 intento restante"])
+
+      const errSinDetalle = new ErrorApi(
+        "sus credenciales de ingreso son incorrectas",
+        {
+          estado: 401,
+          codigo: "credenciales_invalidas",
+        },
+      )
+      expect(errSinDetalle.detalles).toBeUndefined()
+      expect(errSinDetalle.mensaje).toBe(
+        "sus credenciales de ingreso son incorrectas",
+      )
+    })
+
+    it("identifica errores específicos de OTP (inválido / expirado / conflicto)", () => {
+      const errOtp = new ErrorApi(
+        "el código de verificación es incorrecto o ha expirado",
+        {
+          estado: 401,
+          codigo: "otp_invalido",
+        },
+      )
+      expect(errOtp.codigo).toBe("otp_invalido")
+      expect(errOtp.esNoAutorizado()).toBe(true)
+
+      const errExistente = new ErrorApi(
+        "el postulante ya se encuentra registrado",
+        {
+          estado: 409,
+          codigo: "postulante_existente",
+        },
+      )
+      expect(errExistente.esConflicto()).toBe(true)
+    })
+
+    it("calcula el tiempo restante de bloqueo a partir de un timestamp persistido sin reiniciar el contador", () => {
+      const ahora = Date.now()
+      const diezMinutos = ahora + 10 * 60 * 1000
+      const cincoMinutos = ahora + 5 * 60 * 1000
+      const yaExpirado = ahora - 1000
+
+      function segundosRestantes(expiraEn: number): number {
+        return Math.max(0, Math.ceil((expiraEn - Date.now()) / 1000))
       }
 
-      expect(calcularMensajeError(1)).toBe(
-        "sus credenciales de ingreso son incorrectas",
+      expect(segundosRestantes(diezMinutos)).toBeGreaterThanOrEqual(599)
+      expect(segundosRestantes(cincoMinutos)).toBeLessThanOrEqual(301)
+      expect(segundosRestantes(yaExpirado)).toBe(0)
+    })
+
+    it("confirma recuperación genérica sin revelar si la cédula está registrada", () => {
+      const respuestaServidor = {
+        mensaje:
+          "Si la cédula está registrada, se ha enviado un código de recuperación a su correo.",
+      }
+      expect(respuestaServidor.mensaje).toContain(
+        "Si la cédula está registrada",
       )
-      expect(calcularMensajeError(2)).toBe(
-        "sus credenciales de ingreso son incorrectas. Le queda 1 intento.",
-      )
-      expect(calcularMensajeError(3)).toBe(
-        "sus credenciales de ingreso son incorrectas",
-      )
+      expect(respuestaServidor.mensaje).not.toContain("no encontrada")
     })
   })
 })

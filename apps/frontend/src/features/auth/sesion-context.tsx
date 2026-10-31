@@ -91,17 +91,20 @@ export function ProveedorSesion({ children }: ProveedorSesionProps) {
   useEffect(() => {
     const controlador = new AbortController()
 
-    obtenerSesion(controlador.signal)
-      .then((respuesta) => {
+    async function inicializar() {
+      try {
+        const respuesta = await obtenerSesion(controlador.signal)
         if (!controlador.signal.aborted) {
           aplicarSesion(respuesta.postulante)
         }
-      })
-      .catch((error: unknown) => {
+      } catch (error: unknown) {
         if (!controlador.signal.aborted) {
           aplicarAnonimo(error)
         }
-      })
+      }
+    }
+
+    void inicializar()
 
     return () => controlador.abort()
   }, [aplicarSesion, aplicarAnonimo])
