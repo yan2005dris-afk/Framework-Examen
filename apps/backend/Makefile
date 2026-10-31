@@ -5,7 +5,7 @@
 DATABASE_URL ?= postgres://postgres@localhost:5432/biess?sslmode=disable
 MIGRATE_RUN := DATABASE_URL="$(DATABASE_URL)" go run ./cmd/migrate
 
-.PHONY: help run build test vet fmt tidy sqlc-generate db-schema db-migrate db-status db-down db-reset docker-up docker-down
+.PHONY: help run build test vet fmt tidy sqlc-generate catalog-seed db-schema db-migrate db-status db-down db-reset docker-up docker-down
 
 help:
 	@echo "run             Arranca la API en modo desarrollo"
@@ -16,6 +16,7 @@ help:
 	@echo "tidy            Ordena el go.mod"
 	@echo "sqlc-generate   Regenera el código de sqlc"
 	@echo "db-schema       Regenera sql/queries/schema.sql desde las migraciones"
+	@echo "catalog-seed    Regenera la migración y el SQL autónomo de catálogos"
 	@echo "db-migrate      Aplica las migraciones pendientes"
 	@echo "db-status       Muestra el estado de las migraciones"
 	@echo "db-down         Revierte la última migración aplicada"
@@ -43,6 +44,9 @@ tidy:
 
 sqlc-generate:
 	sqlc generate
+
+catalog-seed:
+	go run ./cmd/catalog-seed
 
 db-schema:
 	@printf '%s\n' '-- Esquema que consume sqlc. Se regenera desde las migraciones con `make db-schema`.' > sql/queries/schema.sql

@@ -24,7 +24,7 @@ erDiagram
     applicants ||--o{ password_resets : "solicita"
     submissions ||--o{ documents : "adjunta"
     submissions ||--o{ submission_events : "audita"
-    submissions }o--|| catalogs : "sector"
+    catalogs ||--o{ catalogs : "padre geográfico"
 
     applicants {
         uuid id PK "UUIDv7"
@@ -83,10 +83,11 @@ erDiagram
 
     catalogs {
         uuid id PK
-        varchar country_code
-        varchar province
-        varchar city
-        int parent_id FK
+        varchar kind "tipo de catálogo"
+        varchar parent_key "vacío | EC | EC/Provincia"
+        uuid parent_id FK
+        varchar value "etiqueta del EF-12"
+        int position "orden de selección"
     }
 
     submission_events {
@@ -109,7 +110,7 @@ erDiagram
 | `document_deletions` | Implementada | Cola transaccional de bajas, incluidas cascadas de borradores |
 | `sessions` | Planificada | Requiere el contexto `identity` |
 | `password_resets` | Planificada | Requiere el contexto `identity` |
-| `catalogs` | Planificada | Requiere el contexto `catalog` |
+| `catalogs` | Implementada | Migración `00008_catalogs.sql`, geografía y opciones EF-12 con padres UUID |
 | `submission_events` | Planificada | Auditoría append-only |
 
 Las tablas planificadas **no** están en el esquema actual: se crean con una
@@ -204,9 +205,26 @@ Tres propiedades que el proyecto usa a propósito:
 ## 3. Catálogo geográfico (semilla)
 
 El RF exige la cascada **País → Provincia → Cantón** con las **24 provincias**
-del Ecuador. La semilla vive en `apps/frontend/src/data/ecuadorGeo.ts` (fuente
-de verdad para el frontend) y se cargará en la tabla `catalogs` cuando se
-implemente el contexto `catalog` (migración `00003_catalogs.sql`).
+del Ecuador. T7 persiste los países de `submission/definition.json`, la geografía
+de `submission/geography.go` (idéntica a `apps/frontend/src/data/ecuadorGeo.ts`) y
+las opciones de dominio en la tabla `catalogs`, mediante `00008_catalogs.sql`.
+La tabla relaciona provincias con Ecuador y cantones con su provincia mediante
+`parent_id` UUID; `parent_key` permite consultas indexadas por tipo y padre.
+Una clave única `(kind, parent_key, value)` hace idempotente la semilla y evita
+mezclar cantones de igual nombre pertenecientes a provincias distintas.
+
+Entregables versionados:
+
+- `apps/backend/sql/migrations/00008_catalogs.sql`: DDL y semilla goose.
+- `apps/backend/sql/seeds/catalogs.sql`: DDL y semilla SQL autónoma, transaccional e
+  idempotente, lista para una base vacía de PostgreSQL 18 sin tablas de postulantes.
+- `apps/backend/sql/queries/schema.sql`: esquema completo que consume SQLC.
+
+Desde `apps/backend/`, `make catalog-seed` (o `go run ./cmd/catalog-seed`) regenera
+la migración y el SQL autónomo desde las fuentes EF-12. Después se regenera
+`schema.sql` y SQLC. Una migración ya desplegada no se reescribe para cambiar datos:
+se añade otra migración y se invalidan las claves `catalog:*` o se espera su TTL
+de 24 horas. Los catálogos no tienen edición pública.
 
 ### 3.1 Provincias y cantones (24 provincias · 221 cantones)
 
@@ -239,14 +257,47 @@ implemente el contexto `catalog` (migración `00003_catalogs.sql`).
 
 ### 3.2 Países del RF
 
-Lista mínima del RF, tal como se carga en el catálogo: Ecuador, Argentina,
-Bolivia, Brasil, Canadá, Chile, Colombia, Costa Rica, España, Estados Unidos,
-Francia, Italia, México, Panamá, Perú, Reino Unido, Uruguay y **"Otro
-país"**.
+Se persisten los **194 países enumerados en EF-12 1.2.1**, en el mismo orden y con
+sus nombres del RF. No se utiliza la antigua muestra local de 18 ni `Otro país`.
+La cabecera de página de la extracción se quitó del nombre `Bután`, sin cambiar
+`docs/requerimiento.txt`. Un test contrasta la lista semilla con el RF limpio.
 
-> El RF no cierra la lista de países: "Otro país" cubre el resto. En la
-> cascada, si el país no es Ecuador, provincia y cantón se ingresan
-> manualmente (HU-06).
+Si el país no es Ecuador, provincia y cantón se ingresan manualmente. La API
+devuelve listas geográficas vacías para esos países; no inventa sus divisiones.
+El contrato conserva arrays de nombres; `EC` es un alias HTTP de `Ecuador`.
+
+### 3.3 Diferencias entre los cantones del RF y el catálogo de 221 entradas
+
+Se conserva el catálogo del proyecto que ya validan los formularios, más amplio
+que la lista parcial de EF-12 1.2.3. Los siguientes cantones no están enumerados
+en esa lista parcial y se mantienen en la semilla:
+
+| Provincia | Entradas conservadas además de la lista del RF |
+|---|---|
+| Azuay | El Pan, Guachapala, Nabón, Oña, Paute, San Fernando, Sevilla de Oro |
+| Chimborazo | Chambo |
+| Guayas | Alfredo Baquerizo Moreno (Juján), Balao, General Antonio Elizalde (Bucay), Marcelino Maridueña, Palestina, Santa Lucía |
+| Loja | Olmedo, Pindal, Quilanga |
+| Los Ríos | Quinsaloma |
+| Morona Santiago | Huamboya, Logroño, Pablo Sexto |
+| Santa Elena | Salinas |
+
+También se conservan las etiquetas compatibles existentes: `Ponce Enríquez`
+frente a `Camilo Ponce Enríquez`, `Sigsig` frente a `Sígsig`, `Alausi` frente a
+`Alausí`, `Veinticuatro de Mayo` frente a `24 de Mayo` y nombres con cabeceras
+entre paréntesis como `Sucre (Bahía)`, `Morona (Macas)`, `Quijos (Baeza)`,
+`Francisco de Orellana (El Coca)`, `Pastaza (Puyo)`, `Lago Agrio (Nueva Loja)`,
+`Mejía (Machachi)`, `Pedro Moncayo (Tabacundo)` y `Rumiñahui (Sangolquí)`.
+Estos son los valores de captura del proyecto; T7 no los renombra ni altera
+snapshots enviados. La cifra de 221 describe este catálogo versionado.
+
+### 3.4 Catálogos de dominio
+
+Además de geografía se persisten **47 opciones en doce grupos**: géneros, estados
+civiles, respuestas Sí/No, parentescos, instituciones IESS/BIESS, sectores,
+niveles, tipos de institución, áreas, tipos de experiencia, publicaciones y eventos.
+Se generan desde `submission/definition.json` y se publican por
+`GET /api/v1/catalogs/options/{name}`, con el mismo TTL y fallback PostgreSQL.
 
 ---
 

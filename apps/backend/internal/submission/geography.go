@@ -1,6 +1,6 @@
 package submission
 
-/** Catálogo del formulario, idéntico a src/data/ecuadorGeo.ts; T7 lo persistirá. */
+/** Catálogo del formulario, idéntico a src/data/ecuadorGeo.ts y a la semilla SQL de T7. */
 var ecuadorProvinces = map[string][]string{
 	"Azuay":                          {"Cuenca", "Chordeleg", "El Pan", "Girón", "Guachapala", "Gualaceo", "Nabón", "Oña", "Paute", "Ponce Enríquez", "Pucará", "San Fernando", "Santa Isabel", "Sevilla de Oro", "Sigsig"},
 	"Bolívar":                        {"Guaranda", "Caluma", "Chillanes", "Chimbo", "Echeandía", "Las Naves", "San Miguel"},

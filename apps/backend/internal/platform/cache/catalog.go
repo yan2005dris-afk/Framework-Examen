@@ -2,23 +2,25 @@ package cache
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
-// CatalogTTL es el tiempo de vida de los catálogos geográficos en caché.
+// CatalogTTL es el tiempo de vida de los catálogos geográficos y de dominio en caché.
 const CatalogTTL = 24 * time.Hour
 
 /**
- * CatalogStore gestiona la caché de catálogos geográficos (países, provincias
- * y cantones). Reduce las consultas a PostgreSQL para datos que cambian muy
+ * CatalogStore gestiona la caché de geografía y opciones EF-12. Reduce
+ * las consultas a PostgreSQL para datos que cambian muy
  * poco: el TTL es de 24 horas.
  *
  * Claves:
  *   - catalog:countries
  *   - catalog:provinces:{pais}
  *   - catalog:cities:{pais}:{provincia}
+ *   - catalog:options:{nombre}
  */
 type CatalogStore struct {
 	cache Cache
@@ -36,34 +38,46 @@ func NewCatalogStore(c Cache) *CatalogStore {
 
 /**
  * GetOrSet devuelve el valor cacheado para la clave dada.
- * Si la clave no existe, llama a fetch para obtenerlo, lo guarda con el TTL
+ * Si falta la clave, contiene datos inválidos o falla Redis, llama a fetch
+ * para obtener la lista, la guarda con el TTL
  * de catálogos y lo devuelve.
  *
  * @param {Context} ctx - Contexto de la petición.
  * @param {string} key - Clave del catálogo.
  * @param {func} fetch - Función que carga el valor cuando no está en caché.
  * @returns {string} Valor en JSON del catálogo.
- * @throws {error} Error de Redis o de la función fetch.
+ * @throws {error} Error de la fuente PostgreSQL; Redis es prescindible.
  */
 func (s *CatalogStore) GetOrSet(ctx context.Context, key string, fetch func() (string, error)) (string, error) {
-	val, err := s.cache.Get(ctx, key)
-	if err == nil {
-		return val, nil
+	if err := ctx.Err(); err != nil {
+		return "", err
 	}
-	if !errors.Is(err, ErrNotFound) {
-		return "", fmt.Errorf("catalog: Get(%q): %w", key, err)
+	if s.cache != nil {
+		val, err := s.cache.Get(ctx, key)
+		var values []string
+		if err == nil && json.Unmarshal([]byte(val), &values) == nil && values != nil {
+			valid := true
+			for _, value := range values {
+				if strings.TrimSpace(value) == "" {
+					valid = false
+					break
+				}
+			}
+			if valid {
+				return val, nil
+			}
+		}
 	}
 
-	// Cache miss: cargar desde la fuente.
+	// Miss, dato corrupto o fallo de Redis: consultar la fuente con el contexto original.
 	fresh, err := fetch()
 	if err != nil {
 		return "", fmt.Errorf("catalog: fetch(%q): %w", key, err)
 	}
 
 	// Guardar en caché; si falla no es un error fatal: la petición igual responde.
-	if setErr := s.cache.Set(ctx, key, fresh, CatalogTTL); setErr != nil {
-		// Solo registramos el fallo; no bloqueamos la respuesta.
-		_ = setErr
+	if s.cache != nil {
+		_ = s.cache.Set(ctx, key, fresh, CatalogTTL)
 	}
 
 	return fresh, nil

@@ -76,6 +76,7 @@ Desde `apps/frontend/` también funcionan `pnpm dev`, `pnpm build`, `pnpm lint`,
 - `make db-migrate` / `make db-status` / `make db-down` / `make db-reset` — migraciones goose
 - `make sqlc-generate` — regenera `internal/platform/sqlcgen` desde `sql/queries`
 - `make db-schema` — regenera `sql/queries/schema.sql` desde las migraciones
+- `make catalog-seed` — regenera la migración `00008` y `sql/seeds/catalogs.sql` desde la definición/geografía EF-12 (no reescribir migraciones ya desplegadas)
 - `make test` / `make vet` / `make fmt` / `make tidy`
 
 ### Componentes shadcn
@@ -294,3 +295,5 @@ decisión que afecte cómo se trabaja en el repo.
 
 | 2026-10-31 | Tres roles y política administrativa explícita en `identity/permissions.go` | Toda ruta administrativa vive en `/api/v1/admin/`, usa sesión y permiso por operación; los permisos desconocidos se deniegan. Las rutas del postulante conservan titularidad. La lectura administrativa solo entrega snapshots enviados y URLs temporales tras registrar auditoría. |
 | 2026-10-31 | Cambios de rol auditados por trigger y confirmados en transacción | El registro OTP siempre crea postulantes. El PATCH de roles exige administrador vigente bajo bloqueo; la CLI de alta inicial exige operador y motivo. Los historiales de acceso y rol rechazan modificación/borrado. T8 completa retención y consulta del historial. |
+
+| 2026-10-31 | Catálogos persistidos con semilla reproducible y caché Redis prescindible | T7 conserva 194 países RF, 24 provincias, 221 cantones del catálogo existente y opciones EF-12. `cmd/catalog-seed` genera migración y SQL autónomo desde la definición/geografía. Redis usa 24 h; errores y entradas inválidas consultan PostgreSQL. Las listas usan las claves `paises`/`provincias`/`cantones`/`opciones`; se admiten filtros y las rutas geográficas con segmentos del cliente existente. `EC` es alias HTTP de Ecuador. |

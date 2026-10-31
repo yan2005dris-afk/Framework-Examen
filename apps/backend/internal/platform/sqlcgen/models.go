@@ -48,6 +48,15 @@ type ApplicantRoleEvent struct {
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
+type Catalog struct {
+	ID        uuid.UUID   `json:"id"`
+	Kind      string      `json:"kind"`
+	ParentKey string      `json:"parent_key"`
+	ParentID  pgtype.UUID `json:"parent_id"`
+	Value     string      `json:"value"`
+	Position  int32       `json:"position"`
+}
+
 type Document struct {
 	ID           uuid.UUID `json:"id"`
 	SubmissionID uuid.UUID `json:"submission_id"`

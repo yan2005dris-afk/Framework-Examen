@@ -366,22 +366,45 @@ rol es optativo con `AUTHORIZATION_TEST_DATABASE_URL`; no se ejecutó sin esa va
 
 > **Criterio 3 — Caché de catálogos (parte de los 6 pts)**
 
-- [ ] `GET /api/v1/catalogs/countries`, `/provinces`, `/cities`.
-- [ ] Se sirven desde Redis con TTL de 24 h; ante un fallo de Redis, se
+- [x] `GET /api/v1/catalogs/countries`, `/provinces`, `/cities`.
+- [x] Se sirven desde Redis con TTL de 24 h; ante un fallo de Redis, se
       responde desde PostgreSQL (fail-open).
-- [ ] La tabla `catalogs` incluye todos los países enumerados en EF-12 1.2.1,
+- [x] La tabla `catalogs` incluye todos los países enumerados en EF-12 1.2.1,
       las 24 provincias y su relación con ciudades/cantones. Conservar el catálogo
       nacional de 221 cantones y documentar diferencias con la lista parcial del RF;
       no reducir países a la antigua semilla de 18. Usar una migración idempotente.
-- [ ] **Entregable del examen**: existe un `.sql` con el DDL completo y los
+- [x] **Entregable del examen**: existe un `.sql` con el DDL completo y los
       datos semilla de la división política, listo para ejecutarse sobre una
       base vacía. El DDL vive en `apps/backend/sql/migrations/`; el seed, en
       una migración idempotente (`INSERT ... ON CONFLICT DO NOTHING`) y, en
       forma plana, en `apps/backend/sql/seeds/`.
 
-- [ ] Publicar los catálogos de dominio de EF-12: parentescos, IESS/BIESS, niveles
+- [x] Publicar los catálogos de dominio de EF-12: parentescos, IESS/BIESS, niveles
       de estudio, áreas, tipo Nacional/Extranjera, experiencia General/Dirección,
       publicaciones y Curso/Seminario/Taller, sin opciones inventadas.
+
+**T7 completada (2026-10-31)**: contexto `internal/catalog/` con puertos, servicio,
+HTTP y adaptador SQLC. Catálogos protegidos por sesión, disponibles para los tres
+roles; listas bajo `paises`/`provincias`/`cantones` compatibles con el cliente existente.
+Se admiten las rutas con query y las rutas geográficas con segmentos que ese
+cliente ya utiliza. La cascada exige
+padres válidos y devuelve listas vacías para geografía extranjera de captura libre.
+`GET /api/v1/catalogs/options/{name}` entrega los doce grupos bajo `opciones`.
+
+`00008_catalogs.sql` y `sql/seeds/catalogs.sql` contienen los 194 países del RF,
+24 provincias, 221 cantones y 47 opciones de dominio. La semilla es idempotente,
+usa UUIDv7 y referencias a padres; el SQL autónomo incluye DDL y puede ejecutarse
+en una base vacía de PostgreSQL 18. `make catalog-seed` regenera ambos desde la
+definición EF-12 y la geografía existente. La extracción de `Bután` se corrigió
+para no tratar la cabecera de página como parte de un país.
+
+**Verificación**: tests Go de `catalog`, `platform/cache` y `submission` correctos,
+incluida la compilación mediante tests de los comandos afectados. Cubren hit/miss,
+expiración exacta de 24 h, fallos de lectura/escritura Redis, caché corrupta,
+cancelación, fuente persistente fallida, filtros, roles y coincidencia de la semilla
+con el RF. Las pruebas PostgreSQL de migración/SQL autónomo, idempotencia, UUIDv7,
+orden, padres y cobertura se habilitan con `CATALOG_TEST_DATABASE_URL`; no se
+ejecutaron sin esa variable. No se iniciaron servicios ni se cambió código frontend.
 
 **Dependencias**: T1. **Frontend**: FT5. **Esfuerzo estimado**: 1,5 días.
 
@@ -431,7 +454,7 @@ rol es optativo con `AUTHORIZATION_TEST_DATABASE_URL`; no se ejecutó sin esa va
 
 ## 6. Orden de ejecución y relación con la rúbrica
 
-1. Sobre T1–T6 disponibles, completar catálogos y endurecer OTP: T7, T16.
+1. Sobre T1–T7 disponibles, endurecer OTP: T16.
 2. Configurar convocatorias y políticas (T18/T28), cerrar elegibilidad T17 y
    formulario final T19, con la base de notificaciones persistentes T15/T23.
 3. Completar auditoría/revisión e implementar requisitos y méritos: T8–T9, T20.
@@ -698,8 +721,8 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | EF-11.4–6, ADR-008 | Registro, login y recuperación con OTP por correo | T1–T2, T16 | FT3, FT16 | Base OTP y vistas disponibles; consolidación T16/FT16 pendiente |
 | EF-12, primer ingreso | Entrada obligatoria al formulario | T2, T18 | FT2–FT3 | Guard base; cerrar flujo funcional |
 | EF-12 1.1 | Datos personales/cónyuge y nacionalidad; precarga de cuenta OTP | T3, T17 | FT5, FT16–FT17 | Tipado base; autocompletado civil sustituido por datos declarados |
-| EF-12 1.2 | Países completos, cascada, correo registrado y dirección | T3, T7 | FT5 | Falta cerrar catálogos y vistas |
-| EF-12 1.3 | Familiares y opciones exactas de parentesco/institución | T3, T7 | FT5 | Base tipada; vista y catálogos pendientes |
+| EF-12 1.2 | Países completos, cascada, correo registrado y dirección | T3, T7 | FT5 | Catálogos backend completos; integración de vistas pendiente |
+| EF-12 1.3 | Familiares y opciones exactas de parentesco/institución | T3, T7 | FT5 | Opciones backend disponibles; integración visual pendiente |
 | EF-12 1.4 | Cargo, elegibilidad, mensajes, cierre y organización | T3–T4, T17–T18 | FT5, FT17–FT18 | Sustituir elegibilidad declarada por fuente del servidor |
 | EF-12 1.5–1.8 | Títulos, experiencia/calculadora, publicaciones y capacitación | T3–T4, T7 | FT5, FT18 | Backend base; vistas y adjuntos integrados pendientes |
 | EF-12 1.9 | Trece respuestas, detalles de remoción y revisión | T3, T20 | FT5, FT19 | Declaraciones base; revisión administrativa pendiente |
