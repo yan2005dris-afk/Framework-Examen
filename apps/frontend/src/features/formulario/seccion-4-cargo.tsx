@@ -1,4 +1,9 @@
-import { AlertCircleIcon, BriefcaseIcon, CheckCircle2Icon, InfoIcon } from "lucide-react"
+import {
+  AlertCircleIcon,
+  BriefcaseIcon,
+  CheckCircle2Icon,
+  InfoIcon,
+} from "lucide-react"
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -90,26 +95,35 @@ export function Seccion4Cargo({
             <AlertCircleIcon className="size-5 text-destructive shrink-0 mt-0.5" />
             <div>
               <h3 className="font-semibold text-destructive">
-                {elegibilidad.mensaje || "Postulante No Elegible para el Sector"}
+                {elegibilidad.mensaje ||
+                  "Postulante No Elegible para el Sector"}
               </h3>
               <p className="text-xs text-destructive/90 mt-1">
-                Su postulación para el sector seleccionado no puede continuar por no cumplir los
-                requisitos legales de elegibilidad.
+                Su postulación para el sector seleccionado no puede continuar
+                por no cumplir los requisitos legales de elegibilidad.
               </p>
             </div>
           </div>
 
           <div className="rounded border bg-background/80 p-3 text-xs space-y-1.5 font-sans">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Sector seleccionado:</span>
-              <span className="font-medium capitalize">{elegibilidad.sector || datos.sector}</span>
+              <span className="text-muted-foreground">
+                Sector seleccionado:
+              </span>
+              <span className="font-medium capitalize">
+                {elegibilidad.sector || datos.sector}
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Resultado de interoperabilidad:</span>
+              <span className="text-muted-foreground">
+                Resultado de interoperabilidad:
+              </span>
               <span className="font-medium">{elegibilidad.mensaje}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Origen de verificación:</span>
+              <span className="text-muted-foreground">
+                Origen de verificación:
+              </span>
               <span className="font-mono text-muted-foreground">
                 {elegibilidad.origen === "simulacion_controlada_servidor"
                   ? "simulación controlada del servidor"
@@ -117,16 +131,21 @@ export function Seccion4Cargo({
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Estado de la postulación:</span>
-              <span className="font-semibold text-destructive">Cerrada automáticamente</span>
+              <span className="text-muted-foreground">
+                Estado de la postulación:
+              </span>
+              <span className="font-semibold text-destructive">
+                Cerrada automáticamente
+              </span>
             </div>
           </div>
 
           <div className="rounded bg-muted/60 p-3 text-xs text-muted-foreground">
             <p className="font-medium text-foreground">¿Qué puede hacer?</p>
             <p className="mt-0.5">
-              Si considera que el resultado es incorrecto, puede presentar un reclamo ante la
-              Comisión Especial dentro del plazo de la convocatoria.
+              Si considera que el resultado es incorrecto, puede presentar un
+              reclamo ante la Comisión Especial dentro del plazo de la
+              convocatoria.
             </p>
           </div>
         </div>

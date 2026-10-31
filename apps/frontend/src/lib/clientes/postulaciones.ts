@@ -11,12 +11,7 @@ import type { Pagina, PaginaCursor } from "@/types/api"
  * - `rejected`: no aprobada.
  */
 export type EstadoPostulacion =
-  | "draft"
-  | "submitted"
-  | "closed"
-  | "under_review"
-  | "approved"
-  | "rejected"
+  "draft" | "submitted" | "closed" | "under_review" | "approved" | "rejected"
 
 /**
  * Evaluación de elegibilidad proporcionada por el servidor.

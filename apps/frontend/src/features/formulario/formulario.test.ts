@@ -181,7 +181,9 @@ describe("Formulario EF-12 (FT5 / FT6)", () => {
       let estadoPostulacion: "draft" | "closed" = "draft"
       let mensajeAdvertencia: string | null = null
 
-      async function procesarRespuestaGuardado(codigoError: string): Promise<void> {
+      async function procesarRespuestaGuardado(
+        codigoError: string,
+      ): Promise<void> {
         if (codigoError === "postulacion_cerrada_elegibilidad") {
           estadoPostulacion = "closed"
         } else if (codigoError === "elegibilidad_no_disponible") {

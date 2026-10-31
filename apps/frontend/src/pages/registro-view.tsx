@@ -174,13 +174,17 @@ export function RegistroView() {
       if (esErrorApi(err)) {
         if (err.esBloqueoIntentos()) {
           setBloqueadoExpiraEn(err.retryAt ?? new Date(Date.now() + 600_000))
-          setErrorGeneral(err.mensaje || "registro fallido, intente nuevamente en 10 minutos")
+          setErrorGeneral(
+            err.mensaje || "registro fallido, intente nuevamente en 10 minutos",
+          )
         } else if (err.esConflicto()) {
           setErrorGeneral(
             "El postulante o correo ya se encuentra registrado. Inicie sesión directamente.",
           )
         } else {
-          setErrorGeneral(err.mensaje || "la información ingresada es incorrecta")
+          setErrorGeneral(
+            err.mensaje || "la información ingresada es incorrecta",
+          )
         }
       } else {
         setErrorGeneral("No fue posible conectar con el servidor.")
@@ -192,7 +196,8 @@ export function RegistroView() {
 
   // ── Paso 2: reenviar OTP ─────────────────────────────────────────────────
   async function manejarReenviarOtp() {
-    if (estaBloqueado || reenviandoOtp || cargando || reenvioDisponibleEn > 0) return
+    if (estaBloqueado || reenviandoOtp || cargando || reenvioDisponibleEn > 0)
+      return
     setReenviandoOtp(true)
     setErrorGeneral(null)
 
@@ -209,14 +214,20 @@ export function RegistroView() {
       if (esErrorApi(err)) {
         if (err.esBloqueoIntentos()) {
           setBloqueadoExpiraEn(err.retryAt ?? new Date(Date.now() + 600_000))
-          setErrorGeneral(err.mensaje || "registro fallido, intente nuevamente en 10 minutos")
+          setErrorGeneral(
+            err.mensaje || "registro fallido, intente nuevamente en 10 minutos",
+          )
         } else if (err.esReenvioLimitado()) {
           // Usar el Retry-After del servidor
           const espera = err.retryAfterSeg ?? 60
           iniciarCooldownReenvio(espera)
-          setErrorGeneral(`Espere ${espera} segundos antes de reenviar el código.`)
+          setErrorGeneral(
+            `Espere ${espera} segundos antes de reenviar el código.`,
+          )
         } else {
-          setErrorGeneral(err.mensaje || "No fue posible reenviar el código de verificación.")
+          setErrorGeneral(
+            err.mensaje || "No fue posible reenviar el código de verificación.",
+          )
         }
       } else {
         setErrorGeneral("No fue posible conectar con el servidor.")
@@ -253,9 +264,14 @@ export function RegistroView() {
       if (esErrorApi(err)) {
         if (err.esBloqueoIntentos()) {
           setBloqueadoExpiraEn(err.retryAt ?? new Date(Date.now() + 600_000))
-          setErrorGeneral(err.mensaje || "registro fallido, intente nuevamente en 10 minutos")
+          setErrorGeneral(
+            err.mensaje || "registro fallido, intente nuevamente en 10 minutos",
+          )
         } else {
-          setErrorOtp(err.mensaje || "El código de verificación es incorrecto o ha expirado.")
+          setErrorOtp(
+            err.mensaje ||
+              "El código de verificación es incorrecto o ha expirado.",
+          )
         }
       } else {
         setErrorGeneral("No fue posible conectar con el servidor.")
@@ -291,7 +307,9 @@ export function RegistroView() {
       !evaluacionPass.cumpleNumero ||
       !evaluacionPass.cumpleEspecial
     ) {
-      setErrorPassword("La contraseña no cumple con todos los requisitos de seguridad.")
+      setErrorPassword(
+        "La contraseña no cumple con todos los requisitos de seguridad.",
+      )
       valido = false
     } else {
       setErrorPassword(null)
@@ -339,16 +357,20 @@ export function RegistroView() {
         } else if (err.codigo === "otp_invalido" || err.esNoAutorizado()) {
           // OTP incorrecto: volver al paso 2
           const mensajeOtp =
-            err.mensaje || "El código de verificación es incorrecto o ha expirado."
+            err.mensaje ||
+            "El código de verificación es incorrecto o ha expirado."
           setErrorOtp(mensajeOtp)
           setErrorGeneral(mensajeOtp)
           setPaso(2)
         } else if (err.codigo === "postulante_existente" || err.esConflicto()) {
           setErrorGeneral(
-            err.mensaje || "Ya existe un postulante registrado con este número de cédula.",
+            err.mensaje ||
+              "Ya existe un postulante registrado con este número de cédula.",
           )
         } else {
-          setErrorGeneral(err.mensaje || "Código de verificación incorrecto o expirado.")
+          setErrorGeneral(
+            err.mensaje || "Código de verificación incorrecto o expirado.",
+          )
         }
       } else {
         setErrorGeneral("No fue posible conectar con el servidor.")
@@ -380,7 +402,8 @@ export function RegistroView() {
             {paso === 4 ? "¡Registro completado!" : "Registro de postulante"}
           </CardTitle>
           <CardDescription>
-            {paso === 1 && "Paso 1 de 3: Ingrese su cédula y correo de contacto"}
+            {paso === 1 &&
+              "Paso 1 de 3: Ingrese su cédula y correo de contacto"}
             {paso === 2 && "Paso 2 de 3: Ingrese el código enviado a su correo"}
             {paso === 3 && "Paso 3 de 3: Cree su contraseña de acceso"}
             {paso === 4 && "Su cuenta fue creada y su sesión está activa"}
@@ -484,7 +507,8 @@ export function RegistroView() {
                   </p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Se enviará un código de verificación de 6 dígitos a este correo.
+                  Se enviará un código de verificación de 6 dígitos a este
+                  correo.
                 </p>
               </div>
             </CardContent>
@@ -572,11 +596,20 @@ export function RegistroView() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="otp">Código de verificación (6 dígitos)</Label>
+                  <Label htmlFor="otp">
+                    Código de verificación (6 dígitos)
+                  </Label>
                   <button
                     type="button"
-                    onClick={() => { void manejarReenviarOtp() }}
-                    disabled={cargando || reenviandoOtp || estaBloqueado || reenvioDisponibleEn > 0}
+                    onClick={() => {
+                      void manejarReenviarOtp()
+                    }}
+                    disabled={
+                      cargando ||
+                      reenviandoOtp ||
+                      estaBloqueado ||
+                      reenvioDisponibleEn > 0
+                    }
                     className="flex items-center gap-1 text-xs font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {reenviandoOtp ? (
@@ -685,7 +718,9 @@ export function RegistroView() {
                     value={nombres}
                     disabled={cargando || estaBloqueado}
                     aria-invalid={Boolean(errorNombres)}
-                    aria-describedby={errorNombres ? "nombres-error" : undefined}
+                    aria-describedby={
+                      errorNombres ? "nombres-error" : undefined
+                    }
                     onChange={(e) => {
                       setNombres(e.target.value)
                       if (errorNombres) setErrorNombres(null)
@@ -709,7 +744,9 @@ export function RegistroView() {
                     value={apellidos}
                     disabled={cargando || estaBloqueado}
                     aria-invalid={Boolean(errorApellidos)}
-                    aria-describedby={errorApellidos ? "apellidos-error" : undefined}
+                    aria-describedby={
+                      errorApellidos ? "apellidos-error" : undefined
+                    }
                     onChange={(e) => {
                       setApellidos(e.target.value)
                       if (errorApellidos) setErrorApellidos(null)
@@ -717,7 +754,10 @@ export function RegistroView() {
                     required
                   />
                   {errorApellidos && (
-                    <p id="apellidos-error" className="text-xs text-destructive">
+                    <p
+                      id="apellidos-error"
+                      className="text-xs text-destructive"
+                    >
                       {errorApellidos}
                     </p>
                   )}
@@ -735,7 +775,9 @@ export function RegistroView() {
                     value={password}
                     disabled={cargando || estaBloqueado}
                     aria-invalid={Boolean(errorPassword)}
-                    aria-describedby={errorPassword ? "password-error" : undefined}
+                    aria-describedby={
+                      errorPassword ? "password-error" : undefined
+                    }
                     onChange={(e) => {
                       setPassword(e.target.value)
                       if (errorPassword) setErrorPassword(null)
@@ -749,7 +791,9 @@ export function RegistroView() {
                     onClick={() => setMostrarPassword(!mostrarPassword)}
                     disabled={cargando || estaBloqueado}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
-                    aria-label={mostrarPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                    aria-label={
+                      mostrarPassword ? "Ocultar contraseña" : "Ver contraseña"
+                    }
                   >
                     {mostrarPassword ? (
                       <EyeOffIcon className="size-4" />
@@ -777,7 +821,9 @@ export function RegistroView() {
                   value={confirmarPassword}
                   disabled={cargando || estaBloqueado}
                   aria-invalid={Boolean(errorConfirmar)}
-                  aria-describedby={errorConfirmar ? "confirm-error" : undefined}
+                  aria-describedby={
+                    errorConfirmar ? "confirm-error" : undefined
+                  }
                   onChange={(e) => {
                     setConfirmarPassword(e.target.value)
                     if (errorConfirmar) setErrorConfirmar(null)
@@ -833,7 +879,8 @@ export function RegistroView() {
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">
                 Bienvenido/a,{" "}
-                {postulanteRegistrado?.nombre_completo || `${nombres} ${apellidos}`}
+                {postulanteRegistrado?.nombre_completo ||
+                  `${nombres} ${apellidos}`}
               </h3>
               <p className="text-sm text-muted-foreground">
                 Su cuenta fue registrada exitosamente con la cédula{" "}

@@ -238,7 +238,8 @@ export function PostulacionView() {
     )
   }
 
-  const yaEnviada = postulacionActiva && postulacionActiva.status === "submitted"
+  const yaEnviada =
+    postulacionActiva && postulacionActiva.status === "submitted"
   const estaCerrada = postulacionActiva && postulacionActiva.status === "closed"
   const noModificable = yaEnviada || Boolean(estaCerrada)
 
@@ -249,7 +250,9 @@ export function PostulacionView() {
     if (!postulacionActiva?.id) return false
 
     if (estaCerrada) {
-      toast.error("La postulación se encuentra cerrada y no admite modificaciones.")
+      toast.error(
+        "La postulación se encuentra cerrada y no admite modificaciones.",
+      )
       return false
     }
 
@@ -292,7 +295,8 @@ export function PostulacionView() {
       if (esErrorApi(err)) {
         if (
           err.codigo === "postulacion_cerrada_elegibilidad" ||
-          (err.esConflicto() && err.mensaje.toLowerCase().includes("elegibilidad"))
+          (err.esConflicto() &&
+            err.mensaje.toLowerCase().includes("elegibilidad"))
         ) {
           toast.error(
             "La postulación no puede continuar por no cumplir los criterios de elegibilidad del sector.",
@@ -300,7 +304,10 @@ export function PostulacionView() {
           void recargarPostulaciones()
           return false
         }
-        if (err.codigo === "elegibilidad_no_disponible" || err.esServicioNoDisponible()) {
+        if (
+          err.codigo === "elegibilidad_no_disponible" ||
+          err.esServicioNoDisponible()
+        ) {
           toast.warning(
             "La verificación de elegibilidad no está disponible temporalmente. Puede continuar editando y volver a intentar más tarde.",
           )
@@ -377,33 +384,43 @@ export function PostulacionView() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Sector:</span>
               <span className="font-medium capitalize">
-                {postulacionActiva.elegibilidad?.sector || formData.seccion4.sector}
+                {postulacionActiva.elegibilidad?.sector ||
+                  formData.seccion4.sector}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Resultado:</span>
               <span className="font-medium">
-                {postulacionActiva.elegibilidad?.mensaje || "No cumple condiciones de elegibilidad"}
+                {postulacionActiva.elegibilidad?.mensaje ||
+                  "No cumple condiciones de elegibilidad"}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Origen de verificación:</span>
+              <span className="text-muted-foreground">
+                Origen de verificación:
+              </span>
               <span className="font-mono text-muted-foreground">
-                {postulacionActiva.elegibilidad?.origen === "simulacion_controlada_servidor"
+                {postulacionActiva.elegibilidad?.origen ===
+                "simulacion_controlada_servidor"
                   ? "simulación controlada del servidor"
                   : postulacionActiva.elegibilidad?.origen || "servidor"}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Estado del expediente:</span>
-              <span className="font-semibold text-destructive">Cerrada automáticamente</span>
+              <span className="text-muted-foreground">
+                Estado del expediente:
+              </span>
+              <span className="font-semibold text-destructive">
+                Cerrada automáticamente
+              </span>
             </div>
           </div>
 
           <div className="flex items-center justify-between gap-3 pt-1">
             <p className="text-xs text-muted-foreground">
-              Si considera que el resultado es incorrecto, puede presentar un reclamo ante la Comisión
-              Especial dentro del plazo de la convocatoria.
+              Si considera que el resultado es incorrecto, puede presentar un
+              reclamo ante la Comisión Especial dentro del plazo de la
+              convocatoria.
             </p>
             <Button asChild variant="secondary" size="sm">
               <Link to={RUTAS.inicio}>Volver a la convocatoria</Link>

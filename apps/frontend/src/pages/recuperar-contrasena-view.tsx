@@ -126,7 +126,9 @@ export function RecuperarContrasenaView() {
     setCargando(true)
 
     try {
-      const challenge = await solicitarRecuperacionPassword({ cedula: cedula.trim() })
+      const challenge = await solicitarRecuperacionPassword({
+        cedula: cedula.trim(),
+      })
       setDesafio(challenge)
       iniciarCooldownReenvio(60)
       setPaso(2)
@@ -138,7 +140,9 @@ export function RecuperarContrasenaView() {
       if (esErrorApi(err)) {
         if (err.esBloqueoIntentos()) {
           setBloqueadoExpiraEn(err.retryAt ?? new Date(Date.now() + 600_000))
-          setErrorGeneral(err.mensaje || "registro fallido, intente nuevamente en 10 minutos")
+          setErrorGeneral(
+            err.mensaje || "registro fallido, intente nuevamente en 10 minutos",
+          )
         } else if (err.esReenvioLimitado()) {
           const espera = err.retryAfterSeg ?? 60
           iniciarCooldownReenvio(espera)
@@ -161,12 +165,15 @@ export function RecuperarContrasenaView() {
 
   // ── Reenviar OTP (Paso 2) ────────────────────────────────────────────────
   async function manejarReenviarOtp() {
-    if (estaBloqueado || reenviandoOtp || cargando || reenvioDisponibleEn > 0) return
+    if (estaBloqueado || reenviandoOtp || cargando || reenvioDisponibleEn > 0)
+      return
     setReenviandoOtp(true)
     setErrorGeneral(null)
 
     try {
-      const challenge = await solicitarRecuperacionPassword({ cedula: cedula.trim() })
+      const challenge = await solicitarRecuperacionPassword({
+        cedula: cedula.trim(),
+      })
       setDesafio(challenge)
       iniciarCooldownReenvio(60)
       toast.success("Código de recuperación reenviado a su correo.")
@@ -174,13 +181,19 @@ export function RecuperarContrasenaView() {
       if (esErrorApi(err)) {
         if (err.esBloqueoIntentos()) {
           setBloqueadoExpiraEn(err.retryAt ?? new Date(Date.now() + 600_000))
-          setErrorGeneral(err.mensaje || "registro fallido, intente nuevamente en 10 minutos")
+          setErrorGeneral(
+            err.mensaje || "registro fallido, intente nuevamente en 10 minutos",
+          )
         } else if (err.esReenvioLimitado()) {
           const espera = err.retryAfterSeg ?? 60
           iniciarCooldownReenvio(espera)
-          setErrorGeneral(`Espere ${espera} segundos antes de reenviar el código.`)
+          setErrorGeneral(
+            `Espere ${espera} segundos antes de reenviar el código.`,
+          )
         } else {
-          setErrorGeneral(err.mensaje || "No fue posible reenviar el código de recuperación.")
+          setErrorGeneral(
+            err.mensaje || "No fue posible reenviar el código de recuperación.",
+          )
         }
       } else {
         setErrorGeneral("No fue posible conectar con el servidor.")
@@ -218,7 +231,9 @@ export function RecuperarContrasenaView() {
       !evaluacionPass.cumpleNumero ||
       !evaluacionPass.cumpleEspecial
     ) {
-      setErrorPassword("La contraseña no cumple con todos los requisitos de seguridad.")
+      setErrorPassword(
+        "La contraseña no cumple con todos los requisitos de seguridad.",
+      )
       valido = false
     } else {
       setErrorPassword(null)
@@ -262,12 +277,16 @@ export function RecuperarContrasenaView() {
           )
         } else if (err.codigo === "otp_invalido" || err.esNoAutorizado()) {
           const mensajeOtp =
-            err.mensaje || "El código de verificación es incorrecto o ha expirado."
+            err.mensaje ||
+            "El código de verificación es incorrecto o ha expirado."
           setErrorOtp(mensajeOtp)
           setErrorGeneral(mensajeOtp)
           setPaso(2)
         } else if (err.codigo === "password_debil") {
-          setErrorPassword(err.mensaje || "La contraseña ingresada no es suficientemente segura.")
+          setErrorPassword(
+            err.mensaje ||
+              "La contraseña ingresada no es suficientemente segura.",
+          )
         } else {
           setErrorGeneral(
             err.mensaje || "No fue posible restablecer la contraseña.",
@@ -299,8 +318,10 @@ export function RecuperarContrasenaView() {
             {paso === 4 ? "Contraseña restablecida" : "Recuperar contraseña"}
           </CardTitle>
           <CardDescription>
-            {paso === 1 && "Paso 1 de 3: Confirme su identidad ingresando su cédula"}
-            {paso === 2 && "Paso 2 de 3: Ingrese el código enviado a su correo registrado"}
+            {paso === 1 &&
+              "Paso 1 de 3: Confirme su identidad ingresando su cédula"}
+            {paso === 2 &&
+              "Paso 2 de 3: Ingrese el código enviado a su correo registrado"}
             {paso === 3 && "Paso 3 de 3: Defina su nueva contraseña de acceso"}
             {paso === 4 && "Su contraseña ha sido actualizada exitosamente"}
           </CardDescription>
@@ -361,7 +382,9 @@ export function RecuperarContrasenaView() {
                   disabled={cargando || estaBloqueado}
                   aria-invalid={Boolean(errorCedula)}
                   aria-describedby={
-                    errorCedula ? "cedula-recuperar-error" : "cedula-recuperar-hint"
+                    errorCedula
+                      ? "cedula-recuperar-error"
+                      : "cedula-recuperar-hint"
                   }
                   onChange={(e) => {
                     const limpio = e.target.value.replace(/\D/g, "")
@@ -372,7 +395,10 @@ export function RecuperarContrasenaView() {
                   autoComplete="username"
                   required
                 />
-                <p className="text-xs text-muted-foreground" id="cedula-recuperar-hint">
+                <p
+                  className="text-xs text-muted-foreground"
+                  id="cedula-recuperar-hint"
+                >
                   La cédula con la que se registró en el portal.
                 </p>
                 {errorCedula && (
@@ -424,8 +450,9 @@ export function RecuperarContrasenaView() {
                   <span>Código de recuperación enviado</span>
                 </div>
                 <p className="mt-1 text-muted-foreground">
-                  Si la cédula <strong>{cedula}</strong> corresponde a una cuenta registrada,
-                  enviamos un código de 6 dígitos a su correo electrónico.
+                  Si la cédula <strong>{cedula}</strong> corresponde a una
+                  cuenta registrada, enviamos un código de 6 dígitos a su correo
+                  electrónico.
                 </p>
               </div>
 
@@ -468,8 +495,15 @@ export function RecuperarContrasenaView() {
                   </Label>
                   <button
                     type="button"
-                    onClick={() => { void manejarReenviarOtp() }}
-                    disabled={cargando || reenviandoOtp || estaBloqueado || reenvioDisponibleEn > 0}
+                    onClick={() => {
+                      void manejarReenviarOtp()
+                    }}
+                    disabled={
+                      cargando ||
+                      reenviandoOtp ||
+                      estaBloqueado ||
+                      reenvioDisponibleEn > 0
+                    }
                     className="flex items-center gap-1 text-xs font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {reenviandoOtp ? (
@@ -498,7 +532,9 @@ export function RecuperarContrasenaView() {
                   disabled={cargando || estaBloqueado}
                   className="text-center font-mono text-lg tracking-widest"
                   aria-invalid={Boolean(errorOtp)}
-                  aria-describedby={errorOtp ? "otp-recuperar-error" : undefined}
+                  aria-describedby={
+                    errorOtp ? "otp-recuperar-error" : undefined
+                  }
                   onChange={(e) => {
                     const limpio = e.target.value.replace(/\D/g, "")
                     setCodigoOtp(limpio)
@@ -507,7 +543,10 @@ export function RecuperarContrasenaView() {
                   required
                 />
                 {errorOtp && (
-                  <p id="otp-recuperar-error" className="text-xs text-destructive">
+                  <p
+                    id="otp-recuperar-error"
+                    className="text-xs text-destructive"
+                  >
                     {errorOtp}
                   </p>
                 )}

@@ -91,7 +91,9 @@ describe("Cliente de Autenticación e Identidad (auth.ts)", () => {
         expect(err.codigo).toBe("reenvio_limitado")
         expect(err.esReenvioLimitado()).toBe(true)
         expect(err.retryAfterSeg).toBe(45)
-        expect(err.retryAt?.toISOString()).toBe(new Date(retryAtIso).toISOString())
+        expect(err.retryAt?.toISOString()).toBe(
+          new Date(retryAtIso).toISOString(),
+        )
       }
     }
   })
@@ -231,9 +233,13 @@ describe("Cliente de Autenticación e Identidad (auth.ts)", () => {
     })
     globalThis.fetch = mockFetch
 
-    const desafio = await solicitarRecuperacionPassword({ cedula: "0923456789" })
+    const desafio = await solicitarRecuperacionPassword({
+      cedula: "0923456789",
+    })
     expect(desafio.desafioId).toBe("desafio-recup-123")
-    expect(desafio.expiraEn.toISOString()).toBe(new Date(expiraIso).toISOString())
+    expect(desafio.expiraEn.toISOString()).toBe(
+      new Date(expiraIso).toISOString(),
+    )
 
     const [url1] = mockFetch.mock.calls[0] as [string, RequestInit]
     expect(url1).toBe("/api/v1/auth/password/forgot")
