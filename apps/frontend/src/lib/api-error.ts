@@ -34,6 +34,13 @@ export class ErrorApi extends Error {
   }
 
   /**
+   * Mensaje legible del error en español. Alias de `message`.
+   */
+  get mensaje(): string {
+    return this.message
+  }
+
+  /**
    * Indica si la petición fue rechazada por falta o expiración de sesión (401).
    */
   esNoAutorizado(): boolean {

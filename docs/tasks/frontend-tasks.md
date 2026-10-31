@@ -198,14 +198,14 @@ export async function obtenerPostulaciones(
 
 **Criterios de aceptación**
 
-- [] El formulario da feedback **inmediato** por campo (al perder el foco) y
+- [x] El formulario da feedback **inmediato** por campo (al perder el foco) y
       en el envío.
-- [] Hay un estado de carga en el botón de envío, deshabilitado para evitar
+- [x] Hay un estado de carga en el botón de envío, deshabilitado para evitar
       el doble envío.
-- [] Los mensajes del RF son literales.
-- [] El formulario es navegable por teclado y los errores se anuncian a
+- [x] Los mensajes del RF son literales.
+- [x] El formulario es navegable por teclado y los errores se anuncian a
       lectores de pantalla.
-- [] Mostrar intentos restantes y vencimiento solo si los informa el servidor;
+- [x] Mostrar intentos restantes y vencimiento solo si los informa el servidor;
       no inventar contadores o un tiempo nuevo en cada recarga (FT16/T16).
 
 **Esfuerzo estimado**: 3 días.
