@@ -11,7 +11,7 @@ Contrato HTTP v1.0
 | TRD asociado | [`../trd/TRD.md`](../trd/TRD.md) |
 
 > **Estado**: este documento describe el contrato **vigente** (el contexto
-> `identity`, `submission`, `document` y los endpoints transversales) y **anticipa** el de los contextos
+> `identity`, `submission`, `document`, `catalog` y los endpoints transversales) y **anticipa** el de los contextos
 > que faltan. Los endpoints marcados como *planificado* todavía no existen en
 > el servidor: su forma está declarada para que el frontend y el backend se
 > desarrollen en paralelo sin sorpresas.
@@ -814,16 +814,69 @@ pública. Exige operador y motivo; no imprime cédulas ni datos de la cuenta.
 
 ---
 
-## 6. Contexto `catalog` (planificado)
+## 6. Contexto `catalog` (T7 implementado)
 
 | Método | Ruta | Descripción | Caché |
 |---|---|---|---|
 | `GET` | `/api/v1/catalogs/countries` | Lista de países | `catalog:countries` (24 h) |
 | `GET` | `/api/v1/catalogs/provinces?country=EC` | Provincias del país | `catalog:provinces:{country}` (24 h) |
 | `GET` | `/api/v1/catalogs/cities?country=EC&province=Pichincha` | Cantones de la provincia | `catalog:cities:{country}:{province}` (24 h) |
+| `GET` | `/api/v1/catalogs/options/{name}` | Opciones de dominio del EF-12 | `catalog:options:{name}` (24 h) |
+| `GET` | `/api/v1/catalogs/provinces/{country}` | Ruta compatible con el cliente existente | Misma clave canónica de provincias |
+| `GET` | `/api/v1/catalogs/cities/{country}/{province}` | Ruta compatible con el cliente existente | Misma clave canónica de cantones |
 
-Todas devuelven un array JSON plano y se sirven desde Redis cuando la caché
-está tibia.
+Requieren sesión y admiten los tres roles. Devuelven arrays de nombres bajo las
+claves que ya consume `clientes/catalogos.ts`: `paises`, `provincias`, `cantones`.
+Las opciones de dominio usan `opciones`. No se exponen IDs internos:
+
+```json
+{ "opciones": ["IESS", "BIESS"] }
+```
+
+El contrato planificado usaba arrays planos, pero el cliente implementado espera
+estas claves y rutas con segmentos. T7 conserva esa compatibilidad y también
+publica las rutas con filtros. Ambas variantes comparten servicio, validación y
+caché; no hay que cambiar el cliente existente para empezar a consumirlas.
+
+Países: los 194 del RF EF-12 1.2.1, en su orden original. Se eliminó la cabecera de
+página que había quedado mezclada con `Bután` en la extracción del documento.
+No se ofrece la antigua muestra de 18 países ni la opción inventada `Otro país`.
+Provincias/cantones: las 24/221 entradas del catálogo existente, con su relación
+persistente y sus etiquetas compatibles con los formularios actuales.
+
+`country` es obligatorio para provincias/cantones, como filtro o segmento. Acepta `EC` o `Ecuador` para
+Ecuador; los demás países se indican por su nombre del catálogo, no por un código
+ISO supuesto. Se normalizan espacios exteriores y mayúsculas/minúsculas.
+`province` es obligatorio para cantones y debe ser una provincia ecuatoriana válida
+si el país es Ecuador. Para países extranjeros válidos, provincias/cantones
+devuelven listas vacías (`{"provincias":[]}` / `{"cantones":[]}`): esos campos se
+capturan manualmente, como exige el RF. La provincia
+se convierte a su etiqueta canónica antes de construir la clave de caché.
+
+`name` admite: `generos`, `estadosCiviles`, `respuestas`, `parentescos`,
+`instituciones`, `sectores`, `niveles`, `tiposInstitucion`, `areas`,
+`tiposExperiencia`, `tiposPublicacion` y `tiposEvento`. Sus valores y orden coinciden
+con `submission/definition.json`; no añaden opciones al RF.
+
+PostgreSQL es la fuente persistente y Redis usa TTL de 24 horas. Un miss, error de
+lectura/escritura, Redis desactivado o JSON cacheado inválido no bloquea la consulta
+a PostgreSQL. Las entradas inválidas se reemplazan si Redis permite escribir.
+Una lectura de caché válida evita consultar PostgreSQL para esa lista; una caída
+de la base sin entrada cacheada produce un error controlado, sin cachear el fallo.
+
+| HTTP | `codigo` | Situación |
+|---:|---|---|
+| 400 | `filtro_catalogo_invalido` | Filtros ausentes, desconocidos, duplicados o país/provincia inválidos |
+| 401 / 403 | Códigos de sesión / `acceso_denegado` | Sesión o rol no admitidos |
+| 404 | `catalogo_no_encontrado` | Nombre de catálogo de dominio desconocido |
+| 503 | `catalogo_no_disponible` | Falló la fuente persistente sin lista utilizable en caché |
+
+En las rutas con segmentos no se admiten filtros adicionales, para evitar padres
+contradictorios entre ruta y query string.
+
+Los endpoints no usan paginación: entregan listas de selección acotadas completas.
+El SQL y las diferencias de cobertura respecto al RF están en
+[`../database/SCHEMA.md`](../database/SCHEMA.md). La integración visual sigue en FT5.
 
 ---
 

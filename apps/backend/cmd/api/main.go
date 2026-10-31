@@ -13,6 +13,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	auditpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/audit/postgres"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/catalog"
+	catalogpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/catalog/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/document"
 	documentpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/document/postgres"
 
@@ -168,6 +170,7 @@ func main() {
 		router.Group(func(r chi.Router) {
 			r.Use(identity.RequireSession(identityService))
 			r.Use(identity.ProtectAdministration)
+			catalog.NewHandler(catalog.NewService(catalogpostgres.NewRepository(queries), cache.NewCatalogStore(cacheClient))).RegisterRoutes(r)
 			identity.RegisterRoleRoutes(r, identity.NewRoleService(identityRepo))
 			submission.NewHandler(submissionService).RegisterRoutes(r)
 			document.NewHandler(documentService).RegisterRoutes(r)
