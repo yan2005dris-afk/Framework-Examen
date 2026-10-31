@@ -179,7 +179,7 @@ Raíz del repo:
 
 ## Testing instructions
 
-- No hay framework de tests configurado todavía en el frontend.
+- El frontend usa Vitest para lógica pura y casos de duración compartidos con Go (`internal/submission/testdata/duration_cases.json`).
 - Antes de abrir una PR: `pnpm lint` y `pnpm build` deben pasar en verde.
 - La lógica de negocio va acompañada de tests en su módulo: Vitest en frontend,
   `_test.go` en backend (`go test ./...`).
@@ -275,3 +275,6 @@ decisión que afecte cómo se trabaja en el repo.
 | 2026-10-30 | En Go: identificadores en inglés y comentarios en español con JSDoc | Código legible para el equipo sin perder el idioma del dominio. |
 | 2026-10-30 | El hash del envío se calcula sobre el JSON canónico (claves ordenadas) | El mismo formulario debe producir el mismo hash sin importar el orden de las claves. |
 | 2026-10-30 | Paginación con dos estrategias sobre un kernel compartido (offset y cursor por keyset) | Offset para listados acotados ("mis postulaciones") y cursor para el dashboard de revisión, donde el `OFFSET` y el `count(*)` se degradan con cientos de miles de postulaciones. El cursor es opaco y la clave de orden vive en el contexto, no en el kernel. |
+
+| 2026-10-31 | EF-12 tipado con JSON compatible con frontend, guardado parcial por sección y sello con bloqueo de fila | Los borradores admiten campos pendientes; el envío exige las nueve secciones y cinco consentimientos. `SELECT FOR UPDATE` serializa cambios y envío; el hash canoniza objetos anidados. |
+| 2026-10-31 | Confirmación SMTP posterior al commit del envío | Un fallo de correo no deshace un sello confirmado. El destinatario es la cuenta registrada; los reintentos persistentes quedan para T15. |

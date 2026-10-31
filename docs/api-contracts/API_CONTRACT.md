@@ -62,6 +62,7 @@ Contrato HTTP v1.0
   decidir qué hacer (mensaje, redirección, reintento).
 - `mensaje` — texto en español destined al usuario final.
 - `detalle` — opcional, array de strings; hoy no se usa.
+- Las reglas EF-12 incluyen la ruta del campo o sección en el mensaje, sin valores personales.
 
 ### 1.5 Paginación
 
@@ -145,6 +146,7 @@ forma se definirá cuando exista.
 | 405 | `metodo_no_permitido` | El método no aplica a esa ruta |
 | 409 | `postulacion_no_editable` | La postulación ya fue enviada |
 | 409 | `codigo_duplicado` | Ya existe una postulación con ese código |
+| 400 | `seccion_invalida` | La sección solicitada no está entre 1 y 9 |
 | 413 | `cuerpo_muy_grande` | El cuerpo supera `MAX_REQUEST_BODY_BYTES` (10 MiB) |
 | 415 | `tipo_no_soportado` | El adjunto no es un PDF válido |
 | 422 | `regla_de_negocio` | Una validación del RF falla (nacionalidad, sector, límites) |
@@ -195,6 +197,8 @@ Rutas registradas por `internal/submission/handler.go`:
 | `GET` | `/api/v1/submissions/{id}` | Obtiene una postulación |
 | `PUT` | `/api/v1/submissions/{id}` | Reemplaza el contenido de una postulación editable |
 | `DELETE` | `/api/v1/submissions/{id}` | Elimina una postulación no enviada |
+| `POST` | `/api/v1/submissions/{id}/sections/{n}` | Guarda parcialmente una de las nueve secciones y devuelve el progreso |
+| `POST` | `/api/v1/submissions/{id}/submit` | Valida, sella y notifica el envío |
 
 ### 3.1 `POST /api/v1/submissions`
 
@@ -205,8 +209,8 @@ ordenadas) antes de persistirse.
 
 | Campo | Tipo | Obligatorio | Descripción |
 |---|---|---|---|
-| `applicantId` | string (UUID) | sí | Postulante dueño de la postulación |
-| `code` | string | sí | Código visible; si se omite, la API lo genera (`EF12-AAAA-XXXXXX`) |
+| `applicantId` | string (UUID) | no | Se toma de la sesión; si se incluye debe coincidir con ella |
+| `code` | string | no | Código visible; si se omite, la API lo genera (`EF12-AAAA-XXXXXX`) |
 | `content` | objeto JSON | sí | Secciones del formulario EF-12 |
 
 ```bash
@@ -216,7 +220,7 @@ curl -X POST http://localhost:8080/api/v1/submissions \
     "applicantId": "11111111-1111-1111-1111-111111111111",
     "code": "EF12-2026-A1B2C3",
     "content": {
-      "seccion1": { "nombres": "Ana", "apellidos": "Pérez", "nacionalidad": "ecuatoriana" },
+      "seccion1": { "nombres": "Ana", "apellidos": "Pérez", "nacionalidad": "Ecuatoriana" },
       "seccion2": { "pais": "Ecuador", "provincia": "Pichincha", "canton": "Quito" }
     }
   }'
@@ -231,7 +235,7 @@ curl -X POST http://localhost:8080/api/v1/submissions \
   "code": "EF12-2026-A1B2C3",
   "status": "draft",
   "content": {
-    "seccion1": { "apellidos": "Pérez", "nacionalidad": "ecuatoriana", "nombres": "Ana" },
+    "seccion1": { "apellidos": "Pérez", "nacionalidad": "Ecuatoriana", "nombres": "Ana" },
     "seccion2": { "canton": "Quito", "pais": "Ecuador", "provincia": "Pichincha" }
   },
   "createdAt": "2026-04-01T12:00:00Z",
@@ -253,7 +257,7 @@ curl -X POST http://localhost:8080/api/v1/submissions \
 
 ### 3.2 `GET /api/v1/submissions`
 
-Lista las postulaciones de un postulante. **Obligatorio**: `applicantId`.
+Lista las postulaciones del usuario autenticado. `applicantId` es opcional y, si se incluye, debe coincidir con la sesión; de otro modo responde `403 acceso_denegado`.
 
 ```bash
 # Offset
@@ -323,7 +327,7 @@ Reemplaza el contenido del formulario de una postulación **editable**.
 ```json
 {
   "content": {
-    "seccion5": { "nivel": "superior", "institucion": "Universidad Central del Ecuador" }
+    "seccion5": { "titulos": [] }
   }
 }
 ```
@@ -350,33 +354,152 @@ Elimina una postulación que **todavía no fue enviada**.
 
 ---
 
-## 4. Contexto `submission` (planificado)
+## 4. Guardado parcial y envío (`submission`, vigente)
 
-Estos endpoints completan el EF-12. El formato de petición y de respuesta es
-igual al anterior; se marcan como planificados porque el servidor aún no los
-expone.
+Todas las rutas de postulaciones exigen cookie de sesión. Solo su propietario
+puede consultar, guardar, enviar o eliminar el recurso (`403 acceso_denegado`
+para otra sesión). La cédula de `seccion1`, si se informa, debe ser la de la sesión.
+Los identificadores de postulaciones y postulantes se representan como UUIDv7.
 
-| Método | Ruta | Descripción | Requisito |
-|---|---|---|---|
-| `POST` | `/api/v1/submissions/{id}/submit` | Sella la postulación: calcula el hash, pasa a `submitted` y notifica por correo | RN-05, RN-06 |
-| `POST` | `/api/v1/submissions/{id}/documents` | Adjunta un PDF (multipart) validando MIME, tamaño por tipo y total | HU-07 |
-| `GET` | `/api/v1/submissions/{id}/documents` | Lista los adjuntos de la postulación | HU-07 |
-| `DELETE` | `/api/v1/documents/{id}` | Elimina un adjunto de una postulación editable | HU-07 |
-| `GET` | `/api/v1/submissions/{id}/print` | Vista imprimible del formulario con el espacio de firma | HU-11 |
+### 4.1 `POST /api/v1/submissions/{id}/sections/{n}`
 
-### 4.1 `POST /api/v1/submissions/{id}/submit`
+`n` es un entero de **1 a 9**. El cuerpo es directamente un objeto de la sección,
+sin envoltorio `content`. Ejemplo para la sección 2:
 
 ```json
 {
-  "id": "044d3694-4ca2-4d87-aa08-ed9e35482710",
-  "status": "submitted",
-  "hash": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
-  "submittedAt": "2026-04-01T13:30:00Z"
+  "pais": "Ecuador",
+  "provincia": "Pichincha",
+  "canton": "Quito"
 }
 ```
 
-El hash es el SHA-256 del contenido **canónico**; recalcularlo sobre el
-contenido almacenado debe dar el mismo valor.
+Se mezclan los campos con la versión almacenada: los omitidos se conservan,
+los objetos anidados se mezclan y las listas se reemplazan completas. `null`
+elimina un campo de la sección. Por ejemplo, para cambiar la respuesta 1.9.7:
+`{"q7":"No","q7Detalles":null}`. Las demás secciones no cambian.
+
+El guardado admite campos pendientes. Los valores presentes inválidos se
+rechazan con `422 regla_de_negocio`, sin persistir el cambio. Los campos
+obligatorios pendientes no cuentan como completos y bloquean el envío final.
+Las nueve secciones usan las claves y opciones de
+`apps/frontend/src/types/concurso.ts`; la API rechaza campos desconocidos y tipos
+incorrectos. Las fechas del formulario son `AAAA-MM-DD`, sin hora.
+
+La respuesta `200` es la postulación completa (§3) e incluye `progress`:
+
+```json
+{
+  "total": 9,
+  "completed": 2,
+  "percentage": 22,
+  "sections": [
+    { "number": 1, "complete": true },
+    { "number": 2, "complete": true },
+    { "number": 3, "complete": false },
+    { "number": 4, "complete": false },
+    { "number": 5, "complete": false },
+    { "number": 6, "complete": false },
+    { "number": 7, "complete": false },
+    { "number": 8, "complete": false },
+    { "number": 9, "complete": false }
+  ]
+}
+```
+
+Este objeto aparece en el campo `progress` de todas las respuestas de
+postulaciones. El porcentaje es `floor(completed * 100 / 9)`; los cinco
+consentimientos se comprueban por separado al enviar.
+
+| Sección | Clave | Validación principal |
+|---:|---|---|
+| 1 | `seccion1` | Nacionalidad `Ecuatoriana`, cédula válida, género, fecha y estado civil; pareja si está casado o en unión de hecho |
+| 2 | `seccion2` | País → provincia → cantón; en Ecuador se valida pertenencia al catálogo del formulario; en el extranjero, formato y longitud; teléfonos y correos |
+| 3 | `seccion3` | Sí/No; si responde Sí, al menos un familiar completo de IESS o BIESS |
+| 4 | `seccion4` | Sector `afiliados`, `jubilados` o `empleadores`, elegibilidad afirmativa y nombre de organización si declara respaldo |
+| 5 | `seccion5` | Al menos un título, nivel, tipo, área de estudio y registro SENESCYT |
+| 6 | `seccion6` | Al menos una experiencia, fechas ordenadas y funciones de hasta 1000 caracteres Unicode |
+| 7 | `seccion7` | Sí/No; las publicaciones declaradas llevan tipo, medio, fecha y relación con el campo |
+| 8 | `seccion8` | Lista explícita, que puede estar vacía; eventos completos, horas positivas y fechas ordenadas |
+| 9 | `seccion9` | Las trece respuestas Sí/No; con `q7 = Sí`, institución, cargo, fecha de fin y motivo |
+
+La duración se calcula en el servidor: `duracionCalculada` del cliente se
+reemplaza. Para un empleo actual se usa la fecha de Ecuador (UTC−5), y al enviar
+se vuelve a calcular y queda congelada en el sello. Go y TypeScript ejecutan
+los mismos casos de prueba para años, meses y días, incluidos febrero y bisiestos.
+
+**Límites de integración:** `verificacionIessCumplida` es actualmente un estado
+declarado por el cliente. Se valida la regla y se rechaza el estado negativo
+con el mensaje del RF, pero **todavía no se consulta al IESS**. Del mismo modo,
+`verificadoRegistroCivil` no acredita una consulta al Registro Civil. El catálogo
+geográfico replica la referencia local del frontend; su persistencia y caché
+corresponden a T7. Los metadatos `documentoPdf`/`documentoRespaldoPdf` no prueban
+que exista un archivo: la carga, obligatoriedad y validación real corresponden a T4.
+
+### 4.2 `POST /api/v1/submissions/{id}/submit`
+
+Puede enviarse con cuerpo vacío o `{}` si el consentimiento ya está guardado en
+`content.consentimiento` mediante `PUT`. También acepta las cinco declaraciones
+en la misma petición:
+
+```json
+{
+  "consentimiento": {
+    "aceptacionTratamientoDatos": true,
+    "declaracionVeracidad": true,
+    "aceptacionNormasConcurso": true,
+    "autorizacionPublicacionNombre": true,
+    "constanciaEntregaFisica": true
+  }
+}
+```
+
+Valida las nueve secciones completas y las cinco aceptaciones. Guarda en
+`content.consentimiento` los cinco textos literales del RF, `version` y
+`aceptadoEn` asignados por el servidor. La firma digitalizada y `fechaFirma`
+son opcionales: el RF exige entregar el impreso con firma manuscrita.
+
+La respuesta `200` contiene la postulación completa con `status: submitted`,
+`hash` SHA-256 de 64 caracteres y `submittedAt`. El JSON se canoniza
+**recursivamente**, también dentro de listas; cambiar el orden de claves no
+cambia el hash. Recalcular SHA-256 sobre el contenido canónico recuperado debe
+dar el mismo valor.
+
+Guardar y enviar se ejecutan con `SELECT ... FOR UPDATE` y commit transaccional.
+Un segundo envío responde `409` y no vuelve a notificar. `PUT`, el guardado por
+secciones y `DELETE` también responden `409` después del sello; el SQL impide
+modificar o borrar una fila enviada aunque compitan peticiones.
+
+Después del commit se envía un correo con código, fecha, hash y contenido
+sellado al correo **registrado en la cuenta**, no al destinatario aportado en el
+formulario. Si SMTP falla o no está configurado, el sello se conserva y la API
+responde `200`; se registra un aviso sin datos personales. La entrega es de mejor
+esfuerzo, sin cola persistente ni reintentos automáticos (T15).
+
+| HTTP | `codigo` | Causa |
+|---:|---|---|
+| 400 | `cuerpo_invalido` | JSON malformado, múltiples raíces o campos desconocidos del envoltorio |
+| 400 | `contenido_invalido` | Contenido no tipado, sección no objeto o campos desconocidos |
+| 400 | `seccion_invalida` | `n` no es un entero de 1 a 9 |
+| 401 | `no_autenticado` / `sesion_invalida` | Falta sesión o expiró |
+| 403 | `acceso_denegado` | Otra cuenta o cédula distinta de la sesión |
+| 404 | `postulacion_no_encontrada` | No existe la postulación |
+| 409 | `postulacion_no_editable` | Ya está sellada |
+| 422 | `regla_de_negocio` | Valor inválido, sección incompleta al enviar o consentimiento faltante |
+
+Las pruebas de PostgreSQL están en `internal/submission/postgres/repository_integration_test.go`.
+Se habilitan con `SUBMISSION_TEST_DATABASE_URL` contra una base de pruebas; crean y
+eliminan un esquema aislado. Cubren concurrencia, abortos, doble sellado, hash
+reproducible desde JSONB y rechazo de escrituras obsoletas.
+
+### 4.3 Endpoints pendientes (T4 y siguientes)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `POST` | `/api/v1/submissions/{id}/documents` | Adjunta un PDF validando MIME, tamaño y total |
+| `GET` | `/api/v1/submissions/{id}/documents` | Lista adjuntos |
+| `DELETE` | `/api/v1/documents/{id}` | Elimina un adjunto de un borrador |
+| `GET` | `/api/v1/submissions/{id}/print` | Formulario imprimible con espacio de firma |
 
 ---
 
@@ -462,8 +585,8 @@ está tibia.
 2. **Campos desconocidos: `400`.** El decoder usa `DisallowUnknownFields`, de
    modo que un error de tipeo del frontend se detecta en vez de ignorarse en
    silencio.
-3. **Los identificadores son UUID v4** generados por la aplicación.
-4. **Las fechas son RFC 3339 en UTC** (`2026-04-01T12:00:00Z`).
+3. **Los identificadores son UUIDv7** generados por la aplicación y por PostgreSQL 18.
+4. **Las marcas de tiempo son RFC 3339 en UTC** (`2026-04-01T12:00:00Z`); las fechas civiles del formulario son `AAAA-MM-DD`.
 5. **`hash` y `submittedAt` solo aparecen cuando la postulación fue enviada**
    (`omitempty`).
 6. **Toda respuesta lleva `X-Request-ID`**, incluso las de error.

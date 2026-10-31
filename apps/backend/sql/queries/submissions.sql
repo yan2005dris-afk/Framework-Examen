@@ -6,6 +6,9 @@ RETURNING *;
 -- name: GetSubmissionByID :one
 SELECT * FROM submissions WHERE id = $1;
 
+-- name: GetSubmissionForUpdate :one
+SELECT * FROM submissions WHERE id = $1 FOR UPDATE;
+
 -- name: ListSubmissionsByApplicant :many
 SELECT * FROM submissions WHERE applicant_id = $1 ORDER BY updated_at DESC LIMIT $2 OFFSET $3;
 

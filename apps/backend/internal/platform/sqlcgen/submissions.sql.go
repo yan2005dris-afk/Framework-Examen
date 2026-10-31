@@ -98,6 +98,27 @@ func (q *Queries) GetSubmissionByID(ctx context.Context, id uuid.UUID) (Submissi
 	return i, err
 }
 
+const getSubmissionForUpdate = `-- name: GetSubmissionForUpdate :one
+SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at FROM submissions WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetSubmissionForUpdate(ctx context.Context, id uuid.UUID) (Submission, error) {
+	row := q.db.QueryRow(ctx, getSubmissionForUpdate, id)
+	var i Submission
+	err := row.Scan(
+		&i.ID,
+		&i.ApplicantID,
+		&i.Code,
+		&i.Status,
+		&i.Content,
+		&i.Hash,
+		&i.SubmittedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listSubmissionsByApplicant = `-- name: ListSubmissionsByApplicant :many
 SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at FROM submissions WHERE applicant_id = $1 ORDER BY updated_at DESC LIMIT $2 OFFSET $3
 `

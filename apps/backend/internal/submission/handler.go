@@ -1,14 +1,18 @@
 package submission
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
 
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/httpx"
 	shareddomain "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/shared/domain"
@@ -40,9 +44,14 @@ func (h *Handler) RegisterRoutes(router chi.Router) {
 	router.Route("/api/v1/submissions", func(r chi.Router) {
 		r.Post("/", h.create)
 		r.Get("/", h.list)
-		r.Get("/{id}", h.get)
-		r.Put("/{id}", h.update)
-		r.Delete("/{id}", h.delete)
+		r.Route("/{id}", func(r chi.Router) {
+			r.Use(h.requireOwner)
+			r.Get("/", h.get)
+			r.Put("/", h.update)
+			r.Delete("/", h.delete)
+			r.Post("/sections/{n}", h.saveSection)
+			r.Post("/submit", h.submit)
+		})
 	})
 }
 
@@ -53,15 +62,20 @@ func (h *Handler) RegisterRoutes(router chi.Router) {
  * @param {http.Request} request - Petición recibida.
  */
 func (h *Handler) create(writer http.ResponseWriter, request *http.Request) {
+	actor, ok := identity.ApplicantFromContext(request.Context())
+	if !ok {
+		httpx.RespondError(writer, request, 401, "no_autenticado", "Debe iniciar sesión.")
+		return
+	}
 	var body CreateRequest
 	if err := decodeJSON(request, &body); err != nil {
 		httpx.RespondError(writer, request, http.StatusBadRequest, "cuerpo_invalido", "El cuerpo de la petición no es válido.")
 		return
 	}
 
-	applicantID, err := uuid.Parse(body.ApplicantID)
-	if err != nil {
-		httpx.RespondError(writer, request, http.StatusBadRequest, "postulante_invalido", "El postulante indicado no es válido.")
+	applicantID := actor.ID
+	if body.ApplicantID != "" && body.ApplicantID != actor.ID.String() {
+		writeError(writer, request, ErrForbidden)
 		return
 	}
 
@@ -87,9 +101,14 @@ func (h *Handler) create(writer http.ResponseWriter, request *http.Request) {
  * @param {http.Request} request - Petición recibida.
  */
 func (h *Handler) list(writer http.ResponseWriter, request *http.Request) {
-	applicantID, err := uuid.Parse(request.URL.Query().Get("applicantId"))
-	if err != nil {
-		httpx.RespondError(writer, request, http.StatusBadRequest, "postulante_invalido", "El postulante indicado no es válido.")
+	actor, ok := identity.ApplicantFromContext(request.Context())
+	if !ok {
+		httpx.RespondError(writer, request, 401, "no_autenticado", "Debe iniciar sesión.")
+		return
+	}
+	applicantID := actor.ID
+	if value := request.URL.Query().Get("applicantId"); value != "" && value != actor.ID.String() {
+		writeError(writer, request, ErrForbidden)
 		return
 	}
 
@@ -228,11 +247,26 @@ func (h *Handler) delete(writer http.ResponseWriter, request *http.Request) {
  * @returns {Error} Error de deserialización si el cuerpo no es válido.
  */
 func decodeJSON(request *http.Request, target any) error {
-	decoder := json.NewDecoder(request.Body)
+	raw, err := io.ReadAll(request.Body)
+	if err != nil {
+		return fmt.Errorf("no se pudo leer el cuerpo de la petición: %w", err)
+	}
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 {
+		return io.EOF
+	}
+	if trimmed[0] != '{' {
+		return fmt.Errorf("%w: el cuerpo debe ser un objeto JSON", ErrInvalidContent)
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(trimmed))
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(target); err != nil {
 		return fmt.Errorf("no se pudo leer el cuerpo de la petición: %w", err)
+	}
+	if err := decoder.Decode(new(json.RawMessage)); err != io.EOF {
+		return ErrInvalidContent
 	}
 	return nil
 }
@@ -246,6 +280,12 @@ func decodeJSON(request *http.Request, target any) error {
  */
 func writeError(writer http.ResponseWriter, request *http.Request, err error) {
 	switch {
+	case errors.Is(err, ErrForbidden):
+		httpx.RespondError(writer, request, http.StatusForbidden, "acceso_denegado", "La postulación pertenece a otro postulante.")
+	case errors.Is(err, ErrBusinessRule):
+		httpx.RespondError(writer, request, http.StatusUnprocessableEntity, "regla_de_negocio", err.Error())
+	case errors.Is(err, ErrInvalidSection):
+		httpx.RespondError(writer, request, http.StatusBadRequest, "seccion_invalida", ErrInvalidSection.Error())
 	case errors.Is(err, ErrNotFound):
 		httpx.RespondError(writer, request, http.StatusNotFound, "postulacion_no_encontrada", "La postulación no existe.")
 	case errors.Is(err, ErrNotEditable):
@@ -264,4 +304,75 @@ func writeError(writer http.ResponseWriter, request *http.Request, err error) {
 		slog.ErrorContext(request.Context(), "error no controlado en postulaciones", "error", err)
 		httpx.RespondError(writer, request, http.StatusInternalServerError, "error_interno", "Ocurrió un error al procesar la solicitud.")
 	}
+}
+
+/** requireOwner comprueba la sesión y la titularidad antes de acceder al recurso. */
+func (h *Handler) requireOwner(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		actor, ok := identity.ApplicantFromContext(r.Context())
+		if !ok {
+			httpx.RespondError(w, r, 401, "no_autenticado", "Debe iniciar sesión.")
+			return
+		}
+		id, err := uuid.Parse(chi.URLParam(r, "id"))
+		if err != nil {
+			writeError(w, r, ErrInvalidIdentifier)
+			return
+		}
+		item, err := h.service.Get(r.Context(), id)
+		if err != nil {
+			writeError(w, r, err)
+			return
+		}
+		if item.ApplicantID != actor.ID {
+			writeError(w, r, ErrForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+/** saveSection guarda campos de una sección y devuelve el avance recalculado. */
+func (h *Handler) saveSection(w http.ResponseWriter, r *http.Request) {
+	id, _ := uuid.Parse(chi.URLParam(r, "id"))
+	n, err := strconv.Atoi(chi.URLParam(r, "n"))
+	if err != nil {
+		writeError(w, r, ErrInvalidSection)
+		return
+	}
+	var content json.RawMessage
+	if err := decodeJSON(r, &content); err != nil {
+		httpx.RespondError(w, r, 400, "cuerpo_invalido", "El cuerpo de la petición no es válido.")
+		return
+	}
+	actor, _ := identity.ApplicantFromContext(r.Context())
+	if n == 1 && actor != nil && actor.IDCard.String() != "" {
+		var sec PersonalSection
+		if err := json.Unmarshal(content, &sec); err == nil && sec.IDCard != "" && sec.IDCard != actor.IDCard.String() {
+			writeError(w, r, ErrForbidden)
+			return
+		}
+	}
+	item, err := h.service.SaveSection(r.Context(), id, n, content)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, NewResponse(item))
+}
+
+/** submit recibe las aceptaciones finales y devuelve el formulario sellado. */
+func (h *Handler) submit(w http.ResponseWriter, r *http.Request) {
+	id, _ := uuid.Parse(chi.URLParam(r, "id"))
+	var body SubmitRequest
+	if err := decodeJSON(r, &body); err != nil && !errors.Is(err, io.EOF) {
+		httpx.RespondError(w, r, 400, "cuerpo_invalido", "El cuerpo de la petición no es válido.")
+		return
+	}
+	item, err := h.service.Submit(r.Context(), id, body.Consent)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, NewResponse(item))
 }

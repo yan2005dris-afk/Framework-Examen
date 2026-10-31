@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/db"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
 )
@@ -22,7 +23,8 @@ import (
  * Repository es el adaptador de persistencia de postulaciones.
  */
 type Repository struct {
-	queries *sqlcgen.Queries
+	queries      *sqlcgen.Queries
+	transactions *db.TxManager
 }
 
 /**
@@ -31,8 +33,12 @@ type Repository struct {
  * @param {sqlcgen.Queries} queries - Queries generadas desde sql/queries.
  * @returns {Repository} Adaptador listo para usar.
  */
-func NewRepository(queries *sqlcgen.Queries) *Repository {
-	return &Repository{queries: queries}
+func NewRepository(queries *sqlcgen.Queries, txManager ...*db.TxManager) *Repository {
+	r := &Repository{queries: queries}
+	if len(txManager) > 0 {
+		r.transactions = txManager[0]
+	}
+	return r
 }
 
 /**
@@ -212,6 +218,40 @@ func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+/**
+ * Mutate bloquea la fila desde la lectura hasta el commit para serializar
+ * guardados y envíos. El callback no recibe infraestructura.
+ * @param {function} change - Cambio y validación sobre la versión vigente.
+ * @returns {Submission, error} Entidad confirmada o error con rollback.
+ */
+func (r *Repository) Mutate(ctx context.Context, id uuid.UUID, change func(*submission.Submission) error) (*submission.Submission, error) {
+	if r.transactions == nil {
+		return nil, errors.New("transacciones no configuradas")
+	}
+	var item *submission.Submission
+	err := r.transactions.WithinTx(ctx, func(tx pgx.Tx) error {
+		queries := r.queries.WithTx(tx)
+		row, err := queries.GetSubmissionForUpdate(ctx, id)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return submission.ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		item = &submission.Submission{}
+		applyRow(item, row)
+		if err := change(item); err != nil {
+			return err
+		}
+		adapter := &Repository{queries: queries}
+		return adapter.Update(ctx, item)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return item, nil
 }
 
 /**

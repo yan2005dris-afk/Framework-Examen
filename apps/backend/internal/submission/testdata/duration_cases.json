@@ -1,0 +1,11 @@
+[
+  { "start": "2020-01-01", "end": "2021-03-15", "anios": 1, "meses": 2, "dias": 14, "texto": "1 año, 2 meses, 14 días" },
+  { "start": "2024-02-29", "end": "2024-02-29", "anios": 0, "meses": 0, "dias": 0, "texto": "0 días" },
+  { "start": "2020-02-29", "end": "2021-02-28", "anios": 0, "meses": 11, "dias": 30, "texto": "11 meses, 30 días" },
+  { "start": "2023-01-31", "end": "2023-03-01", "anios": 0, "meses": 0, "dias": 29, "texto": "29 días" },
+  { "start": "2024-01-31", "end": "2024-03-01", "anios": 0, "meses": 0, "dias": 30, "texto": "30 días" },
+  { "start": "2023-12-15", "end": "2024-01-14", "anios": 0, "meses": 0, "dias": 30, "texto": "30 días" },
+  { "start": "2020-01-31", "end": "2020-02-29", "anios": 0, "meses": 0, "dias": 29, "texto": "29 días" },
+  { "start": "2020-01-01", "end": "2021-01-01", "anios": 1, "meses": 0, "dias": 0, "texto": "1 año" },
+  { "start": "2020-01-01", "end": "2020-02-02", "anios": 0, "meses": 1, "dias": 1, "texto": "1 mes, 1 día" }
+]
