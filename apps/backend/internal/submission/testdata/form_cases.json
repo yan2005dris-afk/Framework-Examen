@@ -1,0 +1,931 @@
+{
+  "ahora": "2026-10-31T16:00:00Z",
+  "base": {
+    "seccion1": {
+      "nombres": "Persona",
+      "apellidos": "Prueba",
+      "cedula": "1710034008",
+      "genero": "Femenino",
+      "fechaNacimiento": "1990-01-01",
+      "nacionalidad": "Ecuatoriana",
+      "estadoCivil": "Soltero/a"
+    },
+    "seccion2": {
+      "pais": "Ecuador",
+      "provincia": "Pichincha",
+      "canton": "Quito",
+      "telefonoCelular": "0999999999",
+      "correo1": "prueba@example.test",
+      "callePrincipal": "Principal",
+      "numero": "S/N",
+      "calleSecundaria": "Secundaria",
+      "sector": "Centro",
+      "referencia": "Parque",
+      "telefonoDomiciliario": "022222222"
+    },
+    "seccion3": {
+      "tieneFamiliaresIessBiess": "No",
+      "familiares": []
+    },
+    "seccion4": {
+      "sector": "afiliados",
+      "verificacionIessCumplida": true,
+      "cuentaConRespaldoOrganizacion": "No"
+    },
+    "seccion5": {
+      "titulos": [
+        {
+          "id": "titulo-1",
+          "nivel": "Tercer Nivel de Grado",
+          "institucion": "Universidad de prueba",
+          "tipo": "Nacional",
+          "titulo": "Economista",
+          "area": "Economía",
+          "registroSenescyt": "PRUEBA",
+          "fechaRegistroSenescyt": "2015-01-01"
+        }
+      ]
+    },
+    "seccion6": {
+      "experiencias": [
+        {
+          "id": "experiencia-1",
+          "tipo": "General",
+          "cargo": "Analista",
+          "institucion": "Entidad",
+          "fechaInicio": "2020-01-01",
+          "fechaFin": "2021-03-15",
+          "actividades": "Finanzas",
+          "descripcionFunciones": "Funciones de prueba"
+        }
+      ]
+    },
+    "seccion7": {
+      "cuentaConPublicaciones": "No",
+      "publicaciones": []
+    },
+    "seccion8": {
+      "capacitaciones": []
+    },
+    "seccion9": {
+      "q1": "Sí",
+      "q2": "No",
+      "q3": "No",
+      "q4": "No",
+      "q5": "No",
+      "q6": "No",
+      "q7": "No",
+      "q8": "No",
+      "q9": "No",
+      "q10": "No",
+      "q11": "No",
+      "q12": "No",
+      "q13": "No"
+    },
+    "consentimiento": {
+      "aceptacionTratamientoDatos": true,
+      "declaracionVeracidad": true,
+      "aceptacionNormasConcurso": true,
+      "autorizacionPublicacionNombre": true,
+      "constanciaEntregaFisica": true
+    }
+  },
+  "casos": [
+    {
+      "nombre": "Formulario completo sin firma digital",
+      "completo": true,
+      "valido": true
+    },
+    {
+      "nombre": "Borrador vacío",
+      "completo": false,
+      "valido": true,
+      "borrador": true
+    },
+    {
+      "nombre": "Falta sección 1",
+      "completo": true,
+      "valido": false,
+      "borrar": [
+        "seccion1"
+      ]
+    },
+    {
+      "nombre": "Falta sección 2",
+      "completo": true,
+      "valido": false,
+      "borrar": [
+        "seccion2"
+      ]
+    },
+    {
+      "nombre": "Falta sección 3",
+      "completo": true,
+      "valido": false,
+      "borrar": [
+        "seccion3"
+      ]
+    },
+    {
+      "nombre": "Falta sección 4",
+      "completo": true,
+      "valido": false,
+      "borrar": [
+        "seccion4"
+      ]
+    },
+    {
+      "nombre": "Falta sección 5",
+      "completo": true,
+      "valido": false,
+      "borrar": [
+        "seccion5"
+      ]
+    },
+    {
+      "nombre": "Falta sección 6",
+      "completo": true,
+      "valido": false,
+      "borrar": [
+        "seccion6"
+      ]
+    },
+    {
+      "nombre": "Falta sección 7",
+      "completo": true,
+      "valido": false,
+      "borrar": [
+        "seccion7"
+      ]
+    },
+    {
+      "nombre": "Falta sección 8",
+      "completo": true,
+      "valido": false,
+      "borrar": [
+        "seccion8"
+      ]
+    },
+    {
+      "nombre": "Falta sección 9",
+      "completo": true,
+      "valido": false,
+      "borrar": [
+        "seccion9"
+      ]
+    },
+    {
+      "nombre": "Nacionalidad no admitida",
+      "completo": false,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion1.nacionalidad",
+          "valor": "Extranjera"
+        }
+      ]
+    },
+    {
+      "nombre": "Pareja pendiente",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion1.estadoCivil",
+          "valor": "Casado/a"
+        }
+      ]
+    },
+    {
+      "nombre": "Pareja declarada",
+      "completo": true,
+      "valido": true,
+      "parches": [
+        {
+          "ruta": "seccion1.estadoCivil",
+          "valor": "Unión de hecho"
+        },
+        {
+          "ruta": "seccion1.nombreConyuge",
+          "valor": "Persona de prueba"
+        },
+        {
+          "ruta": "seccion1.cedulaConyuge",
+          "valor": "1710034016"
+        }
+      ]
+    },
+    {
+      "nombre": "Cédula ajena al formato",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion1.cedula",
+          "valor": "1710034008x"
+        }
+      ]
+    },
+    {
+      "nombre": "Nacimiento imposible",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion1.fechaNacimiento",
+          "valor": "2000-02-30"
+        }
+      ]
+    },
+    {
+      "nombre": "Nacimiento futuro",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion1.fechaNacimiento",
+          "valor": "2027-01-01"
+        }
+      ]
+    },
+    {
+      "nombre": "Provincia inventada",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion2.provincia",
+          "valor": "Inventada"
+        }
+      ]
+    },
+    {
+      "nombre": "Cantón de otra provincia",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion2.canton",
+          "valor": "Guayaquil"
+        }
+      ]
+    },
+    {
+      "nombre": "País extranjero con ubicación manual",
+      "completo": true,
+      "valido": true,
+      "parches": [
+        {
+          "ruta": "seccion2.pais",
+          "valor": "España"
+        },
+        {
+          "ruta": "seccion2.provincia",
+          "valor": "Madrid"
+        },
+        {
+          "ruta": "seccion2.canton",
+          "valor": "Alcalá de Henares"
+        }
+      ]
+    },
+    {
+      "nombre": "País fuera del catálogo",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion2.pais",
+          "valor": "Inventado"
+        }
+      ]
+    },
+    {
+      "nombre": "Correo secundario opcional",
+      "completo": true,
+      "valido": true,
+      "parches": [
+        {
+          "ruta": "seccion2.correo2",
+          "valor": ""
+        }
+      ]
+    },
+    {
+      "nombre": "Correo secundario inválido",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion2.correo2",
+          "valor": "correo"
+        }
+      ]
+    },
+    {
+      "nombre": "Contacto requerido pendiente",
+      "completo": true,
+      "valido": false,
+      "borrar": [
+        "seccion2.telefonoDomiciliario"
+      ]
+    },
+    {
+      "nombre": "Familiar sin registrar",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion3.tieneFamiliaresIessBiess",
+          "valor": "Sí"
+        }
+      ]
+    },
+    {
+      "nombre": "Familiar válido",
+      "completo": true,
+      "valido": true,
+      "parches": [
+        {
+          "ruta": "seccion3.tieneFamiliaresIessBiess",
+          "valor": "Sí"
+        },
+        {
+          "ruta": "seccion3.familiares",
+          "valor": [
+            {
+              "id": "familiar-1",
+              "nombres": "Persona Prueba",
+              "parentesco": "padre",
+              "institucion": "IESS",
+              "area": "Área",
+              "cargo": "Cargo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Parentesco fuera del RF",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion3.tieneFamiliaresIessBiess",
+          "valor": "Sí"
+        },
+        {
+          "ruta": "seccion3.familiares",
+          "valor": [
+            {
+              "id": "familiar-1",
+              "nombres": "Persona Prueba",
+              "parentesco": "amigo",
+              "institucion": "IESS",
+              "area": "Área",
+              "cargo": "Cargo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Familiar con respuesta No",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion3.familiares",
+          "valor": [
+            {
+              "id": "familiar-1",
+              "nombres": "Persona Prueba",
+              "parentesco": "padre",
+              "institucion": "IESS",
+              "area": "Área",
+              "cargo": "Cargo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Sector elegible afiliados",
+      "completo": true,
+      "valido": true,
+      "parches": [
+        {
+          "ruta": "seccion4.sector",
+          "valor": "afiliados"
+        }
+      ]
+    },
+    {
+      "nombre": "Sector no elegible afiliados",
+      "completo": false,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion4.sector",
+          "valor": "afiliados"
+        },
+        {
+          "ruta": "seccion4.verificacionIessCumplida",
+          "valor": false
+        }
+      ]
+    },
+    {
+      "nombre": "Sector elegible jubilados",
+      "completo": true,
+      "valido": true,
+      "parches": [
+        {
+          "ruta": "seccion4.sector",
+          "valor": "jubilados"
+        }
+      ]
+    },
+    {
+      "nombre": "Sector no elegible jubilados",
+      "completo": false,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion4.sector",
+          "valor": "jubilados"
+        },
+        {
+          "ruta": "seccion4.verificacionIessCumplida",
+          "valor": false
+        }
+      ]
+    },
+    {
+      "nombre": "Sector elegible empleadores",
+      "completo": true,
+      "valido": true,
+      "parches": [
+        {
+          "ruta": "seccion4.sector",
+          "valor": "empleadores"
+        }
+      ]
+    },
+    {
+      "nombre": "Sector no elegible empleadores",
+      "completo": false,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion4.sector",
+          "valor": "empleadores"
+        },
+        {
+          "ruta": "seccion4.verificacionIessCumplida",
+          "valor": false
+        }
+      ]
+    },
+    {
+      "nombre": "Elegibilidad pendiente",
+      "completo": true,
+      "valido": false,
+      "borrar": [
+        "seccion4.verificacionIessCumplida"
+      ]
+    },
+    {
+      "nombre": "Organización sin nombre",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion4.cuentaConRespaldoOrganizacion",
+          "valor": "Sí"
+        }
+      ]
+    },
+    {
+      "nombre": "Organización declarada",
+      "completo": true,
+      "valido": true,
+      "parches": [
+        {
+          "ruta": "seccion4.cuentaConRespaldoOrganizacion",
+          "valor": "Sí"
+        },
+        {
+          "ruta": "seccion4.nombreOrganizacion",
+          "valor": "Organización de prueba"
+        }
+      ]
+    },
+    {
+      "nombre": "Nivel de estudio inválido",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion5.titulos.0.nivel",
+          "valor": "Bachiller"
+        }
+      ]
+    },
+    {
+      "nombre": "Registro SENESCYT pendiente",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion5.titulos.0.registroSenescyt",
+          "valor": ""
+        }
+      ]
+    },
+    {
+      "nombre": "ID del título pendiente al enviar",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion5.titulos.0.id",
+          "valor": ""
+        }
+      ]
+    },
+    {
+      "nombre": "IDs repetidos",
+      "completo": false,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion5.titulos",
+          "valor": [
+            {
+              "id": "titulo-1",
+              "nivel": "Tercer Nivel de Grado",
+              "institucion": "Universidad de prueba",
+              "tipo": "Nacional",
+              "titulo": "Economista",
+              "area": "Economía",
+              "registroSenescyt": "PRUEBA",
+              "fechaRegistroSenescyt": "2015-01-01"
+            },
+            {
+              "id": "titulo-1",
+              "nivel": "Tercer Nivel de Grado",
+              "institucion": "Universidad de prueba",
+              "tipo": "Nacional",
+              "titulo": "Economista",
+              "area": "Economía",
+              "registroSenescyt": "PRUEBA",
+              "fechaRegistroSenescyt": "2015-01-01"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Funciones de mil caracteres unicode",
+      "completo": true,
+      "valido": true,
+      "parches": [
+        {
+          "ruta": "seccion6.experiencias.0.descripcionFunciones",
+          "valor": "🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑🧑"
+        }
+      ]
+    },
+    {
+      "nombre": "Funciones de mil un caracteres",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion6.experiencias.0.descripcionFunciones",
+          "valor": "ááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááááá"
+        }
+      ]
+    },
+    {
+      "nombre": "Fechas de experiencia invertidas",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion6.experiencias.0.fechaFin",
+          "valor": "2019-01-01"
+        }
+      ]
+    },
+    {
+      "nombre": "Empleo actual sin fin",
+      "completo": true,
+      "valido": true,
+      "parches": [
+        {
+          "ruta": "seccion6.experiencias.0.actualmenteLaborando",
+          "valor": true
+        },
+        {
+          "ruta": "seccion6.experiencias.0.fechaFin",
+          "valor": ""
+        }
+      ]
+    },
+    {
+      "nombre": "Empleo actual con fin contradictorio",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion6.experiencias.0.actualmenteLaborando",
+          "valor": true
+        }
+      ]
+    },
+    {
+      "nombre": "Publicación pendiente",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion7.cuentaConPublicaciones",
+          "valor": "Sí"
+        }
+      ]
+    },
+    {
+      "nombre": "Publicación completa",
+      "completo": true,
+      "valido": true,
+      "parches": [
+        {
+          "ruta": "seccion7.cuentaConPublicaciones",
+          "valor": "Sí"
+        },
+        {
+          "ruta": "seccion7.publicaciones",
+          "valor": [
+            {
+              "id": "publicacion-1",
+              "titulo": "Título de prueba",
+              "tipo": "Publicación",
+              "medio": "Revista",
+              "fechaPublicacion": "2020-01-01",
+              "relacionCampo": "No"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Publicación futura",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion7.cuentaConPublicaciones",
+          "valor": "Sí"
+        },
+        {
+          "ruta": "seccion7.publicaciones",
+          "valor": [
+            {
+              "id": "publicacion-1",
+              "titulo": "Título de prueba",
+              "tipo": "Publicación",
+              "medio": "Revista",
+              "fechaPublicacion": "2027-01-01",
+              "relacionCampo": "No"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Capacitación completa",
+      "completo": true,
+      "valido": true,
+      "parches": [
+        {
+          "ruta": "seccion8.capacitaciones",
+          "valor": [
+            {
+              "id": "curso-1",
+              "tipo": "Curso",
+              "nombre": "Curso",
+              "institucion": "Entidad",
+              "fechaInicio": "2020-01-01",
+              "fechaFin": "2020-01-01",
+              "horas": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Capacitación cero horas",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion8.capacitaciones",
+          "valor": [
+            {
+              "id": "curso-1",
+              "tipo": "Curso",
+              "nombre": "Curso",
+              "institucion": "Entidad",
+              "fechaInicio": "2020-01-01",
+              "fechaFin": "2020-01-01",
+              "horas": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Capacitación horas fraccionarias",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion8.capacitaciones",
+          "valor": [
+            {
+              "id": "curso-1",
+              "tipo": "Curso",
+              "nombre": "Curso",
+              "institucion": "Entidad",
+              "fechaInicio": "2020-01-01",
+              "fechaFin": "2020-01-01",
+              "horas": 1.5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nombre": "Lista de capacitación sin declarar",
+      "completo": true,
+      "valido": false,
+      "borrar": [
+        "seccion8.capacitaciones"
+      ]
+    },
+    {
+      "nombre": "Falta respuesta trece",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion9.q13",
+          "valor": ""
+        }
+      ]
+    },
+    {
+      "nombre": "Remoción sin detalles",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion9.q7",
+          "valor": "Sí"
+        }
+      ]
+    },
+    {
+      "nombre": "Remoción con detalles",
+      "completo": true,
+      "valido": true,
+      "parches": [
+        {
+          "ruta": "seccion9.q7",
+          "valor": "Sí"
+        },
+        {
+          "ruta": "seccion9.q7Detalles",
+          "valor": {
+            "institucion": "Entidad",
+            "cargo": "Cargo",
+            "fechaFin": "2025-01-01",
+            "motivo": "Motivo"
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "Detalles de remoción con respuesta No",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion9.q7Detalles",
+          "valor": {
+            "institucion": "Entidad"
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "Aceptación pendiente aceptacionTratamientoDatos",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "consentimiento.aceptacionTratamientoDatos",
+          "valor": false
+        }
+      ]
+    },
+    {
+      "nombre": "Aceptación pendiente declaracionVeracidad",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "consentimiento.declaracionVeracidad",
+          "valor": false
+        }
+      ]
+    },
+    {
+      "nombre": "Aceptación pendiente aceptacionNormasConcurso",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "consentimiento.aceptacionNormasConcurso",
+          "valor": false
+        }
+      ]
+    },
+    {
+      "nombre": "Aceptación pendiente autorizacionPublicacionNombre",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "consentimiento.autorizacionPublicacionNombre",
+          "valor": false
+        }
+      ]
+    },
+    {
+      "nombre": "Aceptación pendiente constanciaEntregaFisica",
+      "completo": true,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "consentimiento.constanciaEntregaFisica",
+          "valor": false
+        }
+      ]
+    },
+    {
+      "nombre": "Sin consentimiento",
+      "completo": true,
+      "valido": false,
+      "borrar": [
+        "consentimiento"
+      ]
+    },
+    {
+      "nombre": "Tipo booleano inválido",
+      "completo": false,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion4.verificacionIessCumplida",
+          "valor": "true"
+        }
+      ]
+    },
+    {
+      "nombre": "Campo desconocido",
+      "completo": false,
+      "valido": false,
+      "parches": [
+        {
+          "ruta": "seccion1.supuestoRegistroCivil",
+          "valor": true
+        }
+      ]
+    },
+    {
+      "nombre": "Objeto raíz nulo",
+      "completo": false,
+      "valido": false,
+      "contenido": null
+    },
+    {
+      "nombre": "Objeto raíz lista",
+      "completo": false,
+      "valido": false,
+      "contenido": []
+    }
+  ]
+}

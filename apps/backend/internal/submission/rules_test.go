@@ -18,8 +18,8 @@ func completeForm() *Form {
 		Contact:           &ContactSection{Country: "Ecuador", Province: "Pichincha", City: "Quito", Mobile: "0999999999", Email: "prueba@example.test", MainStreet: "Principal", Number: "S/N", SecondaryStreet: "Secundaria", Area: "Centro", Reference: "Parque", Phone: "022222222"},
 		Additional:        &AdditionalSection{HasRelatives: "No", Relatives: []Relative{}},
 		Position:          &PositionSection{Sector: "afiliados", Eligible: &yes, HasOrganization: "No"},
-		Education:         &EducationSection{Degrees: []Degree{{Level: "Tercer Nivel de Grado", Institution: "Universidad de prueba", Type: "Nacional", Title: "Economista", Area: "Economía", Registry: "PRUEBA", RegistryDate: "2015-01-01"}}},
-		Experience:        &ExperienceSection{Experiences: []Experience{{Type: "General", Position: "Analista", Institution: "Entidad de prueba", StartDate: "2020-01-01", EndDate: "2021-03-15", Activities: "Finanzas", Functions: "Funciones de prueba"}}},
+		Education:         &EducationSection{Degrees: []Degree{{ID: "titulo-1", Level: "Tercer Nivel de Grado", Institution: "Universidad de prueba", Type: "Nacional", Title: "Economista", Area: "Economía", Registry: "PRUEBA", RegistryDate: "2015-01-01"}}},
+		Experience:        &ExperienceSection{Experiences: []Experience{{ID: "experiencia-1", Type: "General", Position: "Analista", Institution: "Entidad de prueba", StartDate: "2020-01-01", EndDate: "2021-03-15", Activities: "Finanzas", Functions: "Funciones de prueba"}}},
 		Publications:      &PublicationsSection{HasPublications: "No", Publications: []Publication{}},
 		Training:          &TrainingSection{Events: []Training{}},
 		Disqualifications: &DisqualificationsSection{Q1: "Sí", Q2: "No", Q3: "No", Q4: "No", Q5: "No", Q6: "No", Q7: "No", Q8: "No", Q9: "No", Q10: "No", Q11: "No", Q12: "No", Q13: "No"},
@@ -85,7 +85,7 @@ func TestFormBusinessRules(t *testing.T) {
 		}, false},
 		{"horas negativas", func(f *Form) { f.Training.Events = []Training{{Hours: -1}} }, false},
 		{"evento completo", func(f *Form) {
-			f.Training.Events = []Training{{Type: "Curso", Name: "Curso de prueba", Institution: "Entidad", StartDate: "2020-01-01", EndDate: "2020-01-01", Hours: 1}}
+			f.Training.Events = []Training{{ID: "curso-1", Type: "Curso", Name: "Curso de prueba", Institution: "Entidad", StartDate: "2020-01-01", EndDate: "2020-01-01", Hours: 1}}
 		}, true},
 		{"capacitación sin declaración", func(f *Form) { f.Training.Events = nil }, false},
 		{"13 respuestas obligatorias", func(f *Form) { f.Disqualifications.Q13 = "" }, false},

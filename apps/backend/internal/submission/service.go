@@ -37,10 +37,11 @@ type CreateInput struct {
  * Service expone los casos de uso del contexto de postulaciones.
  */
 type Service struct {
-	repo      Repository
-	now       func() time.Time
-	notifier  Notifier
-	documents DocumentVerifier
+	repo       Repository
+	now        func() time.Time
+	notifier   Notifier
+	documents  DocumentVerifier
+	applicants ApplicantReader
 }
 
 /** WithDocuments configura la validación obligatoria de respaldos en la composición.
@@ -83,7 +84,11 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*Submission, e
  */
 func (s *Service) SaveSubmission(ctx context.Context, input CreateInput) (*Submission, error) {
 	now := s.now()
-	content, err := validateContent(input.Content, false, now)
+	raw := input.Content
+	if len(raw) == 0 {
+		raw = json.RawMessage(`{}`)
+	}
+	content, err := s.prepareContent(ctx, input.ApplicantID, raw, now)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +118,7 @@ func (s *Service) SaveSubmission(ctx context.Context, input CreateInput) (*Submi
 				return err
 			}
 		}
-		validated, err := validateContent(current.Content, false, now)
+		validated, err := s.prepareContent(txctx, current.ApplicantID, current.Content, now)
 		if err != nil {
 			return err
 		}
@@ -167,6 +172,15 @@ func (s *Service) Get(ctx context.Context, id uuid.UUID) (*Submission, error) {
 	}
 	if item == nil {
 		return nil, ErrNotFound
+	}
+	if item.IsEditable() {
+		content, err := s.prepareContent(ctx, item.ApplicantID, item.Content, s.now())
+		if err != nil {
+			return nil, err
+		}
+		copy := *item
+		copy.Content = content
+		item = &copy
 	}
 
 	return item, nil
@@ -273,7 +287,7 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, content json.RawMess
 			return ErrNotEditable
 		}
 		now := s.now()
-		validated, err := validateContent(content, false, now)
+		validated, err := s.prepareContent(ctx, item.ApplicantID, content, now)
 		if err != nil {
 			return err
 		}
@@ -340,7 +354,7 @@ func (s *Service) SaveSection(ctx context.Context, id uuid.UUID, number int, con
 			return ErrInvalidContent
 		}
 		now := s.now()
-		validated, err := validateContent(raw, false, now)
+		validated, err := s.prepareContent(ctx, item.ApplicantID, raw, now)
 		if err != nil {
 			return err
 		}
@@ -359,7 +373,11 @@ func (s *Service) Submit(ctx context.Context, id uuid.UUID, consent *Consent) (*
 		if !item.IsEditable() {
 			return ErrNotEditable
 		}
-		form, err := DecodeForm(item.Content)
+		prepared, err := s.prepareContent(ctx, item.ApplicantID, item.Content, s.now())
+		if err != nil {
+			return err
+		}
+		form, err := DecodeForm(prepared)
 		if err != nil {
 			return err
 		}
@@ -377,7 +395,7 @@ func (s *Service) Submit(ctx context.Context, id uuid.UUID, consent *Consent) (*
 		}
 		if form.Consent != nil {
 			form.Consent.Statements = consentStatements
-			form.Consent.Version = "v1.4"
+			form.Consent.Version = consentVersion
 			form.Consent.AcceptedAt = now.UTC().Format(time.RFC3339)
 		}
 		normalizeDurations(form, now)
@@ -408,6 +426,7 @@ func validateContent(content json.RawMessage, complete bool, now time.Time) (jso
 	if err != nil {
 		return nil, err
 	}
+	normalizeDeclarations(form)
 	if err := ValidateForm(form, complete, now); err != nil {
 		return nil, err
 	}

@@ -18,7 +18,7 @@ import (
 var emailPattern = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
 var phonePattern = regexp.MustCompile(`^\+?[0-9 ()-]{7,20}$`)
 
-var studyAreas = []string{"Finanzas", "Mercado de Capitales", "Administración de Empresas", "Economía", "Derecho o materias afines"}
+var studyAreas = formDefinition.Options["areas"]
 
 /**
  * DecodeForm rechaza tipos y campos desconocidos, sin incluir datos personales
@@ -51,6 +51,9 @@ func DecodeForm(content json.RawMessage) (*Form, error) {
  * @returns {error} Primera regla incumplida.
  */
 func ValidateForm(form *Form, complete bool, now time.Time) error {
+	if definitionError != nil {
+		return definitionError
+	}
 	if form == nil {
 		return ErrInvalidContent
 	}
@@ -72,6 +75,9 @@ func ValidateForm(form *Form, complete bool, now time.Time) error {
  */
 func validateSection(f *Form, section int, full bool, now time.Time) error {
 	path := fmt.Sprintf("seccion%d", section)
+	if err := validateRecordIDs(sectionRecordIDs(f, section), full, path); err != nil {
+		return err
+	}
 	missing := func() error {
 		if full {
 			return rule(path, "la sección es obligatoria")
@@ -96,10 +102,10 @@ func validateSection(f *Form, section int, full bool, now time.Time) error {
 		if err := required(full, s.FirstName, s.LastName, s.IDCard, s.Gender, s.BirthDate, s.Nationality, s.MaritalStatus); err != nil {
 			return check(err)
 		}
-		if err := choice(s.Gender, "Masculino", "Femenino"); err != nil {
+		if err := choice(s.Gender, formDefinition.Options["generos"]...); err != nil {
 			return check(err)
 		}
-		if err := choice(s.MaritalStatus, "Soltero/a", "Casado/a", "Unión de hecho", "Divorciado/a", "Viudo/a"); err != nil {
+		if err := choice(s.MaritalStatus, formDefinition.Options["estadosCiviles"]...); err != nil {
 			return check(err)
 		}
 		if err := validID(s.IDCard); err != nil {
@@ -122,6 +128,9 @@ func validateSection(f *Form, section int, full bool, now time.Time) error {
 			return missing()
 		}
 		if err := required(full, s.Country, s.Province, s.City, s.Mobile, s.Email, s.MainStreet, s.Number, s.SecondaryStreet, s.Area, s.Reference, s.Phone); err != nil {
+			return check(err)
+		}
+		if err := choice(s.Country, formDefinition.Options["paises"]...); err != nil {
 			return check(err)
 		}
 		for _, value := range []string{s.Country, s.Province, s.City} {
@@ -172,7 +181,10 @@ func validateSection(f *Form, section int, full bool, now time.Time) error {
 			if err := required(full, r.Name, r.Relationship, r.Institution, r.Area, r.Position); err != nil {
 				return check(err)
 			}
-			if err := choice(r.Institution, "IESS", "BIESS"); err != nil {
+			if err := choice(r.Relationship, formDefinition.Options["parentescos"]...); err != nil {
+				return check(err)
+			}
+			if err := choice(r.Institution, formDefinition.Options["instituciones"]...); err != nil {
 				return check(err)
 			}
 		}
@@ -181,7 +193,7 @@ func validateSection(f *Form, section int, full bool, now time.Time) error {
 		if s == nil {
 			return missing()
 		}
-		if err := choice(s.Sector, "afiliados", "jubilados", "empleadores"); err != nil {
+		if err := choice(s.Sector, formDefinition.Options["sectores"]...); err != nil {
 			return check(err)
 		}
 		if err := required(full, s.Sector, s.HasOrganization); err != nil {
@@ -213,10 +225,10 @@ func validateSection(f *Form, section int, full bool, now time.Time) error {
 			if err := required(full, d.Level, d.Institution, d.Type, d.Title, d.Area, d.Registry, d.RegistryDate); err != nil {
 				return check(err)
 			}
-			if err := choice(d.Level, "Tercer Nivel de Grado", "Cuarto Nivel - Especialidad Académica", "Cuarto Nivel - Maestría Académica", "Cuarto Nivel PhD - Doctorado"); err != nil {
+			if err := choice(d.Level, formDefinition.Options["niveles"]...); err != nil {
 				return check(err)
 			}
-			if err := choice(d.Type, "Nacional", "Extranjera"); err != nil {
+			if err := choice(d.Type, formDefinition.Options["tiposInstitucion"]...); err != nil {
 				return check(err)
 			}
 			if err := choice(d.Area, studyAreas...); err != nil {
@@ -243,7 +255,7 @@ func validateSection(f *Form, section int, full bool, now time.Time) error {
 					return check(err)
 				}
 			}
-			if err := choice(e.Type, "General", "Dirección"); err != nil {
+			if err := choice(e.Type, formDefinition.Options["tiposExperiencia"]...); err != nil {
 				return check(err)
 			}
 			if err := choice(e.Activities, studyAreas...); err != nil {
@@ -277,7 +289,7 @@ func validateSection(f *Form, section int, full bool, now time.Time) error {
 			if err := required(full, p.Title, p.Type, p.Medium, p.Date, p.Related); err != nil {
 				return check(err)
 			}
-			if err := choice(p.Type, "Publicación", "Trabajo de investigación"); err != nil {
+			if err := choice(p.Type, formDefinition.Options["tiposPublicacion"]...); err != nil {
 				return check(err)
 			}
 			if err := yesNo(p.Related); err != nil {
@@ -299,7 +311,7 @@ func validateSection(f *Form, section int, full bool, now time.Time) error {
 			if err := required(full, e.Type, e.Name, e.Institution, e.StartDate, e.EndDate); err != nil {
 				return check(err)
 			}
-			if err := choice(e.Type, "Curso", "Seminario", "Taller"); err != nil {
+			if err := choice(e.Type, formDefinition.Options["tiposEvento"]...); err != nil {
 				return check(err)
 			}
 			if e.Hours < 0 || full && e.Hours == 0 {
@@ -376,7 +388,7 @@ func choice(value string, choices ...string) error {
  * @param {string} value - Respuesta del formulario.
  * @returns {error} Error si difiere de Sí o No.
  */
-func yesNo(value string) error { return choice(value, "Sí", "No") }
+func yesNo(value string) error { return choice(value, formDefinition.Options["respuestas"]...) }
 
 /**
  * validID reutiliza módulo 10 sin admitir caracteres ajenos a la cédula.
@@ -454,6 +466,9 @@ func dateRange(start, end string, current bool, now time.Time) error {
 		if err := validDate(end, now); err != nil {
 			return err
 		}
+	}
+	if current && end != "" {
+		return fmt.Errorf("un empleo actual no debe declarar fecha de finalización")
 	}
 	if start != "" && !current && end != "" && end < start {
 		return fmt.Errorf("la fecha de fin no puede ser anterior a la de inicio")

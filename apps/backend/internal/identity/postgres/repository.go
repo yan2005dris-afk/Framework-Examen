@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/db"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
 )
 
@@ -60,7 +61,11 @@ func (r *Repository) Create(ctx context.Context, item *identity.Applicant) error
 }
 
 func (r *Repository) GetByID(ctx context.Context, id uuid.UUID) (*identity.Applicant, error) {
-	row, err := r.queries.GetApplicantByID(ctx, id)
+	queries := r.queries
+	if tx, ok := db.Transaction(ctx); ok {
+		queries = queries.WithTx(tx)
+	}
+	row, err := queries.GetApplicantByID(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, identity.ErrApplicantNotFound
 	}

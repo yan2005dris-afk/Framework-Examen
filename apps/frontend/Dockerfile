@@ -21,6 +21,10 @@ COPY apps/frontend/package.json apps/frontend/package.json
 
 RUN pnpm install --frozen-lockfile --filter frontend...
 
+# Contrato EF-12 y casos compartidos con Go, también usados por TypeScript.
+COPY apps/backend/internal/submission/definition.json apps/backend/internal/submission/definition.json
+COPY apps/backend/internal/submission/testdata/ apps/backend/internal/submission/testdata/
+
 # --- Desarrollo ------------------------------------------------------------
 FROM deps AS dev
 

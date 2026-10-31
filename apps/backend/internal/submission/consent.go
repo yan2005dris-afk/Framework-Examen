@@ -1,5 +1,22 @@
 package submission
 
+const consentVersion = "v1.4"
+
+/** normalizeDeclarations publica los textos al guardar y elimina certificaciones del cliente.
+ * @param {Form} form - Borrador; la aceptación efectiva se fecha únicamente al sellar.
+ */
+func normalizeDeclarations(form *Form) {
+	if form.Personal != nil {
+		form.Personal.CivilRegistryVerified = false
+	}
+	if form.Consent == nil {
+		form.Consent = &Consent{}
+	}
+	form.Consent.Version = consentVersion
+	form.Consent.Statements = append([]string(nil), consentStatements...)
+	form.Consent.AcceptedAt = ""
+}
+
 /** Literales del RF v1.4, EF-12 1.10.1; se incorporan al contenido sellado. */
 var consentStatements = []string{
 	"1. Autorizo de manera libre y voluntaria, emitiendo consentimiento explícito al Instituto Ecuatoriano de Seguridad Social, para el uso de mis datos personales dentro del concurso de méritos y oposición para la selección de los Miembros Principales y Alternos del Directorio del Banco del Instituto Ecuatoriano de Seguridad Social (BIESS), en Representación de los Afiliados, Jubilados y Empleadores, de conformidad con lo prescrito en el artículo 7 de la Ley Orgánica de Protección de Datos Personales.",

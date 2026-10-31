@@ -40,6 +40,14 @@ func Executor(ctx context.Context, fallback DBTX) DBTX {
 	return fallback
 }
 
+/** Transaction permite a adaptadores con queries preconstruidas compartir la conexión.
+ * @returns {pgx.Tx, bool} Transacción vigente solo dentro del callback.
+ */
+func Transaction(ctx context.Context) (pgx.Tx, bool) {
+	tx, ok := ctx.Value(transactionKey{}).(pgx.Tx)
+	return tx, ok
+}
+
 /**
  * Connect crea el pool de conexiones de PostgreSQL y verifica la
  * conectividad mediante un ping con timeout corto.

@@ -362,6 +362,42 @@ puede consultar, guardar, enviar o eliminar el recurso (`403 acceso_denegado`
 para otra sesión). La cédula de `seccion1`, si se informa, debe ser la de la sesión.
 Los identificadores de postulaciones y postulantes se representan como UUIDv7.
 
+### Definición del EF-12 y vínculo con la cuenta OTP (T3)
+
+`GET /api/v1/submissions/form-definition` requiere sesión y devuelve la versión
+`EF12-v1.4-otp`, opciones de captura (incluidos todos los países del RF), nueve
+secciones con campos obligatorios/opcionales/condicionales, provincias/cantones,
+las trece preguntas literales, límites y los cinco textos del consentimiento.
+Es el contrato embebido en `internal/submission/definition.json`; el validador
+puro TypeScript utiliza el mismo archivo. El cliente lo consume mediante
+`obtenerDefinicionFormulario`.
+
+Al crear sin `content`, se abre un borrador vacío y se precargan nombres,
+apellidos, cédula y correo principal desde la cuenta OTP. Cédula y correo principal
+se contrastan con la cuenta en cada escritura, incluido el envío; no se permite
+sustituirlos por otros. Los nombres pueden corregirse como datos declarados.
+Nacimiento, nacionalidad y estado civil deben completarse; no se infieren.
+`verificadoRegistroCivil` se normaliza a `false` en los nuevos guardados.
+
+Los borradores permiten campos pendientes. Los IDs de registros declarados deben
+ser estables, únicos dentro de su lista y de hasta 255 caracteres; se exige un ID
+no vacío al enviar. La selección de parentesco y país se contrasta con el catálogo.
+Un empleo marcado como actual no admite una fecha de finalización contradictoria.
+Se conserva el contrato de requeridos existente: correo 2 es opcional; pareja y
+organización dependen de su respuesta; capacitación admite una lista declarada
+vacía. Firma digital dibujada no es obligatoria. `definition.json` expone el detalle
+por campo, sin inventar requisitos para los vacíos del RF.
+
+`content.consentimiento` incluye `version` y cinco `puntos` desde el guardado,
+con las aceptaciones que declare el usuario. Guardar no acepta automáticamente
+ningún punto. El servidor elimina un `aceptadoEn` suministrado en borrador y solo
+lo asigna al sellar, sustituyendo versión/textos por sus literales vigentes.
+Una lectura de una postulación enviada conserva su contenido y hash originales.
+
+La elegibilidad laboral controlada por el servidor y el cierre persistente de T17
+siguen separados de esta validación de captura. Las referencias reales a PDFs se
+comprueban al enviar mediante T4; un validador local no acredita que un objeto exista.
+
 ### 4.1 `POST /api/v1/submissions/{id}/sections/{n}`
 
 `n` es un entero de **1 a 9**. El cuerpo es directamente un objeto de la sección,
