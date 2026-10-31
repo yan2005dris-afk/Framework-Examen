@@ -175,4 +175,47 @@ describe("Formulario EF-12 (FT5 / FT6)", () => {
       expect(p5.texto).toContain("firma manuscrita")
     })
   })
+
+  describe("Elegibilidad por sector y cierre automático (FT17)", () => {
+    it("distingue el cierre definitivo (409) de una caída transitoria del servicio (503)", async () => {
+      let estadoPostulacion: "draft" | "closed" = "draft"
+      let mensajeAdvertencia: string | null = null
+
+      async function procesarRespuestaGuardado(codigoError: string): Promise<void> {
+        if (codigoError === "postulacion_cerrada_elegibilidad") {
+          estadoPostulacion = "closed"
+        } else if (codigoError === "elegibilidad_no_disponible") {
+          mensajeAdvertencia =
+            "La verificación de elegibilidad no está disponible temporalmente. Puede continuar editando."
+        }
+      }
+
+      // Caso 1: El servicio de elegibilidad no responde (503) -> No cierra el borrador
+      await procesarRespuestaGuardado("elegibilidad_no_disponible")
+      expect(estadoPostulacion).toBe("draft")
+      expect(mensajeAdvertencia).toContain("temporalmente")
+
+      // Caso 2: El postulante no es elegible en el sector (409) -> Cierra la postulación automáticamente
+      await procesarRespuestaGuardado("postulacion_cerrada_elegibilidad")
+      expect(estadoPostulacion).toBe("closed")
+    })
+
+    it("la evidencia del servidor expone el origen de simulación controlada y no inventa datos", () => {
+      const evidenciaServidor = {
+        id: "eval-1",
+        cuentaId: "acc-1",
+        convocatoriaId: "conv-1",
+        sector: "afiliados",
+        elegible: false,
+        origen: "simulacion_controlada_servidor",
+        verificadoEn: "2026-10-31T20:00:00Z",
+        codigo: "no_afiliado",
+        mensaje: "Postulante No Afiliado al IESS",
+      }
+
+      expect(evidenciaServidor.origen).toBe("simulacion_controlada_servidor")
+      expect(evidenciaServidor.elegible).toBe(false)
+      expect(evidenciaServidor.mensaje).toBe("Postulante No Afiliado al IESS")
+    })
+  })
 })

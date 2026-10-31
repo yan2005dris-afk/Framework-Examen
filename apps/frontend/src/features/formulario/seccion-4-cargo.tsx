@@ -1,4 +1,4 @@
-import { BriefcaseIcon, InfoIcon } from "lucide-react"
+import { AlertCircleIcon, BriefcaseIcon, CheckCircle2Icon, InfoIcon } from "lucide-react"
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import type { ElegibilidadEvidencia } from "@/lib/clientes/postulaciones"
 import { AdjuntoUploader, type AdjuntoInfo } from "./adjunto-uploader"
 
 export interface Seccion4Data {
@@ -23,6 +24,8 @@ export interface Seccion4CargoProps {
   datos: Seccion4Data
   onChange: (nuevosDatos: Seccion4Data) => void
   disabled?: boolean
+  /** Evidencia de elegibilidad devuelta por el servidor (FT17). */
+  elegibilidad?: ElegibilidadEvidencia | null
 }
 
 const MENSAJES_SECTOR = {
@@ -38,12 +41,14 @@ export function Seccion4Cargo({
   datos,
   onChange,
   disabled = false,
+  elegibilidad,
 }: Seccion4CargoProps) {
   function actualizarSector(valor: "afiliados" | "jubilados" | "empleadores") {
     onChange({
       ...datos,
       sector: valor,
-      verificacionIessCumplida: true,
+      // La verificación real es determinada por el servidor; el cliente no la fuerza.
+      verificacionIessCumplida: elegibilidad?.elegible ?? true,
     })
   }
 
@@ -55,6 +60,9 @@ export function Seccion4Cargo({
       documentoRespaldoPdf: valor === "No" ? null : datos.documentoRespaldoPdf,
     })
   }
+
+  // Estado de no elegibilidad conforme a mockup 06-04b
+  const esNoElegible = elegibilidad && !elegibilidad.elegible
 
   return (
     <div className="flex flex-col gap-6">
@@ -71,6 +79,79 @@ export function Seccion4Cargo({
         </div>
       </div>
 
+      {/* Banner de NO ELEGIBLE (Mockup 06-04b) */}
+      {esNoElegible && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 space-y-3"
+        >
+          <div className="flex items-start gap-2.5">
+            <AlertCircleIcon className="size-5 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-destructive">
+                {elegibilidad.mensaje || "Postulante No Elegible para el Sector"}
+              </h3>
+              <p className="text-xs text-destructive/90 mt-1">
+                Su postulación para el sector seleccionado no puede continuar por no cumplir los
+                requisitos legales de elegibilidad.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded border bg-background/80 p-3 text-xs space-y-1.5 font-sans">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Sector seleccionado:</span>
+              <span className="font-medium capitalize">{elegibilidad.sector || datos.sector}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Resultado de interoperabilidad:</span>
+              <span className="font-medium">{elegibilidad.mensaje}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Origen de verificación:</span>
+              <span className="font-mono text-muted-foreground">
+                {elegibilidad.origen === "simulacion_controlada_servidor"
+                  ? "simulación controlada del servidor"
+                  : elegibilidad.origen}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Estado de la postulación:</span>
+              <span className="font-semibold text-destructive">Cerrada automáticamente</span>
+            </div>
+          </div>
+
+          <div className="rounded bg-muted/60 p-3 text-xs text-muted-foreground">
+            <p className="font-medium text-foreground">¿Qué puede hacer?</p>
+            <p className="mt-0.5">
+              Si considera que el resultado es incorrecto, puede presentar un reclamo ante la
+              Comisión Especial dentro del plazo de la convocatoria.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Banner de ELEGIBILIDAD CONFIRMADA (Mockup 06-04) */}
+      {elegibilidad && elegibilidad.elegible && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-800 dark:text-emerald-300">
+          <CheckCircle2Icon className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+          <div className="space-y-0.5">
+            <p className="font-semibold">
+              {elegibilidad.mensaje || "Elegibilidad confirmada para el sector"}
+            </p>
+            <p className="text-xs opacity-90">
+              Origen:{" "}
+              {elegibilidad.origen === "simulacion_controlada_servidor"
+                ? "Simulación controlada del servidor"
+                : elegibilidad.origen}
+              {elegibilidad.verificadoEn &&
+                ` · Verificado el ${new Date(elegibilidad.verificadoEn).toLocaleDateString()}`}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="sec4-sector">Sector de Representación *</Label>
@@ -79,7 +160,7 @@ export function Seccion4Cargo({
             onValueChange={(val) =>
               actualizarSector(val as "afiliados" | "jubilados" | "empleadores")
             }
-            disabled={disabled}
+            disabled={disabled || Boolean(esNoElegible)}
           >
             <SelectTrigger id="sec4-sector">
               <SelectValue placeholder="Seleccione el sector" />
@@ -99,7 +180,7 @@ export function Seccion4Cargo({
           <Select
             value={datos.cuentaConRespaldoOrganizacion}
             onValueChange={(val) => actualizarRespaldo(val as "Sí" | "No")}
-            disabled={disabled}
+            disabled={disabled || Boolean(esNoElegible)}
           >
             <SelectTrigger id="sec4-tiene-respaldo">
               <SelectValue placeholder="Seleccione Sí o No" />
@@ -112,7 +193,7 @@ export function Seccion4Cargo({
         </div>
       </div>
 
-      {datos.sector && (
+      {datos.sector && !esNoElegible && (
         <div className="flex items-start gap-2.5 rounded-lg border bg-primary/5 p-3.5 text-xs text-foreground/90 sm:text-sm">
           <InfoIcon
             className="size-4 shrink-0 text-primary mt-0.5"
@@ -122,7 +203,7 @@ export function Seccion4Cargo({
         </div>
       )}
 
-      {datos.cuentaConRespaldoOrganizacion === "Sí" && (
+      {datos.cuentaConRespaldoOrganizacion === "Sí" && !esNoElegible && (
         <div className="flex flex-col gap-4 rounded-lg border bg-muted/20 p-4">
           <h3 className="text-sm font-semibold text-foreground">
             Datos de la Organización de Respaldo

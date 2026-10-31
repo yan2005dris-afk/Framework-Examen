@@ -166,5 +166,21 @@ describe("Flujo de autenticación y validaciones (FT3)", () => {
       )
       expect(respuestaServidor.mensaje).not.toContain("no encontrada")
     })
+
+    it("identifica error de reenvío limitado con Retry-After y X-Retry-At (FT16)", () => {
+      const retryDate = new Date(Date.now() + 45000)
+      const errReenvio = new ErrorApi(
+        "espere antes de solicitar un nuevo código",
+        {
+          estado: 429,
+          codigo: "reenvio_limitado",
+          retryAfterSeg: 45,
+          retryAt: retryDate,
+        },
+      )
+      expect(errReenvio.esReenvioLimitado()).toBe(true)
+      expect(errReenvio.retryAfterSeg).toBe(45)
+      expect(errReenvio.retryAt).toEqual(retryDate)
+    })
   })
 })

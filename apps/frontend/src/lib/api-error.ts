@@ -11,11 +11,18 @@ export interface DetalleErrorApi {
  * Error unificado para todas las respuestas no exitosas o fallos de red de la API.
  * Extrae el código del envelope estándar del backend ({ error: { codigo, mensaje, detalle } })
  * permitiendo a las vistas y guards tomar decisiones sin parsear texto.
+ *
+ * Para errores 429 con cabeceras Retry-After / X-Retry-At, los campos
+ * `retryAfterSeg` y `retryAt` contienen los valores del servidor.
  */
 export class ErrorApi extends Error {
   readonly codigo: string
   readonly estado: number
   readonly detalles?: string[]
+  /** Segundos de espera indicados por el servidor en la cabecera Retry-After. */
+  readonly retryAfterSeg?: number
+  /** Instante absoluto hasta el que debe esperarse, según X-Retry-At del servidor. */
+  readonly retryAt?: Date
 
   constructor(
     mensaje: string,
@@ -24,6 +31,8 @@ export class ErrorApi extends Error {
       estado: number
       detalles?: string[]
       causa?: unknown
+      retryAfterSeg?: number
+      retryAt?: Date
     },
   ) {
     super(mensaje, { cause: opciones.causa })
@@ -31,6 +40,8 @@ export class ErrorApi extends Error {
     this.codigo = opciones.codigo ?? "error_desconocido"
     this.estado = opciones.estado
     this.detalles = opciones.detalles
+    this.retryAfterSeg = opciones.retryAfterSeg
+    this.retryAt = opciones.retryAt
   }
 
   /**
@@ -69,6 +80,13 @@ export class ErrorApi extends Error {
   }
 
   /**
+   * Indica si el reenvío del OTP fue limitado por el servidor (429 reenvio_limitado).
+   */
+  esReenvioLimitado(): boolean {
+    return this.estado === 429 && this.codigo === "reenvio_limitado"
+  }
+
+  /**
    * Indica si ocurrió un conflicto de concurrencia o postulación ya enviada (409).
    */
   esConflicto(): boolean {
@@ -87,6 +105,13 @@ export class ErrorApi extends Error {
    */
   esErrorRed(): boolean {
     return this.estado === 0 || this.codigo === "error_red"
+  }
+
+  /**
+   * Indica si el servicio no está disponible temporalmente (503).
+   */
+  esServicioNoDisponible(): boolean {
+    return this.estado === 503
   }
 }
 

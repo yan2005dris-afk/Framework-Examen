@@ -1,11 +1,13 @@
-import { useState, type FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import {
   CheckCircle2Icon,
   ChevronLeftIcon,
+  ClockIcon,
   EyeIcon,
   EyeOffIcon,
   KeyRoundIcon,
   Loader2Icon,
+  MailIcon,
   ShieldCheckIcon,
 } from "lucide-react"
 import { Link, useNavigate } from "react-router"
@@ -28,6 +30,7 @@ import { esErrorApi } from "@/lib/api-error"
 import {
   restablecerPassword,
   solicitarRecuperacionPassword,
+  type DesafioOtp,
 } from "@/lib/clientes/auth"
 import { RUTAS } from "@/lib/rutas"
 import {
@@ -35,32 +38,64 @@ import {
   validarCedulaEcuatoriana,
 } from "@/utils/validators"
 
-type PasoRecuperacion = 1 | 2 | 3
+/** Pasos de recuperación alineados con los mockups 04a, 04b, 04c y 04d:
+ * 1: Identidad (cédula)
+ * 2: Correo / Código OTP
+ * 3: Nueva contraseña
+ * 4: Listo / Éxito
+ */
+type PasoRecuperacion = 1 | 2 | 3 | 4
 
 export function RecuperarContrasenaView() {
   const navegar = useNavigate()
 
   const [paso, setPaso] = useState<PasoRecuperacion>(1)
 
-  // Datos Paso 1
+  // ── Paso 1: Cédula ───────────────────────────────────────────────────────
   const [cedula, setCedula] = useState("")
   const [errorCedula, setErrorCedula] = useState<string | null>(null)
 
-  // Datos Paso 2
+  // ── Paso 2: OTP ──────────────────────────────────────────────────────────
+  const [desafio, setDesafio] = useState<DesafioOtp | null>(null)
   const [codigoOtp, setCodigoOtp] = useState("")
+  const [errorOtp, setErrorOtp] = useState<string | null>(null)
+  const [reenvioDisponibleEn, setReenvioDisponibleEn] = useState(0)
+  const reenvioTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // ── Paso 3: Nueva Contraseña ─────────────────────────────────────────────
   const [password, setPassword] = useState("")
   const [confirmarPassword, setConfirmarPassword] = useState("")
   const [mostrarPassword, setMostrarPassword] = useState(false)
-
-  const [errorOtp, setErrorOtp] = useState<string | null>(null)
   const [errorPassword, setErrorPassword] = useState<string | null>(null)
   const [errorConfirmar, setErrorConfirmar] = useState<string | null>(null)
 
-  // Estados transversales
+  // ── Estados transversales ────────────────────────────────────────────────
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
   const [reenviandoOtp, setReenviandoOtp] = useState(false)
-  const [bloqueado, setBloqueado] = useState(false)
+  const [bloqueadoExpiraEn, setBloqueadoExpiraEn] = useState<Date | null>(null)
+
+  const estaBloqueado = bloqueadoExpiraEn !== null
+
+  useEffect(() => {
+    return () => {
+      if (reenvioTimerRef.current) clearInterval(reenvioTimerRef.current)
+    }
+  }, [])
+
+  function iniciarCooldownReenvio(segundos: number) {
+    setReenvioDisponibleEn(segundos)
+    if (reenvioTimerRef.current) clearInterval(reenvioTimerRef.current)
+    reenvioTimerRef.current = setInterval(() => {
+      setReenvioDisponibleEn((prev) => {
+        if (prev <= 1) {
+          clearInterval(reenvioTimerRef.current!)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
 
   function manejarBlurCedula() {
     if (!cedula.trim()) {
@@ -75,10 +110,10 @@ export function RecuperarContrasenaView() {
     }
   }
 
-  // Envío Paso 1: Solicitar código OTP al correo registrado
+  // ── Envío Paso 1: Solicitar código OTP ───────────────────────────────────
   async function manejarSubmitPaso1(e: FormEvent) {
     e.preventDefault()
-    if (bloqueado || cargando) return
+    if (estaBloqueado || cargando) return
 
     const valCedula = validarCedulaEcuatoriana(cedula)
     if (!valCedula.esValida) {
@@ -91,23 +126,27 @@ export function RecuperarContrasenaView() {
     setCargando(true)
 
     try {
-      const res = await solicitarRecuperacionPassword({ cedula: cedula.trim() })
+      const challenge = await solicitarRecuperacionPassword({ cedula: cedula.trim() })
+      setDesafio(challenge)
+      iniciarCooldownReenvio(60)
       setPaso(2)
       toast.info(
-        res.mensaje ||
+        challenge.mensaje ||
           "Si la cédula está registrada, se ha enviado un código de recuperación a su correo.",
       )
     } catch (err: unknown) {
       if (esErrorApi(err)) {
         if (err.esBloqueoIntentos()) {
-          setBloqueado(true)
-          setErrorGeneral(
-            err.mensaje ||
-              "registro fallido, inténtelo nuevamente en 10 minutos",
-          )
-        } else {
-          // Confirmación genérica sin revelar si la cédula existe
+          setBloqueadoExpiraEn(err.retryAt ?? new Date(Date.now() + 600_000))
+          setErrorGeneral(err.mensaje || "registro fallido, intente nuevamente en 10 minutos")
+        } else if (err.esReenvioLimitado()) {
+          const espera = err.retryAfterSeg ?? 60
+          iniciarCooldownReenvio(espera)
           setPaso(2)
+        } else {
+          // Confirmación genérica sin revelar si la cédula existe (anti-oráculo)
+          setPaso(2)
+          iniciarCooldownReenvio(60)
           toast.info(
             "Si la cédula está registrada, se ha enviado un código de recuperación a su correo.",
           )
@@ -120,16 +159,56 @@ export function RecuperarContrasenaView() {
     }
   }
 
-  // Validaciones Paso 2
-  function validarCamposPaso2(): boolean {
-    let valido = true
+  // ── Reenviar OTP (Paso 2) ────────────────────────────────────────────────
+  async function manejarReenviarOtp() {
+    if (estaBloqueado || reenviandoOtp || cargando || reenvioDisponibleEn > 0) return
+    setReenviandoOtp(true)
+    setErrorGeneral(null)
+
+    try {
+      const challenge = await solicitarRecuperacionPassword({ cedula: cedula.trim() })
+      setDesafio(challenge)
+      iniciarCooldownReenvio(60)
+      toast.success("Código de recuperación reenviado a su correo.")
+    } catch (err: unknown) {
+      if (esErrorApi(err)) {
+        if (err.esBloqueoIntentos()) {
+          setBloqueadoExpiraEn(err.retryAt ?? new Date(Date.now() + 600_000))
+          setErrorGeneral(err.mensaje || "registro fallido, intente nuevamente en 10 minutos")
+        } else if (err.esReenvioLimitado()) {
+          const espera = err.retryAfterSeg ?? 60
+          iniciarCooldownReenvio(espera)
+          setErrorGeneral(`Espere ${espera} segundos antes de reenviar el código.`)
+        } else {
+          setErrorGeneral(err.mensaje || "No fue posible reenviar el código de recuperación.")
+        }
+      } else {
+        setErrorGeneral("No fue posible conectar con el servidor.")
+      }
+    } finally {
+      setReenviandoOtp(false)
+    }
+  }
+
+  // ── Paso 2: Verificar código OTP ─────────────────────────────────────────
+  function manejarSubmitPaso2(e: FormEvent) {
+    e.preventDefault()
+    if (estaBloqueado || cargando) return
 
     if (!codigoOtp.trim() || codigoOtp.trim().length !== 6) {
       setErrorOtp("El código de verificación debe tener 6 dígitos.")
-      valido = false
-    } else {
-      setErrorOtp(null)
+      return
     }
+
+    setErrorOtp(null)
+    setErrorGeneral(null)
+    // Pasamos a configurar la nueva contraseña
+    setPaso(3)
+  }
+
+  // ── Validaciones Paso 3 ──────────────────────────────────────────────────
+  function validarCamposPaso3(): boolean {
+    let valido = true
 
     const evaluacionPass = evaluarFortalezaPassword(password)
     if (
@@ -139,9 +218,7 @@ export function RecuperarContrasenaView() {
       !evaluacionPass.cumpleNumero ||
       !evaluacionPass.cumpleEspecial
     ) {
-      setErrorPassword(
-        "La contraseña no cumple con todos los requisitos de seguridad.",
-      )
+      setErrorPassword("La contraseña no cumple con todos los requisitos de seguridad.")
       valido = false
     } else {
       setErrorPassword(null)
@@ -157,14 +234,12 @@ export function RecuperarContrasenaView() {
     return valido
   }
 
-  // Envío Paso 2: Validar OTP y cambiar contraseña
-  async function manejarSubmitPaso2(e: FormEvent) {
+  // ── Envío Paso 3: Restablecer Contraseña ──────────────────────────────────
+  async function manejarSubmitPaso3(e: FormEvent) {
     e.preventDefault()
-    if (bloqueado || cargando) return
+    if (estaBloqueado || cargando) return
 
-    if (!validarCamposPaso2()) {
-      return
-    }
+    if (!validarCamposPaso3()) return
 
     setErrorGeneral(null)
     setCargando(true)
@@ -175,24 +250,27 @@ export function RecuperarContrasenaView() {
         codigo_otp: codigoOtp.trim(),
         new_password: password,
       })
-      setPaso(3)
+
+      setPaso(4)
+      toast.success("Contraseña actualizada correctamente.")
     } catch (err: unknown) {
       if (esErrorApi(err)) {
         if (err.esBloqueoIntentos()) {
-          setBloqueado(true)
+          setBloqueadoExpiraEn(err.retryAt ?? new Date(Date.now() + 600_000))
           setErrorGeneral(
-            err.mensaje ||
-              "registro fallido, inténtelo nuevamente en 10 minutos",
+            err.mensaje || "registro fallido, intente nuevamente en 10 minutos",
           )
         } else if (err.codigo === "otp_invalido" || err.esNoAutorizado()) {
           const mensajeOtp =
-            err.mensaje ||
-            "El código de verificación es incorrecto o ha expirado."
+            err.mensaje || "El código de verificación es incorrecto o ha expirado."
           setErrorOtp(mensajeOtp)
           setErrorGeneral(mensajeOtp)
+          setPaso(2)
+        } else if (err.codigo === "password_debil") {
+          setErrorPassword(err.mensaje || "La contraseña ingresada no es suficientemente segura.")
         } else {
           setErrorGeneral(
-            err.mensaje || "Código de verificación incorrecto o expirado.",
+            err.mensaje || "No fue posible restablecer la contraseña.",
           )
         }
       } else {
@@ -203,43 +281,12 @@ export function RecuperarContrasenaView() {
     }
   }
 
-  async function manejarReenviarOtp() {
-    if (bloqueado || reenviandoOtp || cargando) return
-    setReenviandoOtp(true)
-    setErrorGeneral(null)
-
-    try {
-      const res = await solicitarRecuperacionPassword({ cedula: cedula.trim() })
-      toast.success(
-        res.mensaje || "Código de recuperación reenviado a su correo.",
-      )
-    } catch (err: unknown) {
-      if (esErrorApi(err)) {
-        if (err.esBloqueoIntentos()) {
-          setBloqueado(true)
-          setErrorGeneral(
-            err.mensaje ||
-              "registro fallido, inténtelo nuevamente en 10 minutos",
-          )
-        } else {
-          toast.info(
-            "Si la cédula está registrada, se ha enviado el código de recuperación.",
-          )
-        }
-      } else {
-        setErrorGeneral("No fue posible conectar con el servidor.")
-      }
-    } finally {
-      setReenviandoOtp(false)
-    }
-  }
-
   return (
-    <div className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-md items-center px-4 py-8">
+    <div className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-lg items-center px-4 py-8">
       <Card className="w-full shadow-lg">
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            {paso === 3 ? (
+            {paso === 4 ? (
               <CheckCircle2Icon
                 className="size-6 text-emerald-600"
                 aria-hidden="true"
@@ -249,27 +296,45 @@ export function RecuperarContrasenaView() {
             )}
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">
-            {paso === 3 ? "¡Contraseña actualizada!" : "Recuperar contraseña"}
+            {paso === 4 ? "Contraseña restablecida" : "Recuperar contraseña"}
           </CardTitle>
           <CardDescription>
-            {paso === 1 &&
-              "Ingrese su número de cédula para recibir el código de seguridad"}
-            {paso === 2 &&
-              "Ingrese el código recibido y defina su nueva contraseña"}
-            {paso === 3 && "Su contraseña se actualizó correctamente"}
+            {paso === 1 && "Paso 1 de 3: Confirme su identidad ingresando su cédula"}
+            {paso === 2 && "Paso 2 de 3: Ingrese el código enviado a su correo registrado"}
+            {paso === 3 && "Paso 3 de 3: Defina su nueva contraseña de acceso"}
+            {paso === 4 && "Su contraseña ha sido actualizada exitosamente"}
           </CardDescription>
+
+          {paso < 4 && (
+            <div className="mt-4 flex items-center justify-center gap-2 pt-2">
+              {[1, 2, 3].map((n) => (
+                <span
+                  key={n}
+                  className={`flex size-6 items-center justify-center rounded-full text-xs font-semibold ${
+                    paso === n
+                      ? "bg-primary text-primary-foreground"
+                      : paso > n
+                        ? "bg-primary/40 text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {n}
+                </span>
+              ))}
+            </div>
+          )}
         </CardHeader>
 
-        {/* PASO 1: Ingreso de Cédula */}
+        {/* PASO 1: Cédula */}
         {paso === 1 && (
           <form onSubmit={manejarSubmitPaso1} noValidate>
             <CardContent className="space-y-4">
-              {bloqueado ? (
+              {estaBloqueado ? (
                 <AlertaBloqueo
-                  segundosIniciales={600}
-                  mensaje="registro fallido, inténtelo nuevamente en 10 minutos"
+                  expiraEn={bloqueadoExpiraEn ?? undefined}
+                  mensaje="registro fallido, intente nuevamente en 10 minutos"
                   onExpirar={() => {
-                    setBloqueado(false)
+                    setBloqueadoExpiraEn(null)
                     setErrorGeneral(null)
                   }}
                 />
@@ -284,19 +349,19 @@ export function RecuperarContrasenaView() {
               ) : null}
 
               <div className="space-y-2">
-                <Label htmlFor="cedula-rec">Cédula de identidad</Label>
+                <Label htmlFor="cedula-recuperar">Cédula de ciudadanía *</Label>
                 <Input
-                  id="cedula-rec"
+                  id="cedula-recuperar"
                   name="cedula"
                   type="text"
                   inputMode="numeric"
                   maxLength={10}
-                  placeholder="Ej. 1710034008"
+                  placeholder="Ej. 1712345675"
                   value={cedula}
-                  disabled={cargando || bloqueado}
+                  disabled={cargando || estaBloqueado}
                   aria-invalid={Boolean(errorCedula)}
                   aria-describedby={
-                    errorCedula ? "cedula-rec-error" : undefined
+                    errorCedula ? "cedula-recuperar-error" : "cedula-recuperar-hint"
                   }
                   onChange={(e) => {
                     const limpio = e.target.value.replace(/\D/g, "")
@@ -307,15 +372,17 @@ export function RecuperarContrasenaView() {
                   autoComplete="username"
                   required
                 />
+                <p className="text-xs text-muted-foreground" id="cedula-recuperar-hint">
+                  La cédula con la que se registró en el portal.
+                </p>
                 {errorCedula && (
-                  <p id="cedula-rec-error" className="text-xs text-destructive">
+                  <p
+                    id="cedula-recuperar-error"
+                    className="text-xs text-destructive"
+                  >
                     {errorCedula}
                   </p>
                 )}
-                <p className="text-xs text-muted-foreground">
-                  El código de seguridad se enviará a la dirección de correo
-                  registrada con esta cédula.
-                </p>
               </div>
             </CardContent>
 
@@ -323,7 +390,7 @@ export function RecuperarContrasenaView() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={cargando || bloqueado}
+                disabled={cargando || estaBloqueado}
               >
                 {cargando ? (
                   <>
@@ -331,43 +398,56 @@ export function RecuperarContrasenaView() {
                     Enviando código…
                   </>
                 ) : (
-                  "Enviar código de recuperación"
+                  "Continuar"
                 )}
               </Button>
 
-              <Button
-                type="button"
-                variant="ghost"
-                asChild
-                className="w-full text-xs"
-              >
-                <Link to={RUTAS.login}>
-                  <ChevronLeftIcon className="mr-1 size-3.5" />
-                  Volver al inicio de sesión
+              <p className="text-center text-xs text-muted-foreground">
+                <Link
+                  to={RUTAS.login}
+                  className="font-medium text-primary hover:underline"
+                >
+                  ← Volver al inicio de sesión
                 </Link>
-              </Button>
+              </p>
             </CardFooter>
           </form>
         )}
 
-        {/* PASO 2: OTP y Nueva Contraseña */}
+        {/* PASO 2: Código OTP */}
         {paso === 2 && (
           <form onSubmit={manejarSubmitPaso2} noValidate>
             <CardContent className="space-y-4">
-              <div className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
-                Código de seguridad enviado al correo vinculado a la cédula{" "}
-                <span className="font-mono font-medium text-foreground">
-                  {cedula}
-                </span>
-                .
+              <div className="rounded-lg border bg-muted/40 p-3.5 text-xs">
+                <div className="flex items-center gap-2 font-medium text-foreground">
+                  <MailIcon className="size-4 text-primary shrink-0" />
+                  <span>Código de recuperación enviado</span>
+                </div>
+                <p className="mt-1 text-muted-foreground">
+                  Si la cédula <strong>{cedula}</strong> corresponde a una cuenta registrada,
+                  enviamos un código de 6 dígitos a su correo electrónico.
+                </p>
               </div>
 
-              {bloqueado ? (
+              {desafio && (
+                <p className="text-xs text-muted-foreground">
+                  El código expira a las{" "}
+                  <strong>
+                    {desafio.expiraEn.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </strong>
+                  .
+                </p>
+              )}
+
+              {estaBloqueado ? (
                 <AlertaBloqueo
-                  segundosIniciales={600}
-                  mensaje="registro fallido, inténtelo nuevamente en 10 minutos"
+                  expiraEn={bloqueadoExpiraEn ?? undefined}
+                  mensaje="registro fallido, intente nuevamente en 10 minutos"
                   onExpirar={() => {
-                    setBloqueado(false)
+                    setBloqueadoExpiraEn(null)
                     setErrorGeneral(null)
                   }}
                 />
@@ -383,34 +463,42 @@ export function RecuperarContrasenaView() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="otp-rec">
-                    Código de seguridad (6 dígitos)
+                  <Label htmlFor="otp-recuperar">
+                    Código de verificación (6 dígitos) *
                   </Label>
                   <button
                     type="button"
-                    onClick={() => {
-                      void manejarReenviarOtp()
-                    }}
-                    disabled={cargando || reenviandoOtp || bloqueado}
-                    className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                    onClick={() => { void manejarReenviarOtp() }}
+                    disabled={cargando || reenviandoOtp || estaBloqueado || reenvioDisponibleEn > 0}
+                    className="flex items-center gap-1 text-xs font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {reenviandoOtp
-                      ? "Reenviando…"
-                      : "¿No recibió el código? Reenviar"}
+                    {reenviandoOtp ? (
+                      <>
+                        <Loader2Icon className="size-3 animate-spin" />
+                        Reenviando…
+                      </>
+                    ) : reenvioDisponibleEn > 0 ? (
+                      <>
+                        <ClockIcon className="size-3" />
+                        Reenviar ({reenvioDisponibleEn}s)
+                      </>
+                    ) : (
+                      "Reenviar código"
+                    )}
                   </button>
                 </div>
                 <Input
-                  id="otp-rec"
+                  id="otp-recuperar"
                   name="otp"
                   type="text"
                   inputMode="numeric"
                   maxLength={6}
                   placeholder="000000"
                   value={codigoOtp}
-                  disabled={cargando || bloqueado}
+                  disabled={cargando || estaBloqueado}
                   className="text-center font-mono text-lg tracking-widest"
                   aria-invalid={Boolean(errorOtp)}
-                  aria-describedby={errorOtp ? "otp-rec-error" : undefined}
+                  aria-describedby={errorOtp ? "otp-recuperar-error" : undefined}
                   onChange={(e) => {
                     const limpio = e.target.value.replace(/\D/g, "")
                     setCodigoOtp(limpio)
@@ -419,22 +507,69 @@ export function RecuperarContrasenaView() {
                   required
                 />
                 {errorOtp && (
-                  <p id="otp-rec-error" className="text-xs text-destructive">
+                  <p id="otp-recuperar-error" className="text-xs text-destructive">
                     {errorOtp}
                   </p>
                 )}
               </div>
+            </CardContent>
+
+            <CardFooter className="flex flex-col gap-3">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={cargando || estaBloqueado}
+              >
+                Continuar
+              </Button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setPaso(1)}
+                disabled={cargando || estaBloqueado}
+                className="w-full text-xs"
+              >
+                <ChevronLeftIcon className="mr-1 size-3.5" />
+                Volver al paso anterior
+              </Button>
+            </CardFooter>
+          </form>
+        )}
+
+        {/* PASO 3: Nueva contraseña */}
+        {paso === 3 && (
+          <form onSubmit={manejarSubmitPaso3} noValidate>
+            <CardContent className="space-y-4">
+              {estaBloqueado ? (
+                <AlertaBloqueo
+                  expiraEn={bloqueadoExpiraEn ?? undefined}
+                  mensaje="registro fallido, intente nuevamente en 10 minutos"
+                  onExpirar={() => {
+                    setBloqueadoExpiraEn(null)
+                    setErrorGeneral(null)
+                  }}
+                />
+              ) : errorGeneral ? (
+                <div
+                  role="alert"
+                  aria-live="assertive"
+                  className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs font-medium text-destructive"
+                >
+                  {errorGeneral}
+                </div>
+              ) : null}
 
               <div className="space-y-2">
-                <Label htmlFor="new-password">Nueva contraseña</Label>
+                <Label htmlFor="nueva-password">Nueva contraseña *</Label>
                 <div className="relative">
                   <Input
-                    id="new-password"
-                    name="new-password"
+                    id="nueva-password"
+                    name="password"
                     type={mostrarPassword ? "text" : "password"}
-                    placeholder="Ingrese su nueva contraseña"
+                    placeholder="Mínimo 8 caracteres"
                     value={password}
-                    disabled={cargando || bloqueado}
+                    disabled={cargando || estaBloqueado}
                     aria-invalid={Boolean(errorPassword)}
                     aria-describedby={
                       errorPassword ? "new-password-error" : undefined
@@ -450,7 +585,7 @@ export function RecuperarContrasenaView() {
                   <button
                     type="button"
                     onClick={() => setMostrarPassword(!mostrarPassword)}
-                    disabled={cargando || bloqueado}
+                    disabled={cargando || estaBloqueado}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
                     aria-label={
                       mostrarPassword ? "Ocultar contraseña" : "Ver contraseña"
@@ -477,7 +612,7 @@ export function RecuperarContrasenaView() {
 
               <div className="space-y-2">
                 <Label htmlFor="confirm-new-password">
-                  Confirmar nueva contraseña
+                  Confirme la nueva contraseña *
                 </Label>
                 <Input
                   id="confirm-new-password"
@@ -485,7 +620,7 @@ export function RecuperarContrasenaView() {
                   type={mostrarPassword ? "text" : "password"}
                   placeholder="Repita la nueva contraseña"
                   value={confirmarPassword}
-                  disabled={cargando || bloqueado}
+                  disabled={cargando || estaBloqueado}
                   aria-invalid={Boolean(errorConfirmar)}
                   aria-describedby={
                     errorConfirmar ? "confirm-new-error" : undefined
@@ -512,23 +647,23 @@ export function RecuperarContrasenaView() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={cargando || bloqueado}
+                disabled={cargando || estaBloqueado}
               >
                 {cargando ? (
                   <>
                     <Loader2Icon className="mr-2 size-4 animate-spin" />
-                    Restableciendo contraseña…
+                    Guardando nueva contraseña…
                   </>
                 ) : (
-                  "Guardar nueva contraseña"
+                  "Cambiar contraseña"
                 )}
               </Button>
 
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => setPaso(1)}
-                disabled={cargando || bloqueado}
+                onClick={() => setPaso(2)}
+                disabled={cargando || estaBloqueado}
                 className="w-full text-xs"
               >
                 <ChevronLeftIcon className="mr-1 size-3.5" />
@@ -538,8 +673,8 @@ export function RecuperarContrasenaView() {
           </form>
         )}
 
-        {/* PASO 3: Éxito */}
-        {paso === 3 && (
+        {/* PASO 4: Éxito */}
+        {paso === 4 && (
           <CardContent className="space-y-6 py-4 text-center">
             <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
               <ShieldCheckIcon className="size-8" />
