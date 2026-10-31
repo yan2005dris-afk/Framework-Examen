@@ -45,10 +45,11 @@ sqlc-generate:
 	sqlc generate
 
 db-schema:
+	@printf '%s\n' '-- Esquema que consume sqlc. Se regenera desde las migraciones con `make db-schema`.' > sql/queries/schema.sql
 	@for file in sql/migrations/*.sql; do \
 		awk '/-- \+goose Up/{up=1;next} /-- \+goose Down/{up=0} up' "$$file"; \
 		echo; \
-	done > sql/queries/schema.sql
+	done >> sql/queries/schema.sql
 	@echo "Esquema regenerado en sql/queries/schema.sql"
 
 db-migrate:

@@ -58,7 +58,12 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*Submission, e
 		code = generated
 	}
 
-	item, err := NewSubmission(uuid.New(), input.ApplicantID, code, input.Content, now)
+	id, err := newIdentifier()
+	if err != nil {
+		return nil, err
+	}
+
+	item, err := NewSubmission(id, input.ApplicantID, code, input.Content, now)
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +73,28 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*Submission, e
 	}
 
 	return item, nil
+}
+
+/**
+ * newIdentifier genera un identificador UUIDv7: los 48 bits iniciales son
+ * una marca de tiempo en milisegundos, así que los identificadores nuevos
+ * ordenan por orden de creación. Eso mantiene el índice del PRIMARY KEY
+ * compacto y hace que el desempate de la paginación por cursor sea
+ * consistente con la fecha de creación.
+ *
+ * La base de datos declara el mismo valor como DEFAULT (uuidv7() de
+ * PostgreSQL 18) para los caminos de inserción que no lo fijen.
+ *
+ * @returns {uuid.UUID} Identificador nuevo.
+ * @returns {Error} Si la fuente de aleatoriedad no está disponible.
+ */
+func newIdentifier() (uuid.UUID, error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("no se pudo generar el identificador de la postulación: %w", err)
+	}
+
+	return id, nil
 }
 
 /**

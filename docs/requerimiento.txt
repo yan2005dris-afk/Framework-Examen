@@ -1,0 +1,587 @@
+                                   DIRECCIÓN NACIONAL DE TECNOLOGÍAS DE LA INFORMACIÓN
+                                    SUBDIRECCIÓN NACIONAL DE DESARROLLO INFORMÁTICO
+
+                                                     REQUERIMIENTO FUNCIONAL
+  VERSIÓN: 1.4       CÓD:                                FECHA:                              PÁG: 1 de 9
+
+
+FECHA:                      26/3/2026              CÓDIGO:
+                        DIRECCIÓN GENERAL
+UNIDAD/ES
+                        DIRECCIÓN NACIONAL DE SERVICIOS CORPORATIVOS
+REQUIRENTE/S:
+                        SUBDIRECCIÓN NACIONAL DE GESTIÓN DE TALENTO HUMANO
+                                            TIPO DE REQUERIMIENTO
+[X] Nuevo Sistema / Componente / Módulo               [ ] Proceso informático (Ej., DML)
+
+[ ] Cambio Sistema / Componente / Módulo Existente            [ ] Nuevo / Cambio a Reporte
+
+
+                      REQUERIMIENTO RELACIONADO CON: (si aplica, marcar con X y registrar datos)
+                           TIPO
+   EMISORA DE          (Resolución,
+                                       Nro.                         DESCRIPCIÓN                       OBSERVACIÓN
+   OBLIGACIÓN        Recomendación,
+                     Disposición etc.)
+                                                    DISPOSICIONES TRANSITORIAS PRIMERA. - La
+                                              Subdirección Nacional de Gestión de Talento Humano
+                                            del IESS en coordinación con la Procuraduría General del
+                                                   IESS y Dirección Nacional de Tecnologías de la
+                                             Información del IESS, en el término de treinta (30) días
+                                                  posteriores a la suscripción de esta resolución,
+                                            elaborarán el formulario de postulación para el Concurso
+  [ x] DIRECCIÓN
+                        Resolución     701    Público de Méritos y Oposición para la Designación de
+      GENERAL
+                                              los Miembros Principales y Alternos del Directorio del
+                                             Banco del Instituto Ecuatoriano de Seguridad Social, en
+                                            representación de los Afiliados, Jubilados y Empleadores,
+                                               que será publicado en la página web institucional del
+                                             Instituto Ecuatoriano de Seguridad Social y página web
+                                                institucional del Banco del Instituto Ecuatoriano de
+                                                                   Seguridad Social.
+[ ] COMITES
+[ ] CONTRALORÍA
+GENERAL DEL
+ESTADO
+/AUDITORÍA
+INTERNA
+[ ]
+SUPERINTENDENCIA
+DE BANCOS
+[ ] OTROS
+(especificar)
+
+
+
+                 PRIORIDAD INSTITUCIONAL                                         IMPACTO INSTITUCIONAL
+(Validar con la Dirección Nacional de Procesos de acuerdo a
+                                                               (Asesorarse con la Dirección Nacional de Procesos y la Dirección
+                 la calificación de criticidad)
+                                                                             Nacional de Riesgos Institucionales)
+
+
+                            Generar un módulo web para la gestión integral del concurso de méritos y oposición para la
+OBJETIVO DEL
+                            selección de los Miembros Principales y Alternos del Directorio del Banco del Instituto Ecuatoriano
+REQUERIMIENTO
+                            de Seguridad Social (BIESS), en Representación de los Afiliados, Jubilados y Empleadores, en
+FUNCIONAL
+                            cumplimiento de la Resolución No. C.D. 701.
+                            Resolución No. C.D. 701 de 26 de febrero de 2026, emitida por el Consejo Directivo del IESS
+SUSTENTO LEGAL DEL
+                            mediante el cual se aprueba el Reglamento de Aplicación del concurso público de méritos y
+REQUERIMIENTO
+                            oposición para la Designación de los Miembros Principales y Alternos del Directorio del Banco del
+FUNCIONAL
+                            Instituto Ecuatoriano de Seguridad Social (BIESS), en Representación de los Afiliados, Jubilados y
+                                  DIRECCIÓN NACIONAL DE TECNOLOGÍAS DE LA INFORMACIÓN
+                                   SUBDIRECCIÓN NACIONAL DE DESARROLLO INFORMÁTICO
+
+                                                     REQUERIMIENTO FUNCIONAL
+ VERSIÓN: 1.4       CÓD:                                 FECHA:                              PÁG: 2 de 9
+
+                           Empleadores
+                           La ejecución del Concurso Público de Méritos y Oposición para la selección de los Miembros
+                           Principales y Alternos del Directorio del Banco del Instituto Ecuatoriano de Seguridad Social (BIESS),
+                           en Representación de los Afiliados, Jubilados y Empleadores, representa un desafío logístico y
+SUSTENTO OPERATIVO         administrativo de alta complejidad a nivel nacional. Gestionar la recepción, verificación, calificación
+DEL REQUERIMIENTO          y notificación de cientos de postulantes mediante procesos manuales o herramientas ofimáticas
+FUNCIONAL                  básicas (hojas de cálculo o correos electrónicos sueltos) resulta operativamente inviable. Esto
+                           genera un alto riesgo de error humano, cuellos de botella en la Subdirección Nacional de Gestión de
+                           Talento Humano y vulnerabilidades frente a auditorías de organismos de control. Por lo tanto, se
+                           requiere la implementación de un sistema informático que automatice el concurso.
+                           La necesidad de diseñar, desarrollar e implementar un “módulo web Integral del concurso público
+                           de méritos y oposición - Directorio BIESS" se justifica en la obligatoriedad ejecutar las disposiciones
+JUSTIFICACIÓN DEL          contenidas en la Resolución No. C.D. 701, emitida por el Consejo Directivo del Instituto Ecuatoriano
+REQUERIMIENTO              de Seguridad Social (IESS).
+FUNCIONAL
+                           La Disposición Transitoria Primera otorga un término de 30 días posteriores a la suscripción de la
+                           Resolución para elaborar y publicar el formulario web de postulación en los portales institucionales
+
+
+
+                                    ESPECIFICACIÓN FUNCIONAL 1                                                 CÓDIGO: EF-1
+Descripción            Implementar una plataforma integral para el concurso público de mérito y oposición del Directorio
+                       del BIESS que permita:
+
+                       • Registrar postulantes separándolos por sector de representación (afiliados, jubilados,
+                          empleadores) y receptar de forma digital sus documentos habilitantes exigidos.
+                       • Verificar el cumplimiento de requisitos e inhabilidades, aplicando los filtros de elegibilidad para
+                          determinar el avance en el proceso.
+                       • Calificar postulaciones, calculando automáticamente los puntajes de la fase de méritos y
+                          registrando las calificaciones de la fase de oposición teórica y psicotécnica.
+                       • Gestionar reconsideraciones, controlando mediante el sistema los plazos legales exactos para
+                          cada actor (postulante, Talento Humano y Comisión de Selección).
+                       • Notificar a los usuarios de forma automática a través del correo electrónico sobre los resultados
+                          de cada etapa.
+                       • Generar reportes y listas de elegibles, manteniendo la trazabilidad completa y auditable de todas
+                          las acciones.
+Actores/Roles          Rol Analista - SDNGTH Subdirección Nacional de Gestión de Talento Humano.
+                       Rol Administrador - Comisión de Selección
+                       Rol postulante - usuario externo
+Precondiciones /       • Definir políticas de privacidad y consentimiento informado para el tratamiento de datos
+Prerrequisitos            personales.
+                       • Configurar roles y permisos
+                       • Habilitar canales de notificación como correo institucional.
+Restricciones          • Legales: cumplimiento de normativa de protección de datos personales vigente en Ecuador;
+                       • Temporales: periodos definidos para publicación, y finalización de postulación.
+                       • Operativas: límites de tamaño y formato de documentos (máximo 50 MB por postulante y en
+                          formato PDF)
+                                    DETALLE ESPECIFICACIÓN FUNCIONAL
+                      ACCIÓN: (¿Qué debe hacer el software?)
+                      DESCRIPCIÓN:
+                      (Describa DETALLADAMENTE actividades, reglas de negocio, cálculos, acciones, validaciones,
+    SECUENCIA
+                      mensajes, reportes, notificaciones, controles, etc. Se podrá anexar pantallas, flujos, formatos,
+                      mensajes, cálculos, tablas, reportes, otros, que aclaren, definan, precisen las especificaciones
+                      funcionales detalladas)
+       EF-11          ACCIÓN: Registrar postulantes y autenticar su acceso
+                      DETALLE:
+                      1. Una vez la fase de postulación sea aprobada y autorizada su inicio, el postulante tendrá la
+                          posibilidad de participar en el concurso de méritos y oposición para la selección de los Miembros
+                          DIRECCIÓN NACIONAL DE TECNOLOGÍAS DE LA INFORMACIÓN
+                           SUBDIRECCIÓN NACIONAL DE DESARROLLO INFORMÁTICO
+
+                                             REQUERIMIENTO FUNCIONAL
+VERSIÓN: 1.4   CÓD:                              FECHA:                               PÁG: 3 de 9
+
+                    Principales y Alternos del Directorio del Banco del Instituto Ecuatoriano de Seguridad Social
+                    (BIESS), en Representación de los Afiliados, Jubilados y Empleadores, en cumplimiento de la
+                    Resolución No. C.D. 701
+                 2. Para lo cual la opción de “concurso público de méritos y oposición - Directorio BIESS” se
+                    encontrará alojada en la página web institucional.
+                 3. El postulante accederá al enlace, en donde lo dirigirá a una nueva pestaña del navegador en
+                    donde se presentarán las opciones: “iniciar sesión” y “registrase”
+                 4. Al seleccionar “registrase”, se desplegará una pantalla en donde el postulante deberá digitar su
+                    “cedula de identidad”, el sistema a través de la interoperabilidad con el Registro Civil del
+                    Ecuador, para comprobar la identidad solicitará ya sea la “fecha de expedición” (DD/MM/AAAA)
+                    ó “Código Dactilar” (10 dígitos), a lo cual el postulante deberá digitar el dato solicitado y enviar;
+                    si la validación es correcta, la plataforma solicitará al usuario registre su “correo electrónico” y
+                    una “contraseña”, caso contrario al digitar mal desplegará un mensaje de “la información
+                    ingresada es incorrecta”, el usuario tendrá 3 oportunidades de registro, transcurrido estos
+                    intentos fallidos se desplegará un mensaje de “registro fallido, inténtelo nuevamente en 10
+                    minutos”, transcurridos 10 minutos el sistema se refrescará y permitirá al postulante intentar el
+                    registro nuevamente.
+                 5. Cuando el registro es correcto y validado, el sistema dirigirá al postulante a una pantalla
+                    principal para que ingrese con sus credenciales que será su cedula y su contraseña registrada
+                 6. Cuando el usuario ya registrado ingresa su contraseña incorrecta desplegará un mensaje de “sus
+                    credenciales de ingreso son incorrectas”. Se contará con un link de “¿Olvidaste tu
+                    contraseña?” para recuperación de credenciales el cual al ser digitada permitirá al postulante
+                    ingresar su cédula y la fecha de expedición ó Código Dactilar, y si esta es correcta con la
+                    interoperabilidad del Registro Civil del Ecuador enviará un correo electrónico automático a la
+                    dirección electrónica del postulante para que recupere y restablezca su contraseña.
+      EF-12      ACCIÓN: Formulario de Postulación.
+                 DETALLE:
+
+                 A los usuarios registrados y que acceden por primera vez el sistema deberá obligatoriamente dirigir a
+                 que registren y complete su formulario.
+
+                 Al ingresar en “Formulario” se desplegará los campos: Información Personal, Información
+                 domiciliaria y de contacto, Información adicional, Formación académica, Formación adicional,
+                 Experiencia laboral, y Referencias Personales.
+
+                 1. Una vez que el postulante ingresa con su usuario (cédula) y contraseña, el sistema lo dirigirá a
+                    una pantalla de FORMULARIO DE POSTULACIÓN aquí se contará con:
+
+                 1.1   Campo Información Personal la cual, mediante la interoperabilidad del Registro Civil del
+                       Ecuador, cargará automáticamente los ítems:
+                       1.1.1. Nombres:
+                       1.1.2. Apellidos:
+                       1.1.3. Cedula:
+                       1.1.4. Género:
+                       1.1.5. Fecha de Nacimiento:
+                       1.1.6. Nacionalidad:       (Si la nacionalidad no es ecuatoriana, el sistema no permitirá
+                                       continuar con el proceso cerrando la postulación)
+                       1.1.7. Estado Civil:
+                              1.1.7.1. En caso de que se despliegue la condición de: casado/a o unión de hecho, el
+                                         sistema desplegará los datos de la pareja que son: “Nombres y Apellidos” y
+                                         “Cedula”
+                       1.1.8. El sistema contará con un botón de “Guardar”
+
+                 1.2   Posteriormente se visualizará el campo “Información domiciliaria y de contacto” contendrá
+                       los siguientes ítems a llenar:
+                       1.2.1 País: lista a elegir (Afganistán, Albania, Alemania, Andorra, Angola, Antigua y Barbuda,
+                              Arabia Saudita, Argelia, Argentina, Armenia, Australia, Austria, Azerbaiyán, Bahamas,
+                              Bangladés, Barbados, Baréin, Bélgica, Belice, Benín, Bielorrusia, Birmania,
+                              Bolivia, Bosnia y Herzegovina, Botsuana, Brasil, Brunéi, Bulgaria, Burkina Faso, Burundi,
+                         DIRECCIÓN NACIONAL DE TECNOLOGÍAS DE LA INFORMACIÓN
+                          SUBDIRECCIÓN NACIONAL DE DESARROLLO INFORMÁTICO
+
+                                             REQUERIMIENTO FUNCIONAL
+VERSIÓN: 1.4   CÓD:                              FECHA:                                PÁG: 4 de 9
+
+                            Bután, Cabo Verde, Camboya, Camerún, Canadá, Catar, Chad, Chile, China, Chipre,
+                            Ciudad del Vaticano, Colombia, Comoras, Corea del Norte, Corea del Sur, Costa de
+                            Marfil, Costa Rica, Croacia, Cuba, Dinamarca, Dominica, Ecuador, Egipto, El Salvador,
+                            Emiratos Árabes Unidos, Eritrea, Eslovaquia, Eslovenia, España, Estados Unidos, Estonia,
+                            Etiopía, Filipinas, Finlandia, Fiyi, Francia, Gabón, Gambia, Georgia, Ghana, Granada,
+                            Grecia, Guatemala, Guyana, Guinea, Guinea-Bisáu, Guinea Ecuatorial, Haití, Honduras,
+                            Hungría, India, Indonesia, Irak, Irán, Irlanda, Islandia, Islas Marshall, Islas Salomón, Israel,
+                            Italia, Jamaica, Japón, Jordania, Kazajistán, Kenia, Kirguistán, Kiribati, Kuwait, Laos,
+                            Lesoto, Letonia, Líbano, Liberia, Libia, Liechtenstein, Lituania, Luxemburgo, Macedonia
+                            del Norte, Madagascar, Malasia, Malaui, Maldivas, Malí, Malta, Marruecos, Mauricio,
+                            Mauritania, México, Micronesia, Moldavia, Mónaco, Mongolia, Montenegro,
+                            Mozambique, Namibia, Nauru, Nepal, Nicaragua, Níger, Nigeria, Noruega, Nueva
+                            Zelanda, Omán, Países Bajos, Pakistán, Palaos, Panamá, Papúa Nueva Guinea, Paraguay,
+                            Perú, Polonia, Portugal, Reino Unido, República Centroafricana, República Checa,
+                            República del Congo, República Democrática del Congo, República Dominicana, Ruanda,
+                            Rumanía, Rusia, Samoa, San Cristóbal y Nieves, San Marino, San Vicente y las
+                            Granadinas, Santa Lucía, Santo Tomé y Príncipe, Senegal, Serbia, Seychelles, Sierra
+                            Leona, Singapur, Siria, Somalia, Sri Lanka, Suazilandia, Sudáfrica, Sudán, Sudán del Sur,
+                            Suecia, Suiza, Surinam, Tailandia, Tanzania, Tayikistán, Timor Oriental, Togo, Tonga,
+                            Trinidad y Tobago, Túnez, Turkmenistán, Turquía, Tuvalu, Ucrania, Uganda, Uruguay,
+                            Uzbekistán, Vanuatu, Venezuela, Vietnam, Yemen, Yibuti, Zambia, Zimbabue),
+                      1.2.2 “Provincia / Estado: lista a elegir si escoge Ecuador (Azuay, Bolívar, Cañar, Carchi,
+                            Chimborazo, Cotopaxi, El Oro, Esmeraldas, Galápagos, Guayas, Imbabura, Loja, Los Ríos,
+                            Manabí, Morona Santiago, Napo, Orellana, Pastaza, Pichincha, Santa Elena, Santo
+                            Domingo de los Tsáchilas, Sucumbíos, Tungurahua, Zamora Chinchipe) si escoge otro
+                            país ingresará la información de este ítem manualmente,
+                      1.2.3 “Ciudad: (lista a desplegar dependiendo si eligió como país Ecuador y de qué provincia
+                            selecciono, Azuay: Cuenca, Gualaceo, Chordeleg, Sígsig, Girón, Santa Isabel, Pucará,
+                            Camilo Ponce Enríquez. Bolívar: Guaranda, Chillanes, Chimbo, Echeandía, San Miguel,
+                            Caluma, Las Naves. Cañar: Azogues, Biblián, Cañar, Déleg, El Tambo, Suscal, La Troncal.
+                            Carchi: Tulcán, Bolívar, Espejo, Mira, Montúfar, San Pedro de Huaca. Chimborazo:
+                            Riobamba, Alausí, Colta, Chunchi, Guamote, Guano, Pallatanga, Penipe, Cumandá.
+                            Cotopaxi: Latacunga, La Maná, Pangua, Pujilí, Salcedo, Saquisilí, Sigchos. El Oro: Machala,
+                            Arenillas, Atahualpa, Balsas, Chilla, El Guabo, Huaquillas, Las Lajas, Marcabelí, Pasaje,
+                            Piñas, Portovelo, Santa Rosa, Zaruma. Esmeraldas: Esmeraldas, Atacames, Eloy Alfaro,
+                            Muisne, Quinindé, Rioverde, San Lorenzo. Galápagos: San Cristóbal, Isabela, Santa Cruz.
+                            Guayas: Guayaquil, Durán, Milagro, Samborondón, Daule, Playas, Balzar, Colimes, El
+                            Empalme, El Triunfo, Isidro Ayora, Lomas de Sargentillo, Naranjal, Naranjito, Nobol,
+                            Pedro Carbo, Salitre, Simón Bolívar, Yaguachi. Imbabura: Ibarra, Antonio Ante, Cotacachi,
+                            Otavalo, Pimampiro, San Miguel de Urcuquí. Loja: Loja, Calvas, Catamayo, Celica,
+                            Chaguarpamba, Espíndola, Gonzanamá, Macará, Paltas, Puyango, Saraguro, Sozoranga,
+                            Zapotillo. Los Ríos: Babahoyo, Baba, Buena Fe, Mocache, Montalvo, Palenque,
+                            Puebloviejo, Quevedo, Urdaneta, Ventanas, Vinces, Valencia. Manabí: Portoviejo,
+                            Manta, Chone, Bolívar, El Carmen, Flavio Alfaro, Jipijapa, Junín, Montecristi, Paján,
+                            Pichincha, Rocafuerte, Santa Ana, Sucre, Tosagua, 24 de Mayo, Pedernales, Olmedo,
+                            Puerto López, Jama, Jaramijó, San Vicente. Morona Santiago: Morona, Gualaquiza,
+                            Limón Indanza, Palora, San Juan Bosco, Santiago, Sucúa, Taisha, Tiwintza. Napo: Tena,
+                            Archidona, Carlos Julio Arosemena Tola, El Chaco, Quijos. Orellana: Francisco de
+                            Orellana, Aguarico, La Joya de los Sachas, Loreto. Pastaza: Pastaza, Arajuno, Mera, Santa
+                            Clara. Pichincha: Quito, Cayambe, Mejía, Pedro Moncayo, Pedro Vicente Maldonado,
+                            Puerto Quito, Rumiñahui, San Miguel de los Bancos. Santa Elena: Santa Elena, La
+                            Libertad. Santo Domingo de los Tsáchilas: La Concordia, Santo Domingo. Sucumbíos:
+                            Cascales, Cuyabeno, Gonzalo Pizarro, Lago Agrio, Putumayo, Shushufindi, Sucumbíos.
+                            Tungurahua: Ambato, Baños de Agua Santa, Cevallos, Mocha, Patate, Pelileo, Píllaro,
+                            Quero, Tisaleo. Zamora Chinchipe: Centinela del Cóndor, Chinchipe, El Pangui,
+                            Nangaritza, Palanda, Paquisha, Yacuambi, Yantzaza, Zamora.) si escoge otro país
+                            ingresará la información de este ítem manualmente,
+                      1.2.4 Teléfono Celular:
+                      1.2.5 Correo Electrónico 1: (Se visualizará y cargará el correo registrado por el
+                           DIRECCIÓN NACIONAL DE TECNOLOGÍAS DE LA INFORMACIÓN
+                            SUBDIRECCIÓN NACIONAL DE DESARROLLO INFORMÁTICO
+
+                                             REQUERIMIENTO FUNCIONAL
+VERSIÓN: 1.4   CÓD:                              FECHA:                              PÁG: 5 de 9
+
+                             postulante)
+                       1.2.6 Correo Electrónico 2:
+                       1.2.7 Calle Principal Domicilio:
+                       1.2.8 Numero:
+                       1.2.9 Calle Secundaria:
+                       1.2.10 Sector:
+                       1.2.11 Referencia:
+                       1.2.12 Teléfono Domicilio:
+                       1.2.13 El sistema contará con un botón de “Guardar”
+
+                 1.3    El campo “Información adicional” contendrá los siguientes ítems:
+                       1.3.1 “Tiene familiares dentro del segundo grado de consanguinidad y cuarto de afinidad,
+                              trabajando en el IESS o BIESS actualmente: Opciones de selección “Si/No”, en caso de
+                              seleccionar "Si", se desplegará:
+                                1.3.1.1 Nombres y apellidos del familiar:
+                                1.3.1.2 Parentesco familiar: (Lista desplegable: conviviente, cónyuge, cuñado/a,
+                                        hermano/a, hijo político, hijo/a, madre, nieto/a, nuera, padre, primo
+                                        hermano/a, sobrino/a, suegro/a, tío/a, yerno).
+                                1.3.1.3 Institución donde trabaja el familiar: (Lista desplegable: IESS, BIESS)
+                                1.3.1.4 Área donde trabaja el familiar:
+                                1.3.1.5 Cargo
+                                1.3.1.6 Botón “Agregar” para adicionar
+                              1.3.1.7 El sistema contará con un botón de “Editar”, “Eliminar” y “Guardar
+                                      información”
+
+                 1.4 Posteriormente se visualizará el campo “Selección del cargo al que postula”, (se desplegará las
+                     siguientes opciones a elegir una: “Miembro Principal y Alterno en Representación del Sector de
+                     Afiliados ante el Directorio del BIESS”, “Miembro Principal y Alterno en Representación del
+                     Sector de los Jubilados ante el Directorio del BIESS” y “Miembro Principal y Alterno en
+                     Representación del Sector Empleador ante el Directorio del BIESS”).
+                     1.4.1 Si el postulante selecciona “Miembro Principal y Alterno en Representación del Sector de
+                           Afiliados ante el Directorio del BIESS”
+                             1.4.1.1 A través de la interoperabilidad con Historial Laboral de IESS se validará
+                                      automáticamente la cedula del postulante e informará si mantiene la calidad de
+                                      afiliado o no, mostrando “Postulante afiliado al IESS” y “Postulante No Afiliado
+                                      al IESS”, respectivamente.
+                             1.4.1.2 Si se visualiza como “Postulante No afiliado al IESS”, (se desplegará el mensaje:
+                                      “Su postulación para el cargo de Miembro Principal y Alterno en
+                                      Representación del Sector de Afiliados ante el Directorio del BIESS, NO puede
+                                      continuar, por cuanto no mantiene la calidad de afiliado al IESS”), y el sistema
+                                      se cierra automáticamente.
+                             1.4.1.3 Si se visualiza como “Postulante afiliado al IESS”, (se desplegará el ítem de: “¿Se
+                                      encuentra respaldadas por una organización de trabajadores de
+                                      representación nacional legalmente constituida ante autoridad competente?”
+                                      Opciones de selección “Si/No”,
+                                      1.4.1.3.1 En caso de seleccionar "Si", se desplegará:
+                                              1.4.1.3.1.1 “Nombre de Organización: *”
+                                              1.4.1.3.1.2 “Documento de respaldo *” (Aquí permitirá cargar el sistema
+                                                            y guardar el documento respectivo en formato PDF de
+                                                            máximo 4 Mb)
+                             1.4.1.4 El sistema contará con un botón de “Guardar Postulación”
+                     1.4.2 Si el postulante selecciona “Miembro Principal y Alterno en Representación del Sector de
+                                los Jubilados ante el Directorio del BIESS”
+                             1.4.2.1 A través de la interoperabilidad con Historial Laboral de IESS se validará
+                                      automáticamente la cedula del postulante e informará si mantiene la calidad de
+                                      jubilado o no, mostrando “Postulante acredita jubilación” y “Postulante no
+                                      acredita jubilación”, respectivamente.
+                             1.4.2.2 Si se visualiza como “Postulante no acredita jubilación”, (se desplegará el
+                                      mensaje: “Su postulación para el cargo de Miembro Principal y Alterno en
+                           DIRECCIÓN NACIONAL DE TECNOLOGÍAS DE LA INFORMACIÓN
+                            SUBDIRECCIÓN NACIONAL DE DESARROLLO INFORMÁTICO
+
+                                              REQUERIMIENTO FUNCIONAL
+VERSIÓN: 1.4   CÓD:                               FECHA:                             PÁG: 6 de 9
+
+                                      Representación del Sector de los Jubilados ante el Directorio del BIESS, NO
+                                      puede continuar, por cuanto no acredita jubilación”), y el sistema se cierra
+                                      automáticamente.
+                              1.4.2.3 Si se visualiza como “Postulante acredita jubilación”, (se desplegará el ítem de:
+                                      “¿Se encuentra respaldadas por una organización de jubilados de
+                                      representación nacional legalmente constituida ante autoridad competente?”
+                                      Opciones de selección “Si/No”,
+                                      1.4.2.3.1 En caso de seleccionar "Si", se desplegará:
+                                               1.4.2.3.1.1 “Nombre de Organización: *”
+                                               1.4.2.3.1.2 “Documento de respaldo *” (Aquí permitirá cargar el sistema
+                                                             y guardar el documento respectivo en formato PDF de
+                                                             máximo 4 Mb)
+                              1.4.2.4 El sistema contará con un botón de “Guardar Postulación”
+                      1.4.3 Si el postulante selecciona “Miembro Principal y Alterno en Representación del Sector
+                            Empleador ante el Directorio del BIESS”
+                              1.4.3.1 A través de la interoperabilidad con Historial Laboral de IESS se validará
+                                      automáticamente los datos del postulante e informará si mantiene la calidad de
+                                      empleador o no, mostrando “Postulante es empleador” y “Postulante no es
+                                      empleador”, respectivamente.
+                              1.4.3.2 Si se visualiza como “Postulante no es empleador”, (se desplegará el mensaje:
+                                      “Su postulación para el cargo de Miembro Principal y Alterno en
+                                      Representación del Sector Empleador ante el Directorio del BIESS, NO puede
+                                      continuar, por cuanto no es empleador”), y el sistema se cierra
+                                      automáticamente.
+                              1.4.3.3 Si se visualiza como “Postulante es empleador”, (se desplegará el ítem de: “¿Se
+                                      encuentra respaldadas por una federación de cámara de representación
+                                      nacional legalmente constituida ante autoridad competente?” Opciones de
+                                      selección “Si/No”,
+                                      1.4.3.3.1 En caso de seleccionar "Si", se desplegará:
+                                               1.4.3.3.1.1 “Nombre de Organización: *”
+                                               1.4.3.3.1.2 “Documento de respaldo *” (Aquí permitirá cargar el sistema
+                                                             y guardar el documento respectivo en formato PDF de
+                                                             máximo 4 Mb)
+                              1.4.3.4 El sistema contará con un botón de “Editar”, “Eliminar” y “Guardar Postulación”
+
+                 1.5 Posteriormente se visualizará el campo “Formación académica” contendrá un botón “agregar”,
+                     que permite al pulsar ingresar los siguientes ítems:
+                     1.5.1 Nivel de instrucción: Se despliega a elegir: Tercer Nivel de Grado, Cuarto Nivel -
+                           Especialidad Académica, Cuarto Nivel - Maestría Académica, Cuarto Nivel PhD - Doctorado.
+                           Cuando el postulante seleccione estas opciones se desplegará:
+                             1.5.1.1 Institución Educativa:
+                             1.5.1.2 Tipo: Opciones de selección “Nacional, Extranjera”
+                             1.5.1.3 Título obtenido:
+                             1.5.1.4 Área de estudios: (Opciones a elegir una: Finanzas, Mercado de Capitales,
+                                     Administración de Empresas, Economía, Derecho o materias afines)
+                             1.5.1.5 Numero de registro SENESCYT:
+                             1.5.1.6 Fecha de registro SENESCYT:
+                     1.5.2 Documento de respaldo (Aquí permitirá cargar el sistema y guardar el documento
+                           respectivo en formato PDF de máximo 2 Mb)
+                     1.5.3 El sistema contará con un botón de “Editar”, “Eliminar” y “Guardar información”
+
+                 1.6 El campo “Experiencia profesional”, contendrá un botón “agregar”, que al pulsar despliega las
+                     siguientes opciones a completar:
+                     1.6.1 Tipo de Experiencia: (Opciones a elegir: General, Dirección)
+                     1.6.2 Cargo o puesto:
+                     1.6.3 Institución o Empresa:
+                     1.6.4 Fecha inicio:
+                     1.6.5 Fecha finalización:
+                     1.6.6 Actividades relacionadas a:(Opciones a elegir una: finanzas, mercado de capitales,
+                           DIRECCIÓN NACIONAL DE TECNOLOGÍAS DE LA INFORMACIÓN
+                            SUBDIRECCIÓN NACIONAL DE DESARROLLO INFORMÁTICO
+
+                                             REQUERIMIENTO FUNCIONAL
+VERSIÓN: 1.4   CÓD:                              FECHA:                              PÁG: 7 de 9
+
+                            administración de empresas, economía, derecho o materias afines)
+                      1.6.7 Descripción de funciones: (Máximo 1000 caracteres)
+                      1.6.8 Documento de respaldo *” (Aquí permitirá cargar el sistema y guardar el documento de
+                            respaldo por cada una de las experiencias en formato PDF de máximo 2 Mb)
+                      1.6.9 El sistema contará con un botón de “Editar”, “Eliminar” y “Guardar información”
+
+                      El sistema en función de las fechas ingresadas calculará automáticamente la experiencia
+                      visualizando el tiempo por cada una de las experiencias en años, meses y días.
+
+                 1.7 En el campo “Publicaciones”, se desplegará el ítem de: “¿Cuenta con Publicaciones e
+                     Investigaciones académicas?” Opciones de selección “Si/No”,
+                       1.7.1 En caso de seleccionar "Si", se desplegará:
+
+                             1.7.1.1 “Título de la publicación o trabajo de investigación:
+                             1.7.1.2 Tipo: A elegir entre “Publicación / Trabajo de investigación”
+                             1.7.1.3 “Medio de publicación:
+                             1.7.1.4 “Fecha de publicación:
+                             1.7.1.5 “¿Guarda relación con el campo de su ejercicio o formación profesional:
+                                Opciones de selección “Si/No”,
+                             1.7.1.6 Documento de respaldo *” (Aquí permitirá cargar el sistema y guardar el
+                                documento de respaldo por cada publicación o trabajo de investigación en formato
+                                PDF de máximo 2 Mb)
+                             1.7.1.7 El sistema contará con un botón de contendrá un botón “Agregar”, “Editar”,
+                                “Eliminar” y “Guardar información”
+
+                 1.8 En el campo “Capacitación” contendrá un botón “agregar”, que permite al pulsar ingresar los
+                     siguientes ítems:
+                       1.8.1 Al pulsar “Tipo de evento: (se despliega a elegir: Curso, Seminario, Taller)
+                       1.8.2 Nombre del Evento:
+                       1.8.3 Institución:
+                       1.8.4 Fecha Inicio:
+                       1.8.5 Fecha Fin:
+                       1.8.6 Numero horas del evento:
+                       1.8.7 Documento de respaldo (Aquí permitirá cargar el sistema y guardar el documento de
+                             respaldo por cada evento en formato PDF de máximo 2 Mb)
+                       1.8.8 El sistema contará con un botón de “Editar”, “Eliminar” y “Guardar información”
+
+                 1.9 El campo “Inhabilidades”, contendrá las siguientes preguntas:
+                       1.9.1 ¿Es Ecuatoriano/a y está en pleno goce de los derechos de participación política?
+                              Opciones de selección “Si/No”
+                       1.9.2 ¿Se encuentra inhabilitado para ejercer el comercio? Opciones de selección “Si/No”
+                       1.9.3 ¿Está en mora, directa o indirectamente, en el pago de sus obligaciones en cualquiera
+                              de las instituciones del Estado o de las instituciones bajo control de la
+                              Superintendencia de Bancos, incluidas las off-shore? Opciones de selección “Si/No”
+                       1.9.4 ¿Mantiene algún vínculo, por propiedad o administración, con las instituciones del
+                              sistema financiero y del sistema de seguros privados, con las bolsas de valores del país,
+                              Casas de Valores y Administradoras de Fondos y Fideicomisos, de acuerdo con las
+                              normas que la Junta de Política y Regulación Monetaria y Financiera emita para el
+                              efecto? Opciones de selección “Si/No”
+                       1.9.5 ¿Es funcionario o empleado del IESS - BIESS? Opciones de selección “Si/No”
+                       1.9.6 ¿Mantiene interés propio o representa a terceros en la propiedad, la dirección o la
+                              gestión de las compañías aseguradoras u otras personas que integran el sistema
+                              nacional de seguridad social? Opciones de selección “Si/No”
+                       1.9.7 ¿En los últimos 5 años, ha sido removido por algún Organismo de Control? Opciones de
+                              selección “Si/No”
+                          1.9.7.1 En caso de seleccionar "Si", se desplegará:
+                                    1.7.1.7.1.1 “Institución: *”
+                                    1.7.1.7.1.2 “Cargo:
+                                    1.7.1.7.1.3 “Fecha finalización:
+                          DIRECCIÓN NACIONAL DE TECNOLOGÍAS DE LA INFORMACIÓN
+                           SUBDIRECCIÓN NACIONAL DE DESARROLLO INFORMÁTICO
+
+                                             REQUERIMIENTO FUNCIONAL
+VERSIÓN: 1.4   CÓD:                              FECHA:                             PÁG: 8 de 9
+
+                                    1.7.1.7.1.4 “Motivo finalización: *”
+                        1.9.8 ¿Mantiene obligaciones pendientes con el SRI? Opciones de selección “Si/No”
+                        1.9.9 ¿Ha incurrido en los últimos 5 años en castigo de sus obligaciones por parte de
+                              cualquier institución financiera? Opciones de selección “Si/No”
+                      1.9.10 ¿Actualmente se encuentra litigando en contra del IESS- BIESS? Opciones de
+                              selección “Si/No”
+                      1.9.11 ¿Se encuentra procesado, enjuiciado o condenado por algún delito relacionado con
+                              corrupción o crimen organizado? Opciones de selección “Si/No”
+                      1.9.12 ¿Mantiene en firme algún tipo de responsabilidades por la Contraloría General del
+                              Estado? Opciones de selección “Si/No”
+                      1.9.13 ¿Se encuentra registrado en la base de datos de la Unidad de Análisis Financiero y
+                              Económico? Opciones de selección “Si/No”
+
+                 1.10 Al finalizar se contará con un botón “Guardar Postulación” y otro de “Enviar Postulación”
+                     1.10.1 Al seleccionar el botón de: “Guardar Postulación”, se visualizará el siguiente texto y el
+                               cual constará en el formulario final:
+                             “1. Autorizo de manera libre y voluntaria, emitiendo consentimiento explícito al
+                             Instituto Ecuatoriano de Seguridad Social, para el uso de mis datos personales dentro del
+                             concurso de méritos y oposición para la selección de los Miembros Principales y Alternos
+                             del Directorio del Banco del Instituto Ecuatoriano de Seguridad Social (BIESS), en
+                             Representación de los Afiliados, Jubilados y Empleadores, de conformidad con lo
+                             prescrito en el artículo 7 de la Ley Orgánica de Protección de Datos Personales.
+                             2. Declaro que la información del presente formulario y documentación adjunta
+                             corresponde a la verdad y autorizo al Instituto Ecuatoriano de Seguridad Social para que
+                             se compruebe ante cualquier organismo público o privado su veracidad.
+                             3. Acepto expresamente cumplir con las normas aplicables al concurso de méritos y
+                             oposición para la selección de los Miembros Principales y Alternos del Directorio del
+                             Banco del Instituto Ecuatoriano de Seguridad Social (BIESS), en Representación de los
+                             Afiliados, Jubilados y Empleadores; así como las resoluciones y disposiciones impartidas
+                             por el Instituto Ecuatoriano de Seguridad Social. En caso de incumplimiento de requisitos
+                             o encontrarme inmerso/a en las prohibiciones o inhabilidades acepto mi descalificación
+                             del proceso.
+                             4. Acepto que mi nombre como postulante al concurso de méritos y oposición para la
+                             selección de los Miembros Principales y Alternos del Directorio del Banco del Instituto
+                             Ecuatoriano de Seguridad Social (BIESS), en Representación de los Afiliados, Jubilados y
+                             Empleadores; sea publicado en la página web del IESS - BIESS.
+                             5. El presente formulario, debe ser impreso y con firma manuscrita, entregado junto con
+                             los requisitos solicitados, en el lugar, fecha y horario establecido por el Instituto
+                             Ecuatoriano de Seguridad Social.”
+                     1.10.2 El formulario contará al final con un apartado que cuente con la firma del postulante, así
+                             como sus nombres y apellidos y numero de cedula.
+                     1.10.3 Al seleccionar el botón “Enviar Postulación” el formulario de postulación con todos los
+                             campos llenos por parte del postulante serán enviados automáticamente al correo del
+                             postulante.
+
+                 − En cada campo se contará con el botón “Guardar Progreso” para permitir el llenado por partes sin
+                   pérdida de información
+                 − Todos los ítems contaran con un botón “Editar” y “Eliminar” que permitirá modificar y eliminar la
+                   información ingresada por el postulante, respectivamente.
+                 − El formulario contará con un código de numeración único.
+                 − (*) Respuesta obligatoria
+     EF-13       ACCIÓN: Modulo administración
+                 DETALLE:
+                 1. Se contará con un módulo de administración de Talento Humano donde el administrador de la
+                    herramienta tendrá la capacidad de publicar cada una de las fases del concurso de méritos y
+                    oposición para la selección de los Miembros Principales y Alternos del Directorio del Banco del
+                    Instituto Ecuatoriano de Seguridad Social (BIESS), en Representación de los Afiliados, Jubilados y
+                    Empleadores.
+                 2. Contará con la opción para habilitar el apartado EF-12 “Formulario de Postulación”
+                       3. En Este módulo se podrá se visualizará:
+                          • Dashboard permitirá la visualización en tiempo real el número de postulantes por cargo.
+                          • Detalle de Postulantes Históricos: Al acceder a una postulación cerrada, el sistema mostrará
+                           la nómina completa de los postulantes que aplicaron a dicho puesto en su momento,
+                           permitiendo el acceso al detalle íntegro del Formulario de postulación (EF-12) de cada
+                           postulante, incluyendo la descarga de sus certificados y visualización de la calculadora de
+                           experiencia.
+                          • Generación de Matriz: este botón para exportar en excel (.xlsx) y PDF el cuadro comparativo
+                           de postulantes
+
+         EF-14         ACCIÓN: Modulo Gestión del Banco de Preguntas y Aplicación de la Evaluación Teórica
+                       1. El módulo administración contará con un campo de “Gestión del Banco de Preguntas y
+                           Aplicación de la Evaluación Teórica” este permanecerá bloqueado y oculto para el público
+                           general, el sistema habilitará el acceso única y exclusivamente a los postulantes que hayan
+                           superado la Fase de Méritos, cambiando su estado en el módulo del postulante a "Evaluación
+                           Técnica" siendo activada la fecha y hora que el administrador lo habilite.
+                           1.1 El administrador cargará el banco de preguntas de opción múltiple.
+                           1.2 Al momento en que el postulante habilitado inicia sesión el día y hora programados para
+                                su examen, el sistema ejecutará un algoritmo de aleatoriedad. El motor extraerá al azar un
+                                número parametrizado de preguntas del banco total, garantizando que el examen de cada
+                                postulante sea único y en distinto orden.
+                           1.3 El postulante dará clic en "Iniciar Evaluación", el sistema desplegará las preguntas una por
+                                una.
+                              1.3.1 El sistema mostrará un reloj en cuenta regresiva en la parte superior de la pantalla
+                                     (tiempo a definir).
+                              1.3.2 Contará con bloqueos de Seguridad: El aplicativo bloqueará el uso del botón "Atrás"
+                                     del navegador y las funciones de "Copiar y Pegar" para evitar fraudes.
+                              1.3.3 El postulante podrá enviar su examen al finalizar mediante el botón "Finalizar y
+                                     Calificar".
+                              1.3.4 Si el temporizador llega a 00:00, el sistema forzará el cierre automático de la pantalla
+                                     y enviará las respuestas guardadas hasta ese segundo.
+                              1.3.5 El sistema comparará las respuestas del usuario con la matriz de respuestas
+                                     correctas del administrador, calculando la calificación matemáticamente.
+                           1.4 Inmediatamente después del cierre, el sistema guardará la nota en el expediente digital
+                                del postulante, generará el reporte en PDF y notificará el resultado automáticamente al
+                                correo electrónico registrado del postulante y se almacenará en el módulo de
+                                administración.
+
+
+
+APROBACIÓN DEL DOCUMENTO
+
+Suscriben de manera electrónica el presente documento:
+                         Aprobación del RF                                                           Firma -e
+Elaborado por:(*)
+Revisado por:
+
+Aprobado por: (**)
+
+
+(*) Pueden firmar varias personas de haber participado en la elaboración y revisión del RF
+
+(**) Puede presentarse un RF de forma conjunta por más de una Dirección Nacional, en cuyo caso deberán
+aprobar el requerimiento las direcciones involucradas.
+
