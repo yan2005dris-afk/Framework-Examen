@@ -16,6 +16,7 @@ export interface OpcionesPeticion extends Omit<RequestInit, "body"> {
   params?: ParametrosConsulta
   body?: unknown
   baseUrl?: string
+  formatoRespuesta?: "blob"
 }
 
 /**
@@ -132,11 +133,12 @@ export async function apiFetch<T>(
   ruta: string,
   opciones: OpcionesPeticion = {},
 ): Promise<T> {
-  const { params, body, baseUrl, headers, ...restoOpciones } = opciones
+  const { params, body, baseUrl, headers, formatoRespuesta, ...restoOpciones } =
+    opciones
   const urlFinal = construirUrl(ruta, params, baseUrl)
 
   const cabeceras = new Headers(headers)
-  cabeceras.set("Accept", "application/json")
+  if (!cabeceras.has("Accept")) cabeceras.set("Accept", "application/json")
 
   let cuerpoPeticion: BodyInit | null | undefined
 
@@ -186,6 +188,10 @@ export async function apiFetch<T>(
     return undefined as unknown as T
   }
 
+  if (formatoRespuesta === "blob") {
+    return (await respuesta.blob()) as T
+  }
+
   const tipoContenido = respuesta.headers.get("content-type") ?? ""
   if (tipoContenido.includes("application/json")) {
     return (await respuesta.json()) as T
@@ -200,6 +206,18 @@ export async function apiGet<T>(
   opciones?: OpcionesPeticion,
 ): Promise<T> {
   return apiFetch<T>(ruta, { ...opciones, method: "GET" })
+}
+
+/** Descarga binaria con las mismas reglas de sesión, cancelación y errores que JSON. */
+export function apiGetBlob(
+  ruta: string,
+  opciones?: OpcionesPeticion,
+): Promise<Blob> {
+  return apiFetch<Blob>(ruta, {
+    ...opciones,
+    method: "GET",
+    formatoRespuesta: "blob",
+  })
 }
 
 /** Realiza una petición POST. */

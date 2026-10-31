@@ -75,7 +75,6 @@ const grupos: { titulo: string; entradas: EntradaMenu[] }[] = [
         id: "postulaciones",
         titulo: "Postulaciones",
         icono: UsersIcon,
-        badge: "128",
       },
       {
         id: "reportes",
@@ -87,6 +86,7 @@ const grupos: { titulo: string; entradas: EntradaMenu[] }[] = [
 ]
 
 type AppSidebarProps = {
+  administrativo?: boolean
   vistaActual: VistaId
   onNavigate: (vista: VistaId) => void
   /**
@@ -101,7 +101,16 @@ export function AppSidebar({
   vistaActual,
   onNavigate,
   rutas,
+  administrativo = false,
 }: AppSidebarProps) {
+  const gruposVisibles = administrativo
+    ? [
+        {
+          titulo: "Revisión interna",
+          entradas: [grupos[0].entradas[0], ...grupos[1].entradas],
+        },
+      ]
+    : grupos.filter((grupo) => grupo.titulo === "Postulación")
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -123,7 +132,7 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        {grupos.map((grupo) => (
+        {gruposVisibles.map((grupo) => (
           <SidebarGroup key={grupo.titulo}>
             <SidebarGroupLabel>{grupo.titulo}</SidebarGroupLabel>
             <SidebarGroupContent>

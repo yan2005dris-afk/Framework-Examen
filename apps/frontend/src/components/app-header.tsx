@@ -27,6 +27,7 @@ const titulos: Record<VistaId, string> = {
 }
 
 type AppHeaderProps = {
+  identidadAdministrativa?: { iniciales: string; rol: string }
   vistaActual: VistaId
   /** Ruta a la que vuelve la miga "Concurso CPMO 2026". */
   rutaInicio?: string
@@ -35,6 +36,7 @@ type AppHeaderProps = {
 export function AppHeader({
   vistaActual,
   rutaInicio = RUTAS.dashboard,
+  identidadAdministrativa,
 }: AppHeaderProps) {
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
@@ -44,7 +46,11 @@ export function AppHeader({
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link to={rutaInicio}>Concurso CPMO 2026</Link>
+              <Link to={rutaInicio}>
+                {identidadAdministrativa
+                  ? "Revisión interna"
+                  : "Concurso CPMO 2026"}
+              </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator>
@@ -57,23 +63,27 @@ export function AppHeader({
       </Breadcrumb>
 
       <div className="ml-auto flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="hidden w-64 justify-start gap-2 text-muted-foreground md:flex"
-        >
-          <SearchIcon className="size-4" />
-          Buscar...
-          <kbd className="ml-auto rounded border bg-muted px-1.5 font-mono text-xs">
-            ⌘K
-          </kbd>
-        </Button>
+        {!identidadAdministrativa && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden w-64 justify-start gap-2 text-muted-foreground md:flex"
+          >
+            <SearchIcon className="size-4" />
+            Buscar...
+            <kbd className="ml-auto rounded border bg-muted px-1.5 font-mono text-xs">
+              ⌘K
+            </kbd>
+          </Button>
+        )}
         <Badge variant="secondary" className="hidden sm:inline-flex">
-          Borrador
+          {identidadAdministrativa?.rol ?? "Borrador"}
         </Badge>
         <ThemeToggle />
         <Avatar className="size-8">
-          <AvatarFallback className="text-xs">CM</AvatarFallback>
+          <AvatarFallback className="text-xs">
+            {identidadAdministrativa?.iniciales ?? "CM"}
+          </AvatarFallback>
         </Avatar>
       </div>
     </header>

@@ -10,6 +10,7 @@ import { AdminPreguntasView } from "@/pages/admin-preguntas-view"
 import { DashboardPostulacionDetalleView } from "@/pages/dashboard-postulacion-detalle-view"
 import { DashboardPostulacionesView } from "@/pages/dashboard-postulaciones-view"
 import { DashboardView } from "@/pages/dashboard-view"
+import { DashboardReportesView } from "@/pages/dashboard-reportes-view"
 import { EvaluacionExamenView } from "@/pages/evaluacion-examen-view"
 import { EvaluacionResultadoView } from "@/pages/evaluacion-resultado-view"
 import { EvaluacionView } from "@/pages/evaluacion-view"
@@ -86,6 +87,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardView /> },
       { path: "postulaciones", element: <DashboardPostulacionesView /> },
+      { path: "reportes", element: <DashboardReportesView /> },
       {
         path: "postulaciones/:id",
         element: <DashboardPostulacionDetalleView />,

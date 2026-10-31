@@ -1,13 +1,17 @@
-import { Outlet, useLocation, useNavigate } from "react-router"
+import { Link, Outlet, useLocation, useNavigate } from "react-router"
 
 import { AppHeader } from "@/components/app-header"
 import { AppSidebar, type VistaId } from "@/components/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { RUTAS } from "@/lib/rutas"
+import { useSesion } from "@/features/auth/sesion-context"
+import {
+  busquedaRevision,
+  leerFiltrosRevision,
+} from "@/features/revision/modelo"
 
 /**
- * Ruta del router para cada entrada del sidebar. Mientras "Reportes" no tenga
- * vista propia (FT8) apunta al panel, igual que el botón de inicio.
+ * Ruta del router para cada entrada del sidebar administrativo.
  */
 const RUTA_POR_VISTA: Record<VistaId, string> = {
   dashboard: RUTAS.dashboard,
@@ -15,13 +19,14 @@ const RUTA_POR_VISTA: Record<VistaId, string> = {
   revision: RUTAS.postulacionRevision,
   imprimir: RUTAS.postulacionImprimir,
   postulaciones: RUTAS.dashboardPostulaciones,
-  reportes: RUTAS.dashboard,
+  reportes: RUTAS.dashboardReportes,
 }
 
 /**
  * Deriva la entrada activa del sidebar a partir de la URL, sin estado local.
  */
 function vistaDesdeRuta(ruta: string): VistaId {
+  if (ruta.startsWith(RUTAS.dashboardReportes)) return "reportes"
   if (ruta.startsWith(RUTAS.dashboardPostulaciones)) {
     return "postulaciones"
   }
@@ -43,18 +48,51 @@ function vistaDesdeRuta(ruta: string): VistaId {
  */
 export function LayoutAdmin() {
   const navegar = useNavigate()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
+  const { postulante, cerrar } = useSesion()
+  const { filtros } = leerFiltrosRevision(new URLSearchParams(search))
+  const rutas = Object.fromEntries(
+    Object.entries(RUTA_POR_VISTA).map(([vista, ruta]) => [
+      vista,
+      `${ruta}${busquedaRevision(filtros)}`,
+    ]),
+  )
   const vistaActual = vistaDesdeRuta(pathname)
 
   return (
     <SidebarProvider>
       <AppSidebar
+        administrativo
         vistaActual={vistaActual}
-        onNavigate={(vista) => navegar(RUTA_POR_VISTA[vista])}
-        rutas={RUTA_POR_VISTA}
+        onNavigate={(vista) => navegar(rutas[vista])}
+        rutas={rutas}
       />
       <SidebarInset>
-        <AppHeader vistaActual={vistaActual} />
+        <AppHeader
+          vistaActual={vistaActual}
+          rutaInicio={`${RUTAS.dashboard}${busquedaRevision(filtros)}`}
+          identidadAdministrativa={{
+            iniciales: `${postulante?.nombres?.[0] ?? ""}${postulante?.apellidos?.[0] ?? ""}`,
+            rol:
+              postulante?.rol === "administrador"
+                ? "Administrador"
+                : "Analista",
+          }}
+        />
+        <div className="flex flex-wrap justify-end gap-4 border-b px-4 py-2 text-xs text-muted-foreground">
+          {postulante?.rol === "administrador" && (
+            <Link className="underline" to={RUTAS.adminConvocatorias}>
+              Gestión administrativa
+            </Link>
+          )}
+          <button
+            type="button"
+            className="underline"
+            onClick={() => void cerrar()}
+          >
+            Cerrar sesión
+          </button>
+        </div>
         <Outlet />
       </SidebarInset>
     </SidebarProvider>

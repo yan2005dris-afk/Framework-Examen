@@ -231,6 +231,7 @@ describe("Rutas del portal (rutas.ts)", () => {
         [RUTAS.evaluacionResultado]: "con-sesion",
         [RUTAS.dashboard]: "con-rol-analista",
         [RUTAS.dashboardPostulaciones]: "con-rol-analista",
+        [RUTAS.dashboardReportes]: "con-rol-analista",
         [RUTAS.adminConvocatorias]: "con-rol-admin",
         [RUTAS.adminFases]: "con-rol-admin",
         [RUTAS.adminPreguntas]: "con-rol-admin",
