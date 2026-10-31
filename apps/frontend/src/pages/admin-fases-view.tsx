@@ -1,4 +1,4 @@
-import { CheckCircle2Icon, ClockIcon, InfoIcon, LockIcon } from "lucide-react"
+import { InfoIcon, PlusIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Link, useSearchParams } from "react-router"
 import { toast } from "sonner"
@@ -40,180 +40,286 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
 import {
-  useActualizarFase,
-  useAlternarHabilitacionFormulario,
+  useConvocatoriaAdminDetalle,
   useConvocatoriasAdmin,
+  useGuardarConfiguracionConvocatoria,
 } from "@/features/convocatorias/queries"
 import { RUTAS } from "@/lib/rutas"
-import type { EstadoFase, FaseConcurso } from "@/types/convocatoria"
+import {
+  NOMBRES_FASES_OFICIALES,
+  type CodigoFase,
+  type FasePublica,
+} from "@/types/convocatoria"
 import { formatearFechaEcuador } from "@/utils/fechas"
 
+const CODIGOS_FASES_DISPONIBLES: CodigoFase[] = [
+  "postulacion",
+  "meritos",
+  "oposicion_teorica",
+  "oposicion_psicotecnica",
+  "reconsideracion",
+  "resultados",
+]
+
 /**
- * Panel de administración de fases y cronograma oficial del concurso (FT15).
- * Permite gestionar las 6 fases de la convocatoria, habilitar/bloquear
- * el formulario EF-12 y programar prórrogas o aperturas con trazabilidad.
+ * Panel de administración de fases y configuración T18 (FT15).
+ * Controla versión, inicio aprobado, publicación oficial, sectores, fases y habilitación EF-12.
+ * Aplica control optimista con versionado estricto sin datos simulados.
  */
 export function AdminFasesView() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const {
-    data: paginaConvocatorias,
-    isLoading,
-    error,
-    refetch,
-  } = useConvocatoriasAdmin()
-  const mutacionHabilitacion = useAlternarHabilitacionFormulario()
-  const mutacionFase = useActualizarFase()
+  const { data: paginaConvocatorias, isLoading: cargandoLista } =
+    useConvocatoriasAdmin()
+  const mutacionConfig = useGuardarConfiguracionConvocatoria()
 
-  // Convocatoria seleccionada desde query string o la primera disponible
   const convocatorias = useMemo(
     () => paginaConvocatorias?.items ?? [],
     [paginaConvocatorias],
   )
   const convocatoriaIdQuery = searchParams.get("convocatoria")
 
-  const convocatoriaActual = useMemo(() => {
-    if (!convocatorias.length) return null
-    if (convocatoriaIdQuery) {
-      const encontrada = convocatorias.find((c) => c.id === convocatoriaIdQuery)
-      if (encontrada) return encontrada
-    }
-    return convocatorias[0]
+  const convocatoriaIdActual = useMemo(() => {
+    if (convocatoriaIdQuery) return convocatoriaIdQuery
+    if (convocatorias.length > 0) return convocatorias[0].id
+    return null
   }, [convocatorias, convocatoriaIdQuery])
 
-  // Diálogo para alternar habilitación EF-12
-  const [modalHabilitarAbierto, setModalHabilitarAbierto] = useState(false)
-  const [nuevoEstadoHabilitacion, setNuevoEstadoHabilitacion] = useState(false)
-  const [motivoHabilitacion, setMotivoHabilitacion] = useState("")
+  const {
+    data: detalle,
+    isLoading: cargandoDetalle,
+    error: errorDetalle,
+    refetch: recargarDetalle,
+  } = useConvocatoriaAdminDetalle(convocatoriaIdActual)
 
-  // Diálogo para editar cronograma de fase
-  const [faseParaEditar, setFaseParaEditar] = useState<FaseConcurso | null>(
-    null,
-  )
-  const [nuevaFechaInicio, setNuevaFechaInicio] = useState("")
-  const [nuevaFechaFin, setNuevaFechaFin] = useState("")
-  const [nuevoEstadoFase, setNuevoEstadoFase] = useState<EstadoFase>("en_curso")
-  const [motivoFase, setMotivoFase] = useState("")
+  // Diálogo para agregar o modificar fase
+  const [faseEditando, setFaseEditando] = useState<FasePublica | null>(null)
+  const [modalFaseAbierto, setModalFaseAbierto] = useState(false)
+  const [codigoFase, setCodigoFase] = useState<CodigoFase>("postulacion")
+  const [tituloFase, setTituloFase] = useState("")
+  const [aperturaFase, setAperturaFase] = useState("")
+  const [cierreFase, setCierreFase] = useState("")
+  const [publicadaFase, setPublicadaFase] = useState(true)
+  const [habilitadaFase, setHabilitadaFase] = useState(false)
 
   function handleSeleccionarConvocatoria(id: string) {
     setSearchParams({ convocatoria: id })
   }
 
-  function abrirModalHabilitacion(nuevoValor: boolean) {
-    setNuevoEstadoHabilitacion(nuevoValor)
-    setMotivoHabilitacion("")
-    setModalHabilitarAbierto(true)
-  }
-
-  async function handleConfirmarHabilitacion() {
-    if (!convocatoriaActual) return
-    if (!motivoHabilitacion.trim()) {
-      toast.error(
-        "Debe ingresar un motivo institucional para el registro de auditoría.",
-      )
-      return
-    }
-
+  async function handleToggleAprobacion(checked: boolean) {
+    if (!detalle) return
     try {
-      await mutacionHabilitacion.mutateAsync({
-        convocatoriaId: convocatoriaActual.id,
-        habilitada: nuevoEstadoHabilitacion,
-        motivo: motivoHabilitacion.trim(),
-      })
-      toast.success(
-        nuevoEstadoHabilitacion
-          ? "Formulario EF-12 habilitado para recepción de postulaciones."
-          : "Formulario EF-12 bloqueado. No se admiten envíos.",
-      )
-      setModalHabilitarAbierto(false)
-    } catch (err) {
-      toast.error(
-        err instanceof Error
-          ? err.message
-          : "El servidor rechazó el cambio de habilitación.",
-      )
-    }
-  }
-
-  function abrirModalEditarFase(fase: FaseConcurso) {
-    setFaseParaEditar(fase)
-    // Convertir ISO a formato datetime-local aproximado (YYYY-MM-DDTHH:MM)
-    const inicioStr = fase.fechaInicio.slice(0, 16)
-    const finStr = fase.fechaFin.slice(0, 16)
-    setNuevaFechaInicio(inicioStr)
-    setNuevaFechaFin(finStr)
-    setNuevoEstadoFase(fase.estado)
-    setMotivoFase("")
-  }
-
-  async function handleConfirmarEdicionFase() {
-    if (!convocatoriaActual || !faseParaEditar) return
-    if (!motivoFase.trim()) {
-      toast.error(
-        "Debe ingresar la resolución o motivo de la modificación del cronograma.",
-      )
-      return
-    }
-
-    const inicioIso = new Date(nuevaFechaInicio).toISOString()
-    const finIso = new Date(nuevaFechaFin).toISOString()
-
-    if (new Date(finIso) <= new Date(inicioIso)) {
-      toast.error(
-        "La fecha de fin de la fase debe ser posterior a la fecha de inicio.",
-      )
-      return
-    }
-
-    try {
-      await mutacionFase.mutateAsync({
-        convocatoriaId: convocatoriaActual.id,
-        faseId: faseParaEditar.id,
-        payload: {
-          fechaInicio: inicioIso,
-          fechaFin: finIso,
-          estado: nuevoEstadoFase,
-          motivo: motivoFase.trim(),
+      await mutacionConfig.mutateAsync({
+        id: detalle.id,
+        config: {
+          version: detalle.version,
+          inicioAprobado: checked,
+          publicada: checked ? detalle.publicada : false,
+          ef12Habilitado: checked ? detalle.ef12Habilitado : false,
+          sectores: detalle.sectores,
+          fases: detalle.fases,
         },
       })
       toast.success(
-        `Cronograma de ${faseParaEditar.nombre} actualizado con éxito.`,
+        checked
+          ? "Inicio de convocatoria aprobado formalmente."
+          : "Aprobación de convocatoria revocada.",
       )
-      setFaseParaEditar(null)
     } catch (err) {
       toast.error(
-        err instanceof Error
-          ? err.message
-          : "El servidor rechazó la modificación de la fase.",
+        err instanceof Error ? err.message : "Error al actualizar aprobación.",
       )
     }
   }
 
-  if (isLoading) {
+  async function handleTogglePublicacion(checked: boolean) {
+    if (!detalle) return
+    if (checked && !detalle.inicioAprobado) {
+      toast.error("Debe aprobar el inicio antes de publicar la convocatoria.")
+      return
+    }
+    try {
+      await mutacionConfig.mutateAsync({
+        id: detalle.id,
+        config: {
+          version: detalle.version,
+          inicioAprobado: detalle.inicioAprobado,
+          publicada: checked,
+          ef12Habilitado: checked ? detalle.ef12Habilitado : false,
+          sectores: detalle.sectores,
+          fases: detalle.fases,
+        },
+      })
+      toast.success(
+        checked
+          ? "Convocatoria publicada oficialmente en el portal público."
+          : "Convocatoria retirada del portal público.",
+      )
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Error al actualizar publicación.",
+      )
+    }
+  }
+
+  async function handleToggleHabilitarEF12(checked: boolean) {
+    if (!detalle) return
+    if (checked && (!detalle.inicioAprobado || !detalle.publicada)) {
+      toast.error(
+        "Para habilitar el EF-12 la convocatoria debe estar aprobada y publicada.",
+      )
+      return
+    }
+
+    const tieneFasePostulacionHabilitada = detalle.fases.some(
+      (f) => f.codigo === "postulacion" && f.publicada && f.habilitada,
+    )
+
+    if (checked && !tieneFasePostulacionHabilitada) {
+      toast.error(
+        "Se requiere una fase de 'postulacion' publicada y habilitada para activar el formulario EF-12.",
+      )
+      return
+    }
+
+    try {
+      await mutacionConfig.mutateAsync({
+        id: detalle.id,
+        config: {
+          version: detalle.version,
+          inicioAprobado: detalle.inicioAprobado,
+          publicada: detalle.publicada,
+          ef12Habilitado: checked,
+          sectores: detalle.sectores,
+          fases: detalle.fases,
+        },
+      })
+      toast.success(
+        checked
+          ? "Recepción de formularios EF-12 habilitada."
+          : "Recepción de formularios EF-12 suspendida.",
+      )
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Error al cambiar habilitación EF-12.",
+      )
+    }
+  }
+
+  function abrirModalNuevaFase() {
+    setFaseEditando(null)
+    setCodigoFase("postulacion")
+    setTituloFase(NOMBRES_FASES_OFICIALES.postulacion)
+    setAperturaFase(detalle?.apertura.slice(0, 16) ?? "")
+    setCierreFase(detalle?.cierre.slice(0, 16) ?? "")
+    setPublicadaFase(true)
+    setHabilitadaFase(false)
+    setModalFaseAbierto(true)
+  }
+
+  function abrirModalEditarFase(fase: FasePublica) {
+    setFaseEditando(fase)
+    setCodigoFase(fase.codigo)
+    setTituloFase(fase.titulo)
+    setAperturaFase(fase.apertura.slice(0, 16))
+    setCierreFase(fase.cierre.slice(0, 16))
+    setPublicadaFase(fase.publicada)
+    setHabilitadaFase(fase.habilitada)
+    setModalFaseAbierto(true)
+  }
+
+  async function handleGuardarFase(e: React.FormEvent) {
+    e.preventDefault()
+    if (!detalle) return
+
+    const aperturaIso = new Date(aperturaFase).toISOString()
+    const cierreIso = new Date(cierreFase).toISOString()
+
+    if (new Date(cierreIso) <= new Date(aperturaIso)) {
+      toast.error("La fecha de cierre debe ser posterior a la de apertura.")
+      return
+    }
+
+    const nuevaFase: FasePublica = {
+      codigo: codigoFase,
+      titulo: tituloFase.trim() || NOMBRES_FASES_OFICIALES[codigoFase],
+      apertura: aperturaIso,
+      cierre: cierreIso,
+      publicada: publicadaFase,
+      habilitada: habilitadaFase,
+    }
+
+    const fasesActualizadas = faseEditando
+      ? detalle.fases.map((f) =>
+          f.codigo === faseEditando.codigo ? nuevaFase : f,
+        )
+      : [...detalle.fases.filter((f) => f.codigo !== codigoFase), nuevaFase]
+
+    try {
+      await mutacionConfig.mutateAsync({
+        id: detalle.id,
+        config: {
+          version: detalle.version,
+          inicioAprobado: detalle.inicioAprobado,
+          publicada: detalle.publicada,
+          ef12Habilitado: detalle.ef12Habilitado,
+          sectores: detalle.sectores,
+          fases: fasesActualizadas,
+        },
+      })
+      toast.success("Fase guardada exitosamente en el servidor.")
+      setModalFaseAbierto(false)
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Error al guardar la fase.",
+      )
+    }
+  }
+
+  if (cargandoLista || cargandoDetalle) {
     return (
       <div className="flex flex-1 items-center justify-center p-8">
-        <EstadoCargando mensaje="Cargando cronograma y fases oficiales…" />
+        <EstadoCargando mensaje="Consultando configuración de fases del servidor…" />
       </div>
     )
   }
 
-  if (error || !convocatoriaActual) {
+  if (convocatorias.length === 0) {
+    return (
+      <div className="flex flex-1 flex-col gap-4 p-6">
+        <Alert className="border-amber-500/50 bg-amber-500/10">
+          <InfoIcon className="size-5 text-amber-600" />
+          <AlertTitle className="font-semibold text-amber-900 dark:text-amber-200">
+            No existen convocatorias registradas
+          </AlertTitle>
+          <AlertDescription className="text-sm">
+            Para configurar fases, primero cree una convocatoria desde el panel
+            administrativo.
+          </AlertDescription>
+        </Alert>
+        <div>
+          <Button asChild>
+            <Link to={RUTAS.adminConvocatorias}>Ir a Convocatorias</Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (errorDetalle || !detalle) {
     return (
       <div className="flex flex-1 flex-col p-6">
         <EstadoError
-          error={error}
-          onReintentar={() => void refetch()}
-          titulo="Error al cargar fases"
-          mensaje="No se pudo consultar el cronograma de fases de la convocatoria."
+          error={errorDetalle}
+          onReintentar={() => void recargarDetalle()}
+          titulo="Error al consultar configuración"
+          mensaje="No se pudo obtener la configuración oficial desde el servidor."
         />
       </div>
     )
   }
-
-  const fases = convocatoriaActual.fases || []
-  const formularioHabilitado =
-    convocatoriaActual.postulacionHabilitada && !convocatoriaActual.cerrada
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
@@ -222,15 +328,15 @@ export function AdminFasesView() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Fases y Cronograma Oficial
+              Fases y Configuración (T18)
             </h1>
             <Badge variant="outline" className="border-primary/50 text-primary">
               Comisión de Selección
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Control de etapas oficiales, aprobación de cronogramas y
-            habilitación del formulario EF-12.
+            Control de versión optimista (v{detalle.version}), aprobación,
+            publicación y habilitación de fases oficiales.
           </p>
         </div>
 
@@ -243,7 +349,7 @@ export function AdminFasesView() {
               Convocatoria:
             </Label>
             <Select
-              value={convocatoriaActual.id}
+              value={detalle.id}
               onValueChange={handleSeleccionarConvocatoria}
             >
               <SelectTrigger id="selector-convocatoria" className="w-[240px]">
@@ -252,7 +358,7 @@ export function AdminFasesView() {
               <SelectContent>
                 {convocatorias.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.codigo} ({c.periodo})
+                    {c.codigo}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -265,376 +371,306 @@ export function AdminFasesView() {
         </div>
       </div>
 
-      {/* Banner de información de la convocatoria seleccionada */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card p-4 shadow-sm">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-sm font-bold text-primary">
-              {convocatoriaActual.codigo}
-            </span>
-            <span className="text-muted-foreground">·</span>
-            <span className="text-sm font-semibold text-foreground">
-              {convocatoriaActual.titulo}
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {convocatoriaActual.resolucion} · Período global:{" "}
-            {formatearFechaEcuador(convocatoriaActual.apertura)} al{" "}
-            {formatearFechaEcuador(convocatoriaActual.cierre)} (ECT)
-          </p>
-        </div>
-
-        <div>
-          {convocatoriaActual.cerrada ? (
-            <Badge variant="destructive" className="gap-1">
-              <LockIcon className="size-3" />
-              <span>Convocatoria Cerrada</span>
-            </Badge>
-          ) : (
-            <Badge className="bg-emerald-600 hover:bg-emerald-700 gap-1">
-              <CheckCircle2Icon className="size-3" />
-              <span>Convocatoria Activa</span>
-            </Badge>
-          )}
-        </div>
-      </div>
-
-      {/* Tarjeta de Control Operativo del Formulario EF-12 */}
-      <Card className="border-l-4 border-l-primary shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-lg">
-                  Admisión y Recepción del Formulario EF-12
-                </CardTitle>
-                {formularioHabilitado ? (
-                  <Badge className="bg-emerald-600 hover:bg-emerald-700">
-                    Habilitado
-                  </Badge>
-                ) : (
-                  <Badge variant="destructive">Bloqueado</Badge>
-                )}
-              </div>
-              <CardDescription>
-                Habilita o suspende en tiempo real la capacidad de los
-                postulantes para crear, editar o remitir expedientes en el
-                portal público.
-              </CardDescription>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold">
-                {formularioHabilitado ? "Habilitado" : "Bloqueado"}
-              </span>
+      {/* Controles de Estado Institucional (Aprobación, Publicación, EF-12) */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card className="border-l-4 border-l-blue-600">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold">
+                Inicio Aprobado
+              </CardTitle>
               <Switch
-                checked={formularioHabilitado}
-                disabled={
-                  convocatoriaActual.cerrada || mutacionHabilitacion.isPending
-                }
-                onCheckedChange={(checked) => abrirModalHabilitacion(checked)}
-                aria-label="Alternar habilitación de recepción del formulario EF-12"
+                checked={detalle.inicioAprobado}
+                disabled={mutacionConfig.isPending}
+                onCheckedChange={handleToggleAprobacion}
               />
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="text-xs text-muted-foreground">
-          <p>
-            <strong>Regla de negocio:</strong> La habilitación operativa del
-            formulario es independiente de las fechas del cronograma de méritos
-            u oposición. El cierre formal de la convocatoria bloquea el
-            formulario de manera permanente.
-          </p>
-        </CardContent>
-      </Card>
+            <CardDescription className="text-xs">
+              Resolución formal de la Comisión para iniciar el concurso
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-xs font-medium">
+            {detalle.inicioAprobado ? (
+              <span className="text-emerald-600 dark:text-emerald-400">
+                Aprobado
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Pendiente</span>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Tabla de Cronograma Oficial de Fases */}
+        <Card className="border-l-4 border-l-emerald-600">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold">
+                Publicada en Portal
+              </CardTitle>
+              <Switch
+                checked={detalle.publicada}
+                disabled={!detalle.inicioAprobado || mutacionConfig.isPending}
+                onCheckedChange={handleTogglePublicacion}
+              />
+            </div>
+            <CardDescription className="text-xs">
+              Visibilidad de la convocatoria en el portal público
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-xs font-medium">
+            {detalle.publicada ? (
+              <span className="text-emerald-600 dark:text-emerald-400">
+                Visible al público
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Oculta</span>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-amber-600">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold">
+                Formulario EF-12
+              </CardTitle>
+              <Switch
+                checked={detalle.ef12Habilitado}
+                disabled={!detalle.publicada || mutacionConfig.isPending}
+                onCheckedChange={handleToggleHabilitarEF12}
+              />
+            </div>
+            <CardDescription className="text-xs">
+              Admisión activa de recepción y sellado de expedientes
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-xs font-medium">
+            {detalle.ef12Habilitado ? (
+              <span className="text-emerald-600 dark:text-emerald-400">
+                Habilitado para postulantes
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Bloqueado</span>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabla de Fases Oficiales */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">
-            Cronograma Oficial de Fases (1 a 6)
-          </CardTitle>
-          <CardDescription>
-            Secuencia reglamentaria del Concurso Público de Méritos y Oposición.
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle className="text-lg">Fases Oficiales (T18)</CardTitle>
+            <CardDescription>
+              Capacidades reglamentarias publicadas y habilitadas en el
+              servidor.
+            </CardDescription>
+          </div>
+          <Button size="sm" onClick={abrirModalNuevaFase} className="gap-1.5">
+            <PlusIcon className="size-4" />
+            <span>Agregar fase</span>
+          </Button>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[80px]">Orden</TableHead>
-                <TableHead className="w-[280px]">
-                  Nombre y Detalle de la Fase
-                </TableHead>
-                <TableHead>Fecha Inicio (ECT)</TableHead>
-                <TableHead>Fecha Fin (ECT)</TableHead>
-                <TableHead className="w-[120px]">Estado</TableHead>
-                <TableHead className="w-[130px]">Formulario</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+                <TableHead className="w-[180px]">Código Técnico</TableHead>
+                <TableHead>Título de la Fase</TableHead>
+                <TableHead>Apertura (ECT)</TableHead>
+                <TableHead>Cierre (ECT)</TableHead>
+                <TableHead className="w-[120px]">Publicada</TableHead>
+                <TableHead className="w-[120px]">Habilitada</TableHead>
+                <TableHead className="text-right">Acción</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {fases.map((fase) => (
-                <TableRow key={fase.id}>
-                  <TableCell className="font-mono text-sm font-semibold text-muted-foreground">
-                    Fase {fase.orden}
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <p className="font-semibold text-foreground">
-                        {fase.nombre}
-                      </p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {fase.descripcion}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs font-medium">
-                    {formatearFechaEcuador(fase.fechaInicio, {
-                      incluirHora: true,
-                    })}
-                  </TableCell>
-                  <TableCell className="text-xs font-medium">
-                    {formatearFechaEcuador(fase.fechaFin, {
-                      incluirHora: true,
-                    })}
-                  </TableCell>
-                  <TableCell>
-                    {fase.estado === "en_curso" ? (
-                      <Badge className="bg-primary text-primary-foreground gap-1">
-                        <ClockIcon className="size-3" />
-                        <span>En curso</span>
-                      </Badge>
-                    ) : fase.estado === "finalizada" ? (
-                      <Badge variant="secondary" className="gap-1">
-                        <CheckCircle2Icon className="size-3" />
-                        <span>Finalizada</span>
-                      </Badge>
-                    ) : fase.estado === "cancelada" ? (
-                      <Badge variant="destructive">Cancelada</Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="text-muted-foreground"
-                      >
-                        Pendiente
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {fase.permitePostulacion ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                        <span className="size-1.5 rounded-full bg-emerald-600" />
-                        Postulación
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">
-                        No aplica
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => abrirModalEditarFase(fase)}
-                    >
-                      Modificar
-                    </Button>
+              {detalle.fases.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="h-28 text-center text-muted-foreground text-xs"
+                  >
+                    No hay fases configuradas. Utilice "Agregar fase" para
+                    definir las etapas del concurso.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                detalle.fases.map((f) => (
+                  <TableRow key={f.codigo}>
+                    <TableCell className="font-mono text-xs font-semibold text-primary">
+                      {f.codigo}
+                    </TableCell>
+                    <TableCell className="font-medium text-foreground">
+                      {f.titulo}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {formatearFechaEcuador(f.apertura, { incluirHora: true })}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {formatearFechaEcuador(f.cierre, { incluirHora: true })}
+                    </TableCell>
+                    <TableCell>
+                      {f.publicada ? (
+                        <Badge variant="outline" className="text-emerald-600">
+                          Sí
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">No</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {f.habilitada ? (
+                        <Badge className="bg-emerald-600">En curso</Badge>
+                      ) : (
+                        <Badge variant="outline">Inactiva</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => abrirModalEditarFase(f)}
+                      >
+                        Editar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* Nota de separación de responsabilidades */}
-      <Alert className="border-blue-500/30 bg-blue-500/5 text-foreground">
+      {/* Nota institucional */}
+      <Alert className="border-blue-500/30 bg-blue-500/5">
         <InfoIcon className="size-4 text-blue-600 dark:text-blue-400" />
         <AlertTitle className="text-sm font-semibold text-blue-900 dark:text-blue-300">
-          Principio de separación institucional de etapas
+          Control de concurrencia optimista
         </AlertTitle>
-        <AlertDescription className="mt-1 text-xs text-muted-foreground leading-relaxed">
-          La administración de fases y habilitación del formulario EF-12 se
-          mantiene estrictamente independiente de las funciones de calificación
-          técnica y de la publicación de resultados de méritos u oposición
-          (T18/T20). Esta vista no realiza asignaciones de puntajes ni altera
-          expedientes previamente sellados.
+        <AlertDescription className="mt-1 text-xs text-muted-foreground">
+          Cada modificación actualiza la versión del registro en PostgreSQL (v
+          {detalle.version}). Si otro miembro de la Comisión modifica la
+          convocatoria concurrentemente, el servidor devolverá 409 y se
+          recargarán los datos actualizados para evitar sobrescrituras.
         </AlertDescription>
       </Alert>
 
-      {/* Modal Confirmar Habilitación de EF-12 */}
-      <Dialog
-        open={modalHabilitarAbierto}
-        onOpenChange={setModalHabilitarAbierto}
-      >
+      {/* Modal Editar / Agregar Fase */}
+      <Dialog open={modalFaseAbierto} onOpenChange={setModalFaseAbierto}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {nuevoEstadoHabilitacion
-                ? "Habilitar Recepción del Formulario EF-12"
-                : "Bloquear Recepción del Formulario EF-12"}
+              {faseEditando ? "Modificar Fase" : "Agregar Fase Oficial"}
             </DialogTitle>
             <DialogDescription>
-              Convocatoria {convocatoriaActual.codigo}
+              Convocatoria {detalle.codigo} (v{detalle.version})
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <div className="rounded-lg border bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground">
-              {nuevoEstadoHabilitacion ? (
-                <>
-                  Al habilitar el formulario, cualquier ciudadano registrado en
-                  el portal podrá completar las 9 secciones y remitir su
-                  postulación digital con firma y sellado criptográfico.
-                </>
-              ) : (
-                <>
-                  Al bloquear el formulario, se suspenderá inmediatamente la
-                  admisión de nuevas postulaciones. Los usuarios con formularios
-                  en borrador no podrán remitir su expediente.
-                </>
-              )}
-            </div>
-
+          <form onSubmit={handleGuardarFase} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="motivo-hab">
-                Resolución o justificación de auditoría *
-              </Label>
-              <Textarea
-                id="motivo-hab"
-                placeholder="Indique la resolución del Consejo Directivo o el acta oficial que autoriza este cambio…"
-                rows={3}
-                value={motivoHabilitacion}
-                onChange={(e) => setMotivoHabilitacion(e.target.value)}
-                required
-              />
-              <p className="text-2xs text-muted-foreground">
-                Este registro queda asentado en la bitácora inmutable de
-                auditoría.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setModalHabilitarAbierto(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              variant={nuevoEstadoHabilitacion ? "default" : "destructive"}
-              onClick={handleConfirmarHabilitacion}
-              disabled={mutacionHabilitacion.isPending}
-            >
-              {mutacionHabilitacion.isPending
-                ? "Guardando…"
-                : nuevoEstadoHabilitacion
-                  ? "Habilitar formulario"
-                  : "Bloquear formulario"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal Modificar Cronograma de Fase */}
-      <Dialog
-        open={!!faseParaEditar}
-        onOpenChange={(abierto) => {
-          if (!abierto) setFaseParaEditar(null)
-        }}
-      >
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Modificar Cronograma de Fase</DialogTitle>
-            <DialogDescription>
-              {faseParaEditar?.nombre} · Convocatoria{" "}
-              {convocatoriaActual.codigo}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="fecha-inicio">Fecha de inicio (ECT) *</Label>
-                <Input
-                  id="fecha-inicio"
-                  type="datetime-local"
-                  value={nuevaFechaInicio}
-                  onChange={(e) => setNuevaFechaInicio(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="fecha-fin">Fecha de fin (ECT) *</Label>
-                <Input
-                  id="fecha-fin"
-                  type="datetime-local"
-                  value={nuevaFechaFin}
-                  onChange={(e) => setNuevaFechaFin(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="estado-fase">Estado de la fase</Label>
+              <Label htmlFor="codigo-fase">Código de capacidad *</Label>
               <Select
-                value={nuevoEstadoFase}
-                onValueChange={(v) => setNuevoEstadoFase(v as EstadoFase)}
+                value={codigoFase}
+                onValueChange={(v) => {
+                  const cod = v as CodigoFase
+                  setCodigoFase(cod)
+                  if (!faseEditando) {
+                    setTituloFase(NOMBRES_FASES_OFICIALES[cod])
+                  }
+                }}
+                disabled={Boolean(faseEditando)}
               >
-                <SelectTrigger id="estado-fase">
-                  <SelectValue placeholder="Seleccione estado" />
+                <SelectTrigger id="codigo-fase">
+                  <SelectValue placeholder="Seleccione código" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pendiente">Pendiente</SelectItem>
-                  <SelectItem value="en_curso">En curso</SelectItem>
-                  <SelectItem value="finalizada">Finalizada</SelectItem>
-                  <SelectItem value="cancelada">Cancelada</SelectItem>
+                  {CODIGOS_FASES_DISPONIBLES.map((cod) => (
+                    <SelectItem key={cod} value={cod}>
+                      {cod} ({NOMBRES_FASES_OFICIALES[cod]})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="motivo-fase">
-                Acta o resolución de prórroga / modificación *
-              </Label>
-              <Textarea
-                id="motivo-fase"
-                placeholder="Indique el número de resolución que aprueba el cambio de fechas…"
-                rows={3}
-                value={motivoFase}
-                onChange={(e) => setMotivoFase(e.target.value)}
+              <Label htmlFor="titulo-fase">Título oficial de la fase *</Label>
+              <Input
+                id="titulo-fase"
+                value={tituloFase}
+                onChange={(e) => setTituloFase(e.target.value)}
                 required
               />
-              <p className="text-2xs text-muted-foreground">
-                Toda modificación de plazos queda registrada con sello de tiempo
-                y usuario administrador responsable.
-              </p>
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setFaseParaEditar(null)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={handleConfirmarEdicionFase}
-              disabled={mutacionFase.isPending}
-            >
-              {mutacionFase.isPending ? "Guardando…" : "Actualizar cronograma"}
-            </Button>
-          </DialogFooter>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="apertura-fase">Apertura (ECT) *</Label>
+                <Input
+                  id="apertura-fase"
+                  type="datetime-local"
+                  value={aperturaFase}
+                  onChange={(e) => setAperturaFase(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cierre-fase">Cierre (ECT) *</Label>
+                <Input
+                  id="cierre-fase"
+                  type="datetime-local"
+                  value={cierreFase}
+                  onChange={(e) => setCierreFase(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="publicada-fase">Publicada</Label>
+                <p className="text-2xs text-muted-foreground">
+                  Visible en el cronograma público
+                </p>
+              </div>
+              <Switch
+                id="publicada-fase"
+                checked={publicadaFase}
+                onCheckedChange={setPublicadaFase}
+              />
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="habilitada-fase">Habilitada</Label>
+                <p className="text-2xs text-muted-foreground">
+                  Fase activa operacionalmente
+                </p>
+              </div>
+              <Switch
+                id="habilitada-fase"
+                checked={habilitadaFase}
+                disabled={!publicadaFase}
+                onCheckedChange={setHabilitadaFase}
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setModalFaseAbierto(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={mutacionConfig.isPending}>
+                {mutacionConfig.isPending ? "Guardando…" : "Guardar fase"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

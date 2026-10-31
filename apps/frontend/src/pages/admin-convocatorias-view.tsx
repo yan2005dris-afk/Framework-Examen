@@ -1,5 +1,4 @@
 import {
-  AlertTriangleIcon,
   CalendarDaysIcon,
   CheckCircle2Icon,
   ClockIcon,
@@ -11,7 +10,6 @@ import { Link } from "react-router"
 import { toast } from "sonner"
 
 import { EstadoCargando, EstadoError } from "@/components/estados"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -32,13 +30,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   Table,
   TableBody,
   TableCell,
@@ -47,25 +38,20 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
 import {
-  useActualizarEstadoConvocatoria,
   useConvocatoriasAdmin,
   useCrearConvocatoria,
 } from "@/features/convocatorias/queries"
 import { RUTAS } from "@/lib/rutas"
-import type {
-  ConvocatoriaDetalle,
-  EstadoConvocatoria,
-} from "@/types/convocatoria"
+import type { ResumenConvocatoriaAdmin } from "@/types/convocatoria"
 import { formatearFechaEcuador, obtenerEstadoTemporal } from "@/utils/fechas"
 
 type TabFiltro = "todas" | "activas" | "cerradas"
 
 /**
  * Panel de administración y programación de convocatorias (FT15).
- * Permite a la Comisión Especial de Selección publicar convocatorias,
- * programar calendarios, aprobar aperturas y declarar cierres oficiales.
+ * Permite a la Comisión Especial de Selección registrar y supervisar períodos oficiales.
+ * Respeta el contrato T18 sin fabricar fechas ni estados ficticios.
  */
 export function AdminConvocatoriasView() {
   const {
@@ -75,25 +61,15 @@ export function AdminConvocatoriasView() {
     refetch,
   } = useConvocatoriasAdmin()
   const mutacionCrear = useCrearConvocatoria()
-  const mutacionActualizar = useActualizarEstadoConvocatoria()
 
   const [tabActual, setTabActual] = useState<TabFiltro>("todas")
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false)
-  const [convocatoriaParaEditar, setConvocatoriaParaEditar] =
-    useState<ConvocatoriaDetalle | null>(null)
 
   // Estado del formulario de nueva convocatoria
   const [nuevoCodigo, setNuevoCodigo] = useState("")
   const [nuevoTitulo, setNuevoTitulo] = useState("")
-  const [nuevaResolucion, setNuevaResolucion] = useState("Resolución No. C.D. ")
-  const [nuevoPeriodo, setNuevoPeriodo] = useState("2026 – 2030")
   const [nuevaApertura, setNuevaApertura] = useState("2026-11-01T08:00")
   const [nuevoCierre, setNuevoCierre] = useState("2026-11-30T23:59")
-  const [nuevaDescripcion, setNuevaDescripcion] = useState("")
-
-  // Estado del formulario de cambio de estado / cierre
-  const [nuevoEstado, setNuevoEstado] = useState<EstadoConvocatoria>("en_curso")
-  const [motivoCambio, setMotivoCambio] = useState("")
 
   const items = useMemo(
     () => paginaConvocatorias?.items ?? [],
@@ -102,30 +78,17 @@ export function AdminConvocatoriasView() {
 
   const itemsFiltrados = useMemo(() => {
     if (tabActual === "activas") {
-      return items.filter((c) => !c.cerrada && c.estado !== "archivada")
+      return items.filter((c) => !c.cerrada)
     }
     if (tabActual === "cerradas") {
-      return items.filter(
-        (c) => c.cerrada || c.estado === "cerrada" || c.estado === "archivada",
-      )
+      return items.filter((c) => c.cerrada)
     }
     return items
   }, [items, tabActual])
 
-  // Métricas rápidas
   const totalConvocatorias = items.length
-  const activasCount = items.filter(
-    (c) => !c.cerrada && c.estado !== "archivada",
-  ).length
-  const cerradasCount = items.filter(
-    (c) => c.cerrada || c.estado === "cerrada",
-  ).length
-
-  function abrirModalCambioEstado(c: ConvocatoriaDetalle) {
-    setConvocatoriaParaEditar(c)
-    setNuevoEstado(c.cerrada ? "cerrada" : c.estado)
-    setMotivoCambio("")
-  }
+  const activasCount = items.filter((c) => !c.cerrada).length
+  const cerradasCount = items.filter((c) => c.cerrada).length
 
   async function handleGuardarNuevaConvocatoria(e: React.FormEvent) {
     e.preventDefault()
@@ -148,59 +111,22 @@ export function AdminConvocatoriasView() {
       await mutacionCrear.mutateAsync({
         codigo: nuevoCodigo.trim().toUpperCase(),
         titulo: nuevoTitulo.trim(),
-        resolucion: nuevaResolucion.trim(),
-        periodo: nuevoPeriodo.trim(),
         apertura: aperturaIso,
         cierre: cierreIso,
-        descripcion: nuevaDescripcion.trim(),
+        sectores: ["afiliados", "jubilados", "empleadores"],
+        fases: [],
       })
-      toast.success("Convocatoria creada y programada con éxito.")
+      toast.success(
+        "Convocatoria creada en estado deshabilitado según contrato T18.",
+      )
       setModalCrearAbierto(false)
-      // Limpiar campos
       setNuevoCodigo("")
       setNuevoTitulo("")
-      setNuevaDescripcion("")
     } catch (err) {
       toast.error(
         err instanceof Error
           ? err.message
           : "Error al registrar la convocatoria en el servidor.",
-      )
-    }
-  }
-
-  async function handleConfirmarCambioEstado() {
-    if (!convocatoriaParaEditar) return
-    if (!motivoCambio.trim()) {
-      toast.error(
-        "Debe ingresar un motivo institucional para el registro de auditoría.",
-      )
-      return
-    }
-
-    const esCierre = nuevoEstado === "cerrada"
-
-    try {
-      await mutacionActualizar.mutateAsync({
-        id: convocatoriaParaEditar.id,
-        payload: {
-          estado: nuevoEstado,
-          cerrada: esCierre,
-          postulacionHabilitada: !esCierre,
-          motivo: motivoCambio.trim(),
-        },
-      })
-      toast.success(
-        esCierre
-          ? "Convocatoria cerrada oficialmente. Postulaciones bloqueadas."
-          : `Estado de la convocatoria actualizado a ${nuevoEstado}.`,
-      )
-      setConvocatoriaParaEditar(null)
-    } catch (err) {
-      toast.error(
-        err instanceof Error
-          ? err.message
-          : "El servidor rechazó la operación de cambio de estado.",
       )
     }
   }
@@ -270,7 +196,7 @@ export function AdminConvocatoriasView() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase font-semibold">
+            <CardDescription className="text-xs font-semibold uppercase">
               Total Convocatorias
             </CardDescription>
             <CardTitle className="text-2xl font-bold">
@@ -278,13 +204,13 @@ export function AdminConvocatoriasView() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
-            Registradas en el sistema institucional
+            Registradas en el servidor
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase font-semibold">
+            <CardDescription className="text-xs font-semibold uppercase">
               Convocatorias Activas
             </CardDescription>
             <CardTitle className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
@@ -292,13 +218,13 @@ export function AdminConvocatoriasView() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
-            En período vigente de postulación o evaluación
+            En período vigente según [apertura, cierre)
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase font-semibold">
+            <CardDescription className="text-xs font-semibold uppercase">
               Cerradas / Históricas
             </CardDescription>
             <CardTitle className="text-2xl font-bold text-muted-foreground">
@@ -306,7 +232,7 @@ export function AdminConvocatoriasView() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
-            Concluidas con expedientes sellados
+            Concluidas o no admiten postulaciones
           </CardContent>
         </Card>
       </div>
@@ -318,19 +244,15 @@ export function AdminConvocatoriasView() {
           onValueChange={(v) => setTabActual(v as TabFiltro)}
           className="w-full"
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <TabsList>
-              <TabsTrigger value="todas">
-                Todas ({totalConvocatorias})
-              </TabsTrigger>
-              <TabsTrigger value="activas">
-                Activas ({activasCount})
-              </TabsTrigger>
-              <TabsTrigger value="cerradas">
-                Cerradas / Históricas ({cerradasCount})
-              </TabsTrigger>
-            </TabsList>
-          </div>
+          <TabsList>
+            <TabsTrigger value="todas">
+              Todas ({totalConvocatorias})
+            </TabsTrigger>
+            <TabsTrigger value="activas">Activas ({activasCount})</TabsTrigger>
+            <TabsTrigger value="cerradas">
+              Cerradas / Históricas ({cerradasCount})
+            </TabsTrigger>
+          </TabsList>
         </Tabs>
       </div>
 
@@ -340,11 +262,10 @@ export function AdminConvocatoriasView() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[180px]">Código y Período</TableHead>
-                <TableHead>Título Oficial y Resolución</TableHead>
+                <TableHead className="w-[180px]">Código</TableHead>
+                <TableHead>Título Oficial</TableHead>
                 <TableHead>Apertura y Cierre (ECT)</TableHead>
-                <TableHead className="w-[130px]">Estado Concurso</TableHead>
-                <TableHead className="w-[140px]">Formulario EF-12</TableHead>
+                <TableHead className="w-[130px]">Estado</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -352,14 +273,14 @@ export function AdminConvocatoriasView() {
               {itemsFiltrados.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={5}
                     className="h-32 text-center text-muted-foreground"
                   >
                     No se encontraron convocatorias en esta categoría.
                   </TableCell>
                 </TableRow>
               ) : (
-                itemsFiltrados.map((c) => {
+                itemsFiltrados.map((c: ResumenConvocatoriaAdmin) => {
                   const temporal = obtenerEstadoTemporal(
                     c.apertura,
                     c.cierre,
@@ -368,24 +289,14 @@ export function AdminConvocatoriasView() {
                   return (
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">
-                        <div className="space-y-1">
-                          <span className="font-mono text-sm font-bold text-primary">
-                            {c.codigo}
-                          </span>
-                          <p className="text-xs text-muted-foreground">
-                            {c.periodo}
-                          </p>
-                        </div>
+                        <span className="font-mono text-sm font-bold text-primary">
+                          {c.codigo}
+                        </span>
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
-                          <p className="font-semibold text-foreground line-clamp-2">
-                            {c.titulo}
-                          </p>
-                          <span className="inline-block rounded bg-muted px-1.5 py-0.5 text-2xs text-muted-foreground">
-                            {c.resolucion}
-                          </span>
-                        </div>
+                        <p className="font-semibold text-foreground line-clamp-2">
+                          {c.titulo}
+                        </p>
                       </TableCell>
                       <TableCell className="text-xs">
                         <div className="space-y-1">
@@ -428,19 +339,6 @@ export function AdminConvocatoriasView() {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell>
-                        {c.postulacionHabilitada && !c.cerrada ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                            <span className="size-2 rounded-full bg-emerald-600 animate-pulse" />
-                            Habilitado
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <span className="size-2 rounded-full bg-muted-foreground" />
-                            Bloqueado
-                          </span>
-                        )}
-                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <Button
@@ -452,7 +350,7 @@ export function AdminConvocatoriasView() {
                             <Link
                               to={`${RUTAS.adminFases}?convocatoria=${c.id}`}
                             >
-                              Fases
+                              Fases y configuración
                             </Link>
                           </Button>
                           <Button
@@ -466,14 +364,6 @@ export function AdminConvocatoriasView() {
                             >
                               Postulaciones
                             </Link>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs"
-                            onClick={() => abrirModalCambioEstado(c)}
-                          >
-                            Estado
                           </Button>
                         </div>
                       </TableCell>
@@ -492,33 +382,21 @@ export function AdminConvocatoriasView() {
           <DialogHeader>
             <DialogTitle>Nueva Convocatoria Oficial</DialogTitle>
             <DialogDescription>
-              Configure el período y los datos de aprobación del Concurso de
-              Méritos y Oposición.
+              Crea un período inicial deshabilitado (T18). La aprobación y
+              publicación posterior se configuran en el panel de fases.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleGuardarNuevaConvocatoria} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="codigo">Código oficial *</Label>
-                <Input
-                  id="codigo"
-                  placeholder="ej. BIESS-DIR-2027"
-                  value={nuevoCodigo}
-                  onChange={(e) => setNuevoCodigo(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="periodo">Período *</Label>
-                <Input
-                  id="periodo"
-                  placeholder="ej. 2026 – 2030"
-                  value={nuevoPeriodo}
-                  onChange={(e) => setNuevoPeriodo(e.target.value)}
-                  required
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="codigo">Código oficial *</Label>
+              <Input
+                id="codigo"
+                placeholder="ej. BIESS-DIR-2027"
+                value={nuevoCodigo}
+                onChange={(e) => setNuevoCodigo(e.target.value)}
+                required
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -529,16 +407,6 @@ export function AdminConvocatoriasView() {
                 value={nuevoTitulo}
                 onChange={(e) => setNuevoTitulo(e.target.value)}
                 required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="resolucion">Resolución de aprobación</Label>
-              <Input
-                id="resolucion"
-                placeholder="Resolución No. C.D. 701"
-                value={nuevaResolucion}
-                onChange={(e) => setNuevaResolucion(e.target.value)}
               />
             </div>
 
@@ -565,17 +433,6 @@ export function AdminConvocatoriasView() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="descripcion">Descripción o antecedentes</Label>
-              <Textarea
-                id="descripcion"
-                placeholder="Detalle o normativa aplicable…"
-                rows={3}
-                value={nuevaDescripcion}
-                onChange={(e) => setNuevaDescripcion(e.target.value)}
-              />
-            </div>
-
             <DialogFooter className="pt-2">
               <Button
                 type="button"
@@ -585,104 +442,10 @@ export function AdminConvocatoriasView() {
                 Cancelar
               </Button>
               <Button type="submit" disabled={mutacionCrear.isPending}>
-                {mutacionCrear.isPending
-                  ? "Guardando…"
-                  : "Publicar y programar"}
+                {mutacionCrear.isPending ? "Guardando…" : "Crear convocatoria"}
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal Cambiar Estado / Cierre */}
-      <Dialog
-        open={!!convocatoriaParaEditar}
-        onOpenChange={(abierto) => {
-          if (!abierto) setConvocatoriaParaEditar(null)
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Cambiar Estado de la Convocatoria</DialogTitle>
-            <DialogDescription>
-              Convocatoria{" "}
-              <strong className="text-foreground">
-                {convocatoriaParaEditar?.codigo}
-              </strong>
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="estado">Nuevo estado</Label>
-              <Select
-                value={nuevoEstado}
-                onValueChange={(v) => setNuevoEstado(v as EstadoConvocatoria)}
-              >
-                <SelectTrigger id="estado">
-                  <SelectValue placeholder="Seleccione estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en_curso">En curso (Abierta)</SelectItem>
-                  <SelectItem value="publicada">
-                    Publicada (Programada)
-                  </SelectItem>
-                  <SelectItem value="cerrada">Cerrada oficialmente</SelectItem>
-                  <SelectItem value="archivada">Archivada</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {nuevoEstado === "cerrada" && (
-              <Alert variant="destructive" className="text-xs">
-                <AlertTriangleIcon className="size-4" />
-                <AlertTitle className="text-xs font-semibold">
-                  Advertencia legal de cierre
-                </AlertTitle>
-                <AlertDescription className="text-2xs leading-relaxed">
-                  El cierre oficial impedirá permanentemente el envío de nuevos
-                  formularios EF-12 y bloqueará cualquier modificación a
-                  borradores pendientes. Esta acción queda auditada.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-1.5">
-              <Label htmlFor="motivo">
-                Motivo institucional o resolución de cambio *
-              </Label>
-              <Textarea
-                id="motivo"
-                placeholder="Indique la resolución del Consejo Directivo o acta de la Comisión…"
-                rows={3}
-                value={motivoCambio}
-                onChange={(e) => setMotivoCambio(e.target.value)}
-                required
-              />
-              <p className="text-2xs text-muted-foreground">
-                Este motivo se registra en la bitácora de auditoría inmutable
-                (T8/T15).
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setConvocatoriaParaEditar(null)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              variant={nuevoEstado === "cerrada" ? "destructive" : "default"}
-              onClick={handleConfirmarCambioEstado}
-              disabled={mutacionActualizar.isPending}
-            >
-              {mutacionActualizar.isPending ? "Guardando…" : "Confirmar cambio"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

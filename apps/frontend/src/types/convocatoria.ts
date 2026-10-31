@@ -1,156 +1,87 @@
 /**
- * Tipos de dominio para convocatorias, fases y cronograma oficial (FT14 y FT15).
- * Conforme a EF-1, EF-11, EF-13 y Resolución No. C.D. 701.
+ * Tipos de dominio para convocatorias y fases según el contrato compartido T18 y COMPETITION_LIFECYCLE.md.
+ * No define datos ficticios ni cronogramas precargados.
  */
 
-export type EstadoConvocatoria =
-  "borrador" | "publicada" | "en_curso" | "cerrada" | "archivada"
+export type CodigoFase =
+  | "postulacion"
+  | "meritos"
+  | "oposicion_teorica"
+  | "oposicion_psicotecnica"
+  | "reconsideracion"
+  | "resultados"
 
-export type EstadoFase = "pendiente" | "en_curso" | "finalizada" | "cancelada"
+export type SectorConvocatoria = "afiliados" | "jubilados" | "empleadores"
 
-export type TipoFase =
-  | "convocatoria_postulacion"
-  | "verificacion_requisitos"
-  | "calificacion_meritos"
-  | "oposicion_examen"
-  | "impugnacion_ciudadana"
-  | "designacion_final"
-
-export interface FaseConcurso {
-  id: string
-  convocatoriaId: string
-  tipo: TipoFase
-  nombre: string
-  descripcion: string
-  fechaInicio: string
-  fechaFin: string
-  estado: EstadoFase
-  permitePostulacion: boolean
-  orden: number
+export interface FasePublica {
+  codigo: CodigoFase
+  titulo: string
+  apertura: string
+  cierre: string
+  publicada: boolean
+  habilitada: boolean
 }
 
-export interface ConvocatoriaDetalle {
+/** Modelo público devuelto por GET /api/v1/competitions y GET /api/v1/competitions/{id} */
+export interface ConvocatoriaPublica {
   id: string
   codigo: string
   titulo: string
-  descripcion: string
-  resolucion: string
-  periodo: string
   apertura: string
   cierre: string
-  estado: EstadoConvocatoria
+  sectores: SectorConvocatoria[]
+  fases: FasePublica[]
+  ef12Disponible: boolean
+  zonaHoraria: string
+  limites: string
+}
+
+/** Configuración administrativa completa con control optimista de versión */
+export interface ConfiguracionConvocatoria {
+  version: number
+  inicioAprobado: boolean
+  publicada: boolean
+  ef12Habilitado: boolean
+  sectores: SectorConvocatoria[]
+  fases: FasePublica[]
+}
+
+/** Modelo de administración devuelto por GET /api/v1/admin/competitions/{id} */
+export interface ConvocatoriaAdmin extends ConfiguracionConvocatoria {
+  id: string
+  codigo: string
+  titulo: string
+  apertura: string
+  cierre: string
+  aprobadoEn?: string
+  aprobadoPor?: string
+}
+
+/** Resumen devuelto en listados administrativos (T9/T18) */
+export interface ResumenConvocatoriaAdmin {
+  id: string
+  codigo: string
+  titulo: string
+  apertura: string
+  cierre: string
   cerrada: boolean
-  postulacionHabilitada: boolean
-  fases: FaseConcurso[]
-  faseActual?: TipoFase
-  totalPostulantes?: number
-  createdAt: string
 }
 
 export interface CrearConvocatoriaPayload {
   codigo: string
   titulo: string
-  descripcion?: string
-  resolucion?: string
-  periodo?: string
   apertura: string
   cierre: string
+  sectores: SectorConvocatoria[]
+  fases?: FasePublica[]
 }
 
-export interface ActualizarConvocatoriaPayload {
-  titulo?: string
-  descripcion?: string
-  resolucion?: string
-  apertura?: string
-  cierre?: string
-  estado?: EstadoConvocatoria
-  cerrada?: boolean
-  postulacionHabilitada?: boolean
-  motivo?: string
+/** Catálogo de nombres institucionales para los códigos de fase del servidor */
+export const NOMBRES_FASES_OFICIALES: Record<CodigoFase, string> = {
+  postulacion: "Recepción de postulaciones (EF-12)",
+  meritos: "Valoración de méritos",
+  oposicion_teorica: "Prueba técnica de conocimientos",
+  oposicion_psicotecnica: "Evaluación psicométrica",
+  reconsideracion: "Impugnación y reconsideración",
+  resultados: "Proclamación de resultados y designación",
 }
-
-export interface ActualizarFasePayload {
-  nombre?: string
-  descripcion?: string
-  fechaInicio?: string
-  fechaFin?: string
-  estado?: EstadoFase
-  permitePostulacion?: boolean
-  motivo?: string
-}
-
-/**
- * Plantilla oficial de las 6 fases del Concurso de Méritos y Oposición
- * para el Directorio del BIESS (normativa EF-1, EF-11, EF-13).
- */
-export const FASES_OFICIALES_DEFECTO: Omit<
-  FaseConcurso,
-  "id" | "convocatoriaId"
->[] = [
-  {
-    tipo: "convocatoria_postulacion",
-    nombre: "Fase 1: Convocatoria pública y postulación",
-    descripcion:
-      "Publicación oficial del concurso, registro de postulantes y recepción de formularios EF-12 con expedientes digitales.",
-    fechaInicio: "2026-10-15T00:00:00-05:00",
-    fechaFin: "2026-11-15T23:59:59-05:00",
-    estado: "en_curso",
-    permitePostulacion: true,
-    orden: 1,
-  },
-  {
-    tipo: "verificacion_requisitos",
-    nombre: "Fase 2: Verificación de requisitos mínimos e inhabilidades",
-    descripcion:
-      "Revisión de expedientes digitales, validación de certificados y comprobación de no inhabilidades legales para el cargo.",
-    fechaInicio: "2026-11-16T00:00:00-05:00",
-    fechaFin: "2026-11-25T23:59:59-05:00",
-    estado: "pendiente",
-    permitePostulacion: false,
-    orden: 2,
-  },
-  {
-    tipo: "calificacion_meritos",
-    nombre: "Fase 3: Valoración y calificación de méritos",
-    descripcion:
-      "Evaluación técnica y asignación de puntajes por títulos académicos, experiencia profesional, publicaciones y capacitación.",
-    fechaInicio: "2026-11-26T00:00:00-05:00",
-    fechaFin: "2026-12-05T23:59:59-05:00",
-    estado: "pendiente",
-    permitePostulacion: false,
-    orden: 3,
-  },
-  {
-    tipo: "oposicion_examen",
-    nombre: "Fase 4: Examen técnico de conocimientos (Oposición)",
-    descripcion:
-      "Rendición de la prueba técnica objetiva de conocimientos sobre banca, seguridad social, finanzas y gobernanza corporativa.",
-    fechaInicio: "2026-12-06T00:00:00-05:00",
-    fechaFin: "2026-12-15T23:59:59-05:00",
-    estado: "pendiente",
-    permitePostulacion: false,
-    orden: 4,
-  },
-  {
-    tipo: "impugnacion_ciudadana",
-    nombre: "Fase 5: Impugnación ciudadana y reconsideración",
-    descripcion:
-      "Período de escrutinio público para presentación y resolución de impugnaciones motivadas de la ciudadanía contra postulantes.",
-    fechaInicio: "2026-12-16T00:00:00-05:00",
-    fechaFin: "2026-12-24T23:59:59-05:00",
-    estado: "pendiente",
-    permitePostulacion: false,
-    orden: 5,
-  },
-  {
-    tipo: "designacion_final",
-    nombre: "Fase 6: Designación oficial y posesión",
-    descripcion:
-      "Proclamación de resultados oficiales, resolución de designación de vocales principales y alternos y notificación formal.",
-    fechaInicio: "2026-12-26T00:00:00-05:00",
-    fechaFin: "2026-12-30T23:59:59-05:00",
-    estado: "pendiente",
-    permitePostulacion: false,
-    orden: 6,
-  },
-]

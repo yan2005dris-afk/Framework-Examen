@@ -7,6 +7,7 @@ import {
   ExternalLinkIcon,
   InfoIcon,
   LockIcon,
+  ShieldAlertIcon,
   ShieldCheckIcon,
   UserCheckIcon,
   UsersIcon,
@@ -27,9 +28,9 @@ import { useSesion } from "@/features/auth/sesion-context"
 import { useRutaInicial } from "@/features/auth/use-ruta-inicial"
 import { useConvocatoriaPublica } from "@/features/convocatorias/queries"
 import { RUTAS } from "@/lib/rutas"
+import { NOMBRES_FASES_OFICIALES } from "@/types/convocatoria"
 import {
   diasHastaCierre,
-  estaAbiertaConvocatoria,
   formatearFechaEcuador,
   obtenerEstadoTemporal,
 } from "@/utils/fechas"
@@ -38,29 +39,29 @@ import {
  * Portada oficial del Concurso Público de Méritos y Oposición (FT14).
  * Presenta el estado de apertura/cierre, el cronograma oficial de fases,
  * los requisitos de postulación y los enlaces oficiales a los portales IESS/BIESS.
+ * No genera fechas ni convocatorias ficticias si la API no devuelve datos aprobados.
  */
 export function PortadaView() {
   const { estado: estadoSesion, postulante } = useSesion()
   const { ruta: rutaDestino, calculando } = useRutaInicial()
-  const { data: convocatoria, isLoading: cargandoConvocatoria } =
-    useConvocatoriaPublica()
+  const {
+    data: convocatoria,
+    isLoading: cargandoConvocatoria,
+    isError: errorConvocatoria,
+  } = useConvocatoriaPublica()
 
   const autenticado = estadoSesion === "autenticado"
 
-  // Cálculo del estado de admisión de postulaciones
-  const apertura = convocatoria?.apertura ?? "2026-10-15T00:00:00-05:00"
-  const cierre = convocatoria?.cierre ?? "2026-11-15T23:59:59-05:00"
-  const cerrada = convocatoria?.cerrada ?? false
-  const postulacionHabilitada = convocatoria?.postulacionHabilitada ?? true
-
-  const estadoTemporal = obtenerEstadoTemporal(apertura, cierre, cerrada)
-  const abierta = estaAbiertaConvocatoria(
-    apertura,
-    cierre,
-    cerrada,
-    postulacionHabilitada,
-  )
-  const diasRestantes = diasHastaCierre(cierre)
+  // La disponibilidad real del formulario EF-12 la define el servidor mediante ef12Disponible
+  const existeConvocatoria = Boolean(convocatoria)
+  const abierta = Boolean(convocatoria?.ef12Disponible)
+  const apertura = convocatoria?.apertura ?? ""
+  const cierre = convocatoria?.cierre ?? ""
+  const estadoTemporal =
+    apertura && cierre
+      ? obtenerEstadoTemporal(apertura, cierre, !abierta)
+      : "cerrada"
+  const diasRestantes = cierre ? diasHastaCierre(cierre) : 0
 
   return (
     <div className="flex w-full flex-col">
@@ -82,8 +83,39 @@ export function PortadaView() {
       </aside>
 
       <main id="main" className="mx-auto w-full max-w-6xl px-4 py-8 md:py-12">
-        {/* Banner de alerta prominente si la convocatoria o formulario está cerrado */}
-        {!abierta && !cargandoConvocatoria && (
+        {/* Caso 1: Error de red o indisponibilidad del servidor */}
+        {errorConvocatoria && (
+          <Alert variant="destructive" className="mb-8">
+            <ShieldAlertIcon className="size-5" />
+            <AlertTitle className="text-base font-semibold">
+              Servicio de consultas temporalmente no disponible
+            </AlertTitle>
+            <AlertDescription className="mt-1 text-sm leading-relaxed text-foreground/90">
+              No se pudo obtener la información oficial de la convocatoria desde
+              el servidor. Por seguridad institucional, no se habilitan acciones
+              de postulación hasta restablecer la conexión.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Caso 2: Sin convocatoria publicada en el servidor */}
+        {!cargandoConvocatoria && !errorConvocatoria && !existeConvocatoria && (
+          <Alert className="mb-8 border-amber-500/50 bg-amber-500/10 text-foreground dark:bg-amber-500/20">
+            <LockIcon className="size-5 text-amber-600 dark:text-amber-400" />
+            <AlertTitle className="text-base font-semibold text-amber-900 dark:text-amber-200">
+              Sin convocatoria activa para postulación
+            </AlertTitle>
+            <AlertDescription className="mt-1 text-sm leading-relaxed text-foreground/90">
+              Actualmente no existe una convocatoria pública aprobada y en
+              período de recepción de expedientes. La Comisión Especial de
+              Selección y Designación publicará las fechas oficiales en este
+              portal institucional en cuanto el período sea aprobado.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Caso 3: Convocatoria existente pero no abierta para postulaciones */}
+        {!cargandoConvocatoria && existeConvocatoria && !abierta && (
           <Alert
             variant="destructive"
             className="mb-8 border-destructive/50 bg-destructive/10 text-destructive-foreground dark:bg-destructive/20"
@@ -104,21 +136,12 @@ export function PortadaView() {
                   . En esa fecha se habilitará el registro de postulantes y el
                   acceso al formulario EF-12.
                 </>
-              ) : !postulacionHabilitada ? (
-                <>
-                  La recepción del formulario EF-12 ha sido{" "}
-                  <strong>deshabilitada temporalmente</strong> por la Comisión
-                  de Selección. Los postulantes con expediente previamente
-                  sellado pueden acceder para consultar su comprobante.
-                </>
               ) : (
                 <>
-                  El plazo de recepción de postulaciones concluyó el{" "}
-                  <strong>
-                    {formatearFechaEcuador(cierre, { incluirHora: true })}
-                  </strong>
-                  . Conforme a la normativa vigente del concurso, el sistema no
-                  admite nuevos registros ni envíos de expedientes.
+                  El plazo de recepción de postulaciones ha concluido o se
+                  encuentra deshabilitado por la Comisión de Selección. Conforme
+                  a la normativa vigente, no se admiten nuevos registros ni
+                  envíos de expedientes.
                 </>
               )}
             </AlertDescription>
@@ -129,8 +152,8 @@ export function PortadaView() {
         <section className="space-y-6">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold tracking-wide text-primary uppercase">
-              Convocatoria pública oficial · Período{" "}
-              {convocatoria?.periodo ?? "2026 – 2030"}
+              Convocatoria pública oficial
+              {convocatoria?.codigo ? ` · ${convocatoria.codigo}` : ""}
             </p>
             {abierta ? (
               <Badge className="bg-emerald-600 hover:bg-emerald-700">
@@ -154,7 +177,7 @@ export function PortadaView() {
           </div>
 
           <h1 className="max-w-4xl text-3xl font-extrabold tracking-tight text-foreground sm:text-5xl">
-            Concurso Público de Méritos y Oposición
+            {convocatoria?.titulo ?? "Concurso Público de Méritos y Oposición"}
           </h1>
 
           <p className="max-w-3xl text-lg text-muted-foreground sm:text-xl">
@@ -163,11 +186,7 @@ export function PortadaView() {
               Miembros Principales y Alternos del Directorio del BIESS
             </strong>{" "}
             en representación de los Afiliados, Jubilados y Empleadores del
-            Ecuador, conforme a la{" "}
-            <span className="font-medium text-foreground">
-              {convocatoria?.resolucion ?? "Resolución No. C.D. 701"}
-            </span>
-            .
+            Ecuador.
           </p>
 
           {/* Estado de sesión activa si existe */}
@@ -238,29 +257,29 @@ export function PortadaView() {
           </div>
 
           {/* Metadatos temporales de cierre */}
-          <div className="flex flex-wrap items-center gap-6 pt-2 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <CalendarDaysIcon className="size-4 text-primary" />
-              <span>
-                Cierre de postulaciones:{" "}
-                <strong className="text-foreground">
-                  {formatearFechaEcuador(cierre, { incluirHora: true })}
-                </strong>
-                {abierta && diasRestantes > 0 && (
-                  <span className="ml-1 text-emerald-600 dark:text-emerald-400">
-                    ({diasRestantes}{" "}
-                    {diasRestantes === 1 ? "día restante" : "días restantes"})
-                  </span>
-                )}
-              </span>
+          {cierre && (
+            <div className="flex flex-wrap items-center gap-6 pt-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <CalendarDaysIcon className="size-4 text-primary" />
+                <span>
+                  Cierre de postulaciones:{" "}
+                  <strong className="text-foreground">
+                    {formatearFechaEcuador(cierre, { incluirHora: true })}
+                  </strong>
+                  {abierta && diasRestantes > 0 && (
+                    <span className="ml-1 text-emerald-600 dark:text-emerald-400">
+                      ({diasRestantes}{" "}
+                      {diasRestantes === 1 ? "día restante" : "días restantes"})
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ShieldCheckIcon className="size-4 text-primary" />
+                <span>Autenticación por código OTP al correo electrónico</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <ShieldCheckIcon className="size-4 text-primary" />
-              <span>
-                Autenticación segura por código OTP al correo electrónico
-              </span>
-            </div>
-          </div>
+          )}
         </section>
 
         {/* Sectores de representación tripartita */}
@@ -353,68 +372,65 @@ export function PortadaView() {
           </div>
         </section>
 
-        {/* Fases del concurso y Cronograma Oficial */}
-        <section className="mt-16 space-y-6">
-          <div className="border-b pb-4">
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              Fases del concurso y cronograma oficial
-            </h2>
-            <p className="text-muted-foreground">
-              Etapas del proceso conforme a la reglamentación de la Comisión
-              Especial
-            </p>
-          </div>
+        {/* Fases del concurso publicadas en el servidor */}
+        {convocatoria?.fases && convocatoria.fases.length > 0 && (
+          <section className="mt-16 space-y-6">
+            <div className="border-b pb-4">
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                Fases del concurso y cronograma oficial
+              </h2>
+              <p className="text-muted-foreground">
+                Etapas aprobadas y publicadas por la Comisión Especial de
+                Selección (zona horaria oficial {convocatoria.zonaHoraria})
+              </p>
+            </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {(convocatoria?.fases ?? []).map((fase) => (
-              <Card
-                key={fase.id}
-                className={`relative flex flex-col justify-between ${
-                  fase.estado === "en_curso"
-                    ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
-                    : "border-muted"
-                }`}
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground">
-                      Fase {fase.orden}
-                    </span>
-                    {fase.estado === "en_curso" ? (
-                      <Badge className="bg-primary text-primary-foreground text-xs">
-                        En curso
-                      </Badge>
-                    ) : fase.estado === "finalizada" ? (
-                      <Badge variant="secondary" className="text-xs">
-                        Finalizada
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="text-xs text-muted-foreground"
-                      >
-                        Pendiente
-                      </Badge>
-                    )}
-                  </div>
-                  <CardTitle className="text-base font-semibold leading-snug">
-                    {fase.nombre}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-xs text-muted-foreground">
-                  <p>{fase.descripcion}</p>
-                  <div className="flex items-center gap-1.5 font-medium text-foreground">
-                    <CalendarDaysIcon className="size-3.5 text-muted-foreground" />
-                    <span>
-                      {formatearFechaEcuador(fase.fechaInicio)} al{" "}
-                      {formatearFechaEcuador(fase.fechaFin)}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {convocatoria.fases.map((fase) => (
+                <Card
+                  key={fase.codigo}
+                  className={`relative flex flex-col justify-between ${
+                    fase.habilitada
+                      ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
+                      : "border-muted"
+                  }`}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xs font-semibold uppercase text-muted-foreground">
+                        {fase.codigo}
+                      </span>
+                      {fase.habilitada ? (
+                        <Badge className="bg-primary text-primary-foreground text-xs">
+                          En curso
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Publicada
+                        </Badge>
+                      )}
+                    </div>
+                    <CardTitle className="text-base font-semibold leading-snug">
+                      {fase.titulo || NOMBRES_FASES_OFICIALES[fase.codigo]}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5 font-medium text-foreground">
+                      <CalendarDaysIcon className="size-3.5 text-muted-foreground" />
+                      <span>
+                        {formatearFechaEcuador(fase.apertura)} al{" "}
+                        {formatearFechaEcuador(fase.cierre)}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Ruta de postulación en 4 pasos */}
         <section className="mt-16 space-y-6">

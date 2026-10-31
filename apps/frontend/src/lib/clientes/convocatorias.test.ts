@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
-  actualizarEstadoConvocatoria,
-  actualizarFase,
-  alternarHabilitacionFormulario,
   crearConvocatoria,
+  guardarConfiguracionConvocatoria,
   listarConvocatoriasAdmin,
+  obtenerConvocatoriaAdmin,
   obtenerConvocatoriaPublica,
+  obtenerDetallePublico,
 } from "./convocatorias"
 
-describe("Cliente de Convocatorias y Fases (convocatorias.ts - FT14/FT15)", () => {
+describe("Cliente de Convocatorias y Fases (convocatorias.ts - Contrato T18)", () => {
   const fetchOriginal = globalThis.fetch
 
   afterEach(() => {
@@ -16,44 +16,99 @@ describe("Cliente de Convocatorias y Fases (convocatorias.ts - FT14/FT15)", () =
     vi.restoreAllMocks()
   })
 
-  it("obtenerConvocatoriaPublica devuelve la convocatoria oficial con las 6 fases reglamentarias", async () => {
+  it("obtenerConvocatoriaPublica devuelve null si la API responde con lista vacía (sin inventar datos)", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          items: [],
+          hasMore: false,
+          limit: 1,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    )
+
     const res = await obtenerConvocatoriaPublica()
-    expect(res).toBeDefined()
-    expect(res.codigo).toBe("BIESS-DIR-2026")
-    expect(res.fases).toHaveLength(6)
-    expect(res.fases[0].tipo).toBe("convocatoria_postulacion")
-    expect(res.fases[5].tipo).toBe("designacion_final")
+    expect(res).toBeNull()
   })
 
-  it("obtenerConvocatoriaPublica consume la lista de la API cuando responde exitosamente", async () => {
-    const mockCompetitions = {
-      items: [
+  it("obtenerConvocatoriaPublica devuelve la convocatoria pública publicada de la API", async () => {
+    const mockPublica = {
+      id: "01931580-0000-7000-8000-000000000001",
+      codigo: "BIESS-2026-OFICIAL",
+      titulo: "Concurso Oficial BIESS",
+      apertura: "2026-10-15T00:00:00-05:00",
+      cierre: "2026-11-15T23:59:59-05:00",
+      sectores: ["afiliados", "jubilados", "empleadores"],
+      fases: [
         {
-          id: "01931580-0000-7000-8000-000000000001",
-          codigo: "BIESS-2026-TEST",
-          titulo: "Concurso Prueba",
-          apertura: "2026-10-01T00:00:00Z",
-          cierre: "2026-12-31T00:00:00Z",
-          cerrada: false,
+          codigo: "postulacion",
+          titulo: "Recepción de postulaciones",
+          apertura: "2026-10-15T00:00:00-05:00",
+          cierre: "2026-11-15T23:59:59-05:00",
+          publicada: true,
+          habilitada: true,
         },
       ],
-      hasMore: false,
+      ef12Disponible: true,
+      zonaHoraria: "America/Guayaquil",
+      limites: "[apertura,cierre)",
     }
 
     globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(mockCompetitions), {
+      new Response(
+        JSON.stringify({
+          items: [mockPublica],
+          hasMore: false,
+          limit: 1,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    )
+
+    const res = await obtenerConvocatoriaPublica()
+    expect(res).not.toBeNull()
+    expect(res?.codigo).toBe("BIESS-2026-OFICIAL")
+    expect(res?.ef12Disponible).toBe(true)
+    expect(res?.fases).toHaveLength(1)
+  })
+
+  it("obtenerDetallePublico consulta GET /competitions/{id}", async () => {
+    const mockDetalle = {
+      id: "comp-123",
+      codigo: "BIESS-2026",
+      titulo: "Concurso 2026",
+      apertura: "2026-10-15T00:00:00Z",
+      cierre: "2026-11-15T23:59:59Z",
+      sectores: ["afiliados"],
+      fases: [],
+      ef12Disponible: false,
+      zonaHoraria: "America/Guayaquil",
+      limites: "[apertura,cierre)",
+    }
+
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockDetalle), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
     )
+    globalThis.fetch = mockFetch
 
-    const res = await obtenerConvocatoriaPublica()
-    expect(res.codigo).toBe("BIESS-2026-TEST")
-    expect(res.titulo).toBe("Concurso Prueba")
+    const res = await obtenerDetallePublico("comp-123")
+    expect(res.id).toBe("comp-123")
+    const [url] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect(url).toContain("/competitions/comp-123")
   })
 
-  it("listarConvocatoriasAdmin devuelve la lista paginada de convocatorias", async () => {
-    const mockCompetitions = {
+  it("listarConvocatoriasAdmin envía GET a /admin/competitions", async () => {
+    const mockList = {
       items: [
         {
           id: "comp-1",
@@ -69,35 +124,67 @@ describe("Cliente de Convocatorias y Fases (convocatorias.ts - FT14/FT15)", () =
       limit: 20,
     }
 
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(mockCompetitions), {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockList), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
     )
+    globalThis.fetch = mockFetch
 
     const res = await listarConvocatoriasAdmin("cursor-1")
     expect(res.items).toHaveLength(1)
-    expect(res.nextCursor).toBe("cursor-2")
-    expect(res.hasMore).toBe(true)
+    const [url] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect(url).toContain("/admin/competitions")
   })
 
-  it("crearConvocatoria envía POST a /admin/competitions", async () => {
-    const nueva = {
-      id: "nueva-1",
+  it("obtenerConvocatoriaAdmin envía GET a /admin/competitions/{id}", async () => {
+    const mockAdmin = {
+      id: "comp-1",
+      codigo: "BIESS-DIR-2026",
+      titulo: "Directorio BIESS",
+      apertura: "2026-10-15T00:00:00Z",
+      cierre: "2026-11-15T23:59:00Z",
+      version: 3,
+      inicioAprobado: true,
+      publicada: true,
+      ef12Habilitado: true,
+      sectores: ["afiliados", "jubilados"],
+      fases: [],
+    }
+
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockAdmin), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    )
+    globalThis.fetch = mockFetch
+
+    const res = await obtenerConvocatoriaAdmin("comp-1")
+    expect(res.version).toBe(3)
+    expect(res.inicioAprobado).toBe(true)
+    const [url] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect(url).toContain("/admin/competitions/comp-1")
+  })
+
+  it("crearConvocatoria envía POST a /admin/competitions con sectores y período deshabilitado", async () => {
+    const mockCreada = {
+      id: "comp-nueva",
       codigo: "BIESS-2027",
       titulo: "Concurso 2027",
       apertura: "2027-01-01T00:00:00Z",
       cierre: "2027-02-01T00:00:00Z",
-      estado: "publicada" as const,
-      cerrada: false,
-      postulacionHabilitada: true,
+      version: 1,
+      inicioAprobado: false,
+      publicada: false,
+      ef12Habilitado: false,
+      sectores: ["afiliados", "jubilados", "empleadores"],
       fases: [],
-      createdAt: "2026-10-31T00:00:00Z",
     }
 
     const mockFetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(nueva), {
+      new Response(JSON.stringify(mockCreada), {
         status: 201,
         headers: { "Content-Type": "application/json" },
       }),
@@ -109,22 +196,32 @@ describe("Cliente de Convocatorias y Fases (convocatorias.ts - FT14/FT15)", () =
       titulo: "Concurso 2027",
       apertura: "2027-01-01T00:00:00Z",
       cierre: "2027-02-01T00:00:00Z",
+      sectores: ["afiliados", "jubilados", "empleadores"],
     })
 
-    expect(res.codigo).toBe("BIESS-2027")
+    expect(res.id).toBe("comp-nueva")
+    expect(res.inicioAprobado).toBe(false)
     const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit]
     expect(url).toContain("/admin/competitions")
     expect(opts.method).toBe("POST")
   })
 
-  it("actualizarEstadoConvocatoria envía PATCH a /admin/competitions/:id", async () => {
+  it("guardarConfiguracionConvocatoria envía PUT con version a /admin/competitions/{id}/configuration", async () => {
+    const mockConfig = {
+      version: 2,
+      inicioAprobado: true,
+      publicada: true,
+      ef12Habilitado: true,
+      sectores: ["afiliados" as const],
+      fases: [],
+    }
+
     const mockFetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           id: "comp-1",
-          codigo: "BIESS-2026",
-          cerrada: true,
-          estado: "cerrada",
+          ...mockConfig,
+          version: 3,
         }),
         {
           status: 200,
@@ -134,63 +231,12 @@ describe("Cliente de Convocatorias y Fases (convocatorias.ts - FT14/FT15)", () =
     )
     globalThis.fetch = mockFetch
 
-    const res = await actualizarEstadoConvocatoria("comp-1", {
-      cerrada: true,
-      estado: "cerrada",
-      motivo: "Resolución CD 701 finalizada",
-    })
-
-    expect(res.cerrada).toBe(true)
+    const res = await guardarConfiguracionConvocatoria("comp-1", mockConfig)
+    expect(res.version).toBe(3)
     const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit]
-    expect(url).toContain("/admin/competitions/comp-1")
-    expect(opts.method).toBe("PATCH")
-  })
-
-  it("alternarHabilitacionFormulario envía PATCH a /admin/competitions/:id/postulacion", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ ok: true }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    )
-    globalThis.fetch = mockFetch
-
-    const habilitada = await alternarHabilitacionFormulario(
-      "comp-1",
-      false,
-      "Suspensión temporal",
-    )
-
-    expect(habilitada).toBe(false)
-    const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit]
-    expect(url).toContain("/admin/competitions/comp-1/postulacion")
-    expect(opts.method).toBe("PATCH")
-  })
-
-  it("actualizarFase envía PATCH a /admin/competitions/:id/fases/:faseId", async () => {
-    const mockFetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          id: "fase-1",
-          convocatoriaId: "comp-1",
-          estado: "finalizada",
-        }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        },
-      ),
-    )
-    globalThis.fetch = mockFetch
-
-    const fase = await actualizarFase("comp-1", "fase-1", {
-      estado: "finalizada",
-      motivo: "Etapa de méritos concluida",
-    })
-
-    expect(fase.estado).toBe("finalizada")
-    const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit]
-    expect(url).toContain("/admin/competitions/comp-1/fases/fase-1")
-    expect(opts.method).toBe("PATCH")
+    expect(url).toContain("/admin/competitions/comp-1/configuration")
+    expect(opts.method).toBe("PUT")
+    const cuerpo = JSON.parse(opts.body as string)
+    expect(cuerpo.version).toBe(2)
   })
 })

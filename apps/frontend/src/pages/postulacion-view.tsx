@@ -48,7 +48,6 @@ import {
 } from "@/features/postulaciones/queries"
 import { useConvocatoriaPublica } from "@/features/convocatorias/queries"
 import { RUTAS, rutaSeccion } from "@/lib/rutas"
-import { estaAbiertaConvocatoria } from "@/utils/fechas"
 import { validarSeccionEF12 } from "@/utils/validar-formulario"
 
 export interface FormularioPostulacionState {
@@ -239,12 +238,8 @@ export function PostulacionView() {
 
   const yaEnviada = postulacionActiva && postulacionActiva.status !== "draft"
 
-  const abiertaConvocatoria = estaAbiertaConvocatoria(
-    convocatoria?.apertura ?? "2026-10-15T00:00:00-05:00",
-    convocatoria?.cierre ?? "2026-11-15T23:59:59-05:00",
-    convocatoria?.cerrada,
-    convocatoria?.postulacionHabilitada,
-  )
+  // La disponibilidad real del formulario EF-12 la define el servidor mediante ef12Disponible (T18)
+  const abiertaConvocatoria = Boolean(convocatoria?.ef12Disponible)
 
   async function guardarSeccionActual(irSiguiente = false): Promise<boolean> {
     if (!postulacionActiva?.id) return false

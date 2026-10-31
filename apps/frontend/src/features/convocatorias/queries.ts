@@ -1,15 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
-  actualizarEstadoConvocatoria,
-  actualizarFase,
-  alternarHabilitacionFormulario,
   crearConvocatoria,
+  guardarConfiguracionConvocatoria,
   listarConvocatoriasAdmin,
+  obtenerConvocatoriaAdmin,
   obtenerConvocatoriaPublica,
 } from "@/lib/clientes/convocatorias"
 import type {
-  ActualizarConvocatoriaPayload,
-  ActualizarFasePayload,
+  ConfiguracionConvocatoria,
   CrearConvocatoriaPayload,
 } from "@/types/convocatoria"
 
@@ -20,9 +18,8 @@ export const clavesConvocatorias = {
 }
 
 /**
- * Consulta la convocatoria pública oficial con refresco periódico (FT14).
- * Si el concurso se cierra o se deshabilita mientras el usuario navega,
- * la pantalla se actualiza automáticamente.
+ * Consulta la convocatoria pública oficial con refresco periódico de 30 s (FT14).
+ * Devuelve null si no hay convocatorias aprobadas y publicadas.
  */
 export function useConvocatoriaPublica() {
   return useQuery({
@@ -36,7 +33,7 @@ export function useConvocatoriaPublica() {
 }
 
 /**
- * Consulta el listado de convocatorias para el panel de administración (FT15).
+ * Consulta el listado administrativo de convocatorias (FT15).
  */
 export function useConvocatoriasAdmin(cursor?: string) {
   return useQuery({
@@ -46,7 +43,23 @@ export function useConvocatoriasAdmin(cursor?: string) {
 }
 
 /**
- * Mutación para registrar una nueva convocatoria.
+ * Consulta la configuración y versión de una convocatoria administrativa (T18).
+ */
+export function useConvocatoriaAdminDetalle(id: string | null | undefined) {
+  return useQuery({
+    queryKey: id
+      ? clavesConvocatorias.adminDetalle(id)
+      : ["admin-convocatoria-vacio"],
+    queryFn: ({ signal }) =>
+      id
+        ? obtenerConvocatoriaAdmin(id, signal)
+        : Promise.reject(new Error("ID requerido")),
+    enabled: Boolean(id),
+  })
+}
+
+/**
+ * Mutación para registrar una nueva convocatoria inicial en estado deshabilitado.
  */
 export function useCrearConvocatoria() {
   const queryClient = useQueryClient()
@@ -65,73 +78,24 @@ export function useCrearConvocatoria() {
 }
 
 /**
- * Mutación para modificar estado, fechas o cierre de convocatoria.
+ * Mutación para actualizar la configuración completa con control optimista de versión.
  */
-export function useActualizarEstadoConvocatoria() {
+export function useGuardarConfiguracionConvocatoria() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({
       id,
-      payload,
+      config,
     }: {
       id: string
-      payload: ActualizarConvocatoriaPayload
-    }) => actualizarEstadoConvocatoria(id, payload),
-    onSuccess: () => {
+      config: ConfiguracionConvocatoria
+    }) => guardarConfiguracionConvocatoria(id, config),
+    onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({
         queryKey: clavesConvocatorias.adminLista,
       })
       void queryClient.invalidateQueries({
-        queryKey: clavesConvocatorias.publica,
-      })
-    },
-  })
-}
-
-/**
- * Mutación para habilitar o deshabilitar la recepción de formularios EF-12.
- */
-export function useAlternarHabilitacionFormulario() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({
-      convocatoriaId,
-      habilitada,
-      motivo,
-    }: {
-      convocatoriaId: string
-      habilitada: boolean
-      motivo?: string
-    }) => alternarHabilitacionFormulario(convocatoriaId, habilitada, motivo),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: clavesConvocatorias.adminLista,
-      })
-      void queryClient.invalidateQueries({
-        queryKey: clavesConvocatorias.publica,
-      })
-    },
-  })
-}
-
-/**
- * Mutación para actualizar fechas o estado de una fase del concurso.
- */
-export function useActualizarFase() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({
-      convocatoriaId,
-      faseId,
-      payload,
-    }: {
-      convocatoriaId: string
-      faseId: string
-      payload: ActualizarFasePayload
-    }) => actualizarFase(convocatoriaId, faseId, payload),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: clavesConvocatorias.adminLista,
+        queryKey: clavesConvocatorias.adminDetalle(variables.id),
       })
       void queryClient.invalidateQueries({
         queryKey: clavesConvocatorias.publica,
