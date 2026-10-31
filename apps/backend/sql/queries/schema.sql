@@ -1,4 +1,4 @@
--- Esquema que consume sqlc. Se regenera desde las migraciones con make db-schema.
+-- Esquema que consume sqlc. Se regenera desde las migraciones con `make db-schema`.
 
 CREATE TABLE applicants (
     id                UUID PRIMARY KEY,
@@ -711,3 +711,169 @@ INSERT INTO catalogs (kind, parent_key, parent_id, value, position) VALUES
     ('cities', 'EC/Zamora Chinchipe', (SELECT id FROM catalogs WHERE kind = 'provinces' AND parent_key = 'EC' AND value = 'Zamora Chinchipe'), 'Yacuambi', 7),
     ('cities', 'EC/Zamora Chinchipe', (SELECT id FROM catalogs WHERE kind = 'provinces' AND parent_key = 'EC' AND value = 'Zamora Chinchipe'), 'Yantzaza', 8)
 ON CONFLICT (kind, parent_key, value) DO NOTHING;
+
+
+
+-- El historial sobrevive a la baja de borradores/cuentas. No contiene sus datos personales.
+ALTER TABLE submission_events DROP CONSTRAINT submission_events_submission_id_fkey;
+ALTER TABLE submission_events DROP CONSTRAINT submission_events_applicant_id_fkey;
+ALTER TABLE submission_events DROP CONSTRAINT submission_events_event_type_check;
+ALTER TABLE submission_events ALTER COLUMN event_type TYPE VARCHAR(64);
+-- No adivinar el rol de eventos antiguos a partir del perfil actual.
+ALTER TABLE submission_events ADD COLUMN actor_role VARCHAR(32) NOT NULL DEFAULT 'no_registrado';
+ALTER TABLE submission_events ADD CONSTRAINT submission_events_event_type_check
+    CHECK (event_type IN ('guardada','enviada','consultada','eliminada','documento.cargado','documento.eliminado'));
+CREATE TRIGGER submission_events_immutable BEFORE UPDATE OR DELETE OR TRUNCATE ON submission_events
+    FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();
+
+-- +goose StatementBegin
+CREATE FUNCTION record_submission_deletion() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    INSERT INTO submission_events(submission_id,applicant_id,event_type,actor_role)
+        VALUES (OLD.id,OLD.applicant_id,'eliminada',
+            COALESCE((SELECT role FROM applicants WHERE id=OLD.applicant_id),'no_registrado'));
+    RETURN OLD;
+END;
+$$;
+-- +goose StatementEnd
+CREATE TRIGGER submissions_deletion_audit BEFORE DELETE ON submissions
+    FOR EACH ROW EXECUTE FUNCTION record_submission_deletion();
+
+-- +goose StatementBegin
+CREATE FUNCTION record_document_change() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE sid uuid; owner_id uuid; document_id uuid;
+BEGIN
+    sid := CASE WHEN TG_OP = 'DELETE' THEN OLD.submission_id ELSE NEW.submission_id END;
+    document_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END;
+    SELECT applicant_id INTO owner_id FROM submissions WHERE id = sid;
+    -- La cascada de una baja de borrador ya está cubierta por 'eliminada'.
+    IF owner_id IS NOT NULL THEN
+        INSERT INTO submission_events(submission_id,applicant_id,event_type,payload,actor_role)
+            VALUES (sid,owner_id,CASE WHEN TG_OP = 'DELETE' THEN 'documento.eliminado' ELSE 'documento.cargado' END,
+                jsonb_build_object('documentId',document_id),
+                COALESCE((SELECT role FROM applicants WHERE id=owner_id),'no_registrado'));
+    END IF;
+    RETURN NULL;
+END;
+$$;
+-- +goose StatementEnd
+CREATE TRIGGER documents_change_audit AFTER INSERT OR DELETE ON documents
+    FOR EACH ROW EXECUTE FUNCTION record_document_change();
+
+ALTER TABLE administrative_access_events ADD COLUMN submission_id UUID;
+-- La migración puede completar enlaces antiguos antes de volver a proteger el historial.
+ALTER TABLE administrative_access_events DISABLE TRIGGER administrative_access_immutable;
+UPDATE administrative_access_events SET submission_id = resource_id WHERE resource_type = 'postulacion';
+UPDATE administrative_access_events a SET submission_id = d.submission_id
+    FROM documents d WHERE a.resource_type = 'documento' AND a.resource_id = d.id;
+ALTER TABLE administrative_access_events ENABLE TRIGGER administrative_access_immutable;
+CREATE INDEX administrative_access_submission_idx
+    ON administrative_access_events (submission_id, created_at DESC, id DESC);
+
+-- Puerto para las operaciones de T17/T18/T20-T27: sólo metadatos, sin payload libre.
+CREATE TABLE workflow_events (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    submission_id UUID,
+    actor_id UUID,
+    actor_role VARCHAR(32) NOT NULL CHECK (actor_role IN ('sistema','postulante','analista','administrador')),
+    action VARCHAR(64) NOT NULL CHECK (action IN (
+        'fase.publicada','fase.habilitada','fase.cerrada','elegibilidad.verificada',
+        'meritos.revisados','meritos.calificados','evaluacion.iniciada','evaluacion.finalizada',
+        'reconsideracion.presentada','reconsideracion.resuelta','resultado.publicado')),
+    resource_id UUID NOT NULL,
+    resource_type VARCHAR(32) NOT NULL CHECK (resource_type IN ('postulacion','convocatoria','evaluacion','reconsideracion')),
+    result VARCHAR(16) NOT NULL CHECK (result IN ('permitido','rechazado')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CHECK ((actor_role = 'sistema') = (actor_id IS NULL))
+);
+CREATE INDEX workflow_events_submission_idx ON workflow_events (submission_id, created_at DESC, id DESC);
+CREATE TRIGGER workflow_events_immutable BEFORE UPDATE OR DELETE OR TRUNCATE ON workflow_events
+    FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();
+
+
+
+-- Registro de períodos para T9. T18 gestionará aprobación, fases y publicación.
+-- Sin semilla: no inventar una convocatoria para los expedientes anteriores.
+CREATE TABLE competitions (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    code VARCHAR(64) NOT NULL UNIQUE CHECK (btrim(code) <> ''),
+    title VARCHAR(200) NOT NULL CHECK (btrim(title) <> ''),
+    opens_at TIMESTAMPTZ NOT NULL,
+    closes_at TIMESTAMPTZ NOT NULL CHECK (closes_at > opens_at),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE submissions ADD COLUMN competition_id UUID REFERENCES competitions(id);
+CREATE INDEX submissions_review_idx ON submissions (competition_id, created_at DESC, id DESC)
+    WHERE status = 'submitted' AND hash IS NOT NULL AND submitted_at IS NOT NULL;
+CREATE INDEX submissions_review_sector_idx ON submissions
+    (competition_id, (content->'seccion4'->>'sector'), created_at DESC, id DESC)
+    WHERE status = 'submitted' AND hash IS NOT NULL AND submitted_at IS NOT NULL;
+
+-- +goose StatementBegin
+CREATE FUNCTION protect_submission_snapshot() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE period competitions;
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        IF OLD.status = 'submitted' THEN
+            RAISE EXCEPTION 'El expediente enviado es inmutable';
+        END IF;
+        RETURN OLD;
+    END IF;
+    IF TG_OP = 'UPDATE' THEN
+        IF OLD.status = 'submitted' AND NEW IS DISTINCT FROM OLD THEN
+            RAISE EXCEPTION 'El expediente enviado es inmutable';
+        END IF;
+        IF NEW.competition_id IS DISTINCT FROM OLD.competition_id THEN
+            RAISE EXCEPTION 'La convocatoria de origen es inmutable';
+        END IF;
+    END IF;
+    IF NEW.competition_id IS NOT NULL AND (TG_OP = 'INSERT' OR NEW.status = 'submitted') THEN
+        SELECT * INTO period FROM competitions WHERE id = NEW.competition_id FOR SHARE;
+        IF NOT FOUND OR statement_timestamp() < period.opens_at OR statement_timestamp() >= period.closes_at THEN
+            RAISE EXCEPTION 'La convocatoria no admite postulaciones' USING ERRCODE = '23514', CONSTRAINT = 'competition_open';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+-- +goose StatementEnd
+CREATE TRIGGER submissions_snapshot BEFORE INSERT OR UPDATE OR DELETE ON submissions
+    FOR EACH ROW EXECUTE FUNCTION protect_submission_snapshot();
+
+-- +goose StatementBegin
+CREATE FUNCTION protect_sealed_documents() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE parent_id uuid; previous_id uuid;
+BEGIN
+    parent_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.submission_id ELSE NEW.submission_id END;
+    IF TG_OP = 'UPDATE' THEN previous_id := OLD.submission_id; END IF;
+    PERFORM id FROM submissions WHERE id IN (parent_id,previous_id) ORDER BY id FOR SHARE;
+    IF EXISTS (SELECT 1 FROM submissions WHERE id IN (parent_id,previous_id) AND status = 'submitted') THEN
+        RAISE EXCEPTION 'Los certificados de un expediente enviado son inmutables';
+    END IF;
+    IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+    RETURN NEW;
+END;
+$$;
+-- +goose StatementEnd
+CREATE TRIGGER documents_sealed BEFORE INSERT OR UPDATE OR DELETE ON documents
+    FOR EACH ROW EXECUTE FUNCTION protect_sealed_documents();
+CREATE TRIGGER documents_no_truncate BEFORE TRUNCATE ON documents
+    FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();
+
+-- +goose StatementBegin
+CREATE FUNCTION protect_competition_history() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    -- Código, nombre y período no cambian después de recibir postulaciones.
+    IF EXISTS (SELECT 1 FROM submissions WHERE competition_id = OLD.id) THEN
+        RAISE EXCEPTION 'La convocatoria con expedientes conserva su período e identidad';
+    END IF;
+    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END;
+$$;
+-- +goose StatementEnd
+CREATE TRIGGER competitions_history BEFORE UPDATE OR DELETE ON competitions
+    FOR EACH ROW EXECUTE FUNCTION protect_competition_history();
+CREATE TRIGGER submissions_no_truncate BEFORE TRUNCATE ON submissions
+    FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();
+CREATE TRIGGER competitions_no_truncate BEFORE TRUNCATE ON competitions
+    FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();

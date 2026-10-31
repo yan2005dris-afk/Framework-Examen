@@ -115,9 +115,10 @@ func (h *Handler) create(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	item, err := h.service.Create(request.Context(), CreateInput{
-		ApplicantID: applicantID,
-		Code:        body.Code,
-		Content:     body.Content,
+		CompetitionID: body.CompetitionID,
+		ApplicantID:   applicantID,
+		Code:          body.Code,
+		Content:       body.Content,
 	})
 	if err != nil {
 		writeError(writer, request, err)
@@ -315,6 +316,8 @@ func decodeJSON(request *http.Request, target any) error {
  */
 func writeError(writer http.ResponseWriter, request *http.Request, err error) {
 	switch {
+	case errors.Is(err, ErrInvalidCompetition):
+		httpx.RespondError(writer, request, 409, "convocatoria_no_disponible", ErrInvalidCompetition.Error())
 	case errors.Is(err, ErrForbidden):
 		httpx.RespondError(writer, request, http.StatusForbidden, "acceso_denegado", "No tiene permiso para acceder a esta postulación.")
 	case errors.Is(err, ErrBusinessRule):

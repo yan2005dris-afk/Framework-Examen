@@ -12,14 +12,15 @@ import (
 )
 
 type AdministrativeAccessEvent struct {
-	ID           uuid.UUID `json:"id"`
-	ActorID      uuid.UUID `json:"actor_id"`
-	ActorRole    string    `json:"actor_role"`
-	Action       string    `json:"action"`
-	ResourceID   uuid.UUID `json:"resource_id"`
-	ResourceType string    `json:"resource_type"`
-	Result       string    `json:"result"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID           uuid.UUID   `json:"id"`
+	ActorID      uuid.UUID   `json:"actor_id"`
+	ActorRole    string      `json:"actor_role"`
+	Action       string      `json:"action"`
+	ResourceID   uuid.UUID   `json:"resource_id"`
+	ResourceType string      `json:"resource_type"`
+	Result       string      `json:"result"`
+	CreatedAt    time.Time   `json:"created_at"`
+	SubmissionID pgtype.UUID `json:"submission_id"`
 }
 
 type Applicant struct {
@@ -55,6 +56,15 @@ type Catalog struct {
 	ParentID  pgtype.UUID `json:"parent_id"`
 	Value     string      `json:"value"`
 	Position  int32       `json:"position"`
+}
+
+type Competition struct {
+	ID        uuid.UUID          `json:"id"`
+	Code      string             `json:"code"`
+	Title     string             `json:"title"`
+	OpensAt   pgtype.Timestamptz `json:"opens_at"`
+	ClosesAt  pgtype.Timestamptz `json:"closes_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
 type Document struct {
@@ -95,15 +105,16 @@ type Session struct {
 }
 
 type Submission struct {
-	ID          uuid.UUID          `json:"id"`
-	ApplicantID uuid.UUID          `json:"applicant_id"`
-	Code        string             `json:"code"`
-	Status      string             `json:"status"`
-	Content     []byte             `json:"content"`
-	Hash        *string            `json:"hash"`
-	SubmittedAt pgtype.Timestamptz `json:"submitted_at"`
-	CreatedAt   time.Time          `json:"created_at"`
-	UpdatedAt   time.Time          `json:"updated_at"`
+	ID            uuid.UUID          `json:"id"`
+	ApplicantID   uuid.UUID          `json:"applicant_id"`
+	Code          string             `json:"code"`
+	Status        string             `json:"status"`
+	Content       []byte             `json:"content"`
+	Hash          *string            `json:"hash"`
+	SubmittedAt   pgtype.Timestamptz `json:"submitted_at"`
+	CreatedAt     time.Time          `json:"created_at"`
+	UpdatedAt     time.Time          `json:"updated_at"`
+	CompetitionID pgtype.UUID        `json:"competition_id"`
 }
 
 type SubmissionEvent struct {
@@ -113,4 +124,17 @@ type SubmissionEvent struct {
 	EventType    string    `json:"event_type"`
 	Payload      []byte    `json:"payload"`
 	CreatedAt    time.Time `json:"created_at"`
+	ActorRole    string    `json:"actor_role"`
+}
+
+type WorkflowEvent struct {
+	ID           uuid.UUID          `json:"id"`
+	SubmissionID pgtype.UUID        `json:"submission_id"`
+	ActorID      pgtype.UUID        `json:"actor_id"`
+	ActorRole    string             `json:"actor_role"`
+	Action       string             `json:"action"`
+	ResourceID   uuid.UUID          `json:"resource_id"`
+	ResourceType string             `json:"resource_type"`
+	Result       string             `json:"result"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }

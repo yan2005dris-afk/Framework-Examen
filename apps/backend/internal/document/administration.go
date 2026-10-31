@@ -50,9 +50,11 @@ func (s *Service) DownloadForReview(ctx context.Context, actor *identity.Applica
 	if !identity.HasPermission(actor, identity.PermissionDocuments) {
 		return result, submission.ErrForbidden
 	}
+	var submissionID uuid.UUID
 	defer func() {
 		err = audit.Record(ctx, s.auditor, audit.Event{ActorID: actor.ID, Role: actor.Role,
-			Action: "certificado.descarga_emitida", ResourceID: id, ResourceType: "documento", CreatedAt: s.now().UTC()}, err)
+			SubmissionID: submissionID,
+			Action:       "certificado.descarga_emitida", ResourceID: id, ResourceType: "documento", CreatedAt: s.now().UTC()}, err)
 		if err != nil {
 			result = DownloadResponse{}
 		}
@@ -64,6 +66,7 @@ func (s *Service) DownloadForReview(ctx context.Context, actor *identity.Applica
 	if d == nil {
 		return result, ErrNotFound
 	}
+	submissionID = d.SubmissionID
 	if err = s.authorizeAdministrativeRead(ctx, d.SubmissionID); err != nil {
 		return result, err
 	}

@@ -11,6 +11,7 @@ var ErrUnavailable = errors.New("no se pudo registrar el acceso administrativo")
 
 /** Event registra metadatos de acceso sin copiar formularios, nombres ni URLs firmadas. */
 type Event struct {
+	SubmissionID uuid.UUID
 	ActorID      uuid.UUID
 	Role         string
 	Action       string
@@ -31,6 +32,9 @@ type Recorder interface {
 func Record(ctx context.Context, recorder Recorder, event Event, result error) error {
 	if recorder == nil {
 		return ErrUnavailable
+	}
+	if event.SubmissionID == uuid.Nil && event.ResourceType == "postulacion" {
+		event.SubmissionID = event.ResourceID
 	}
 	event.Result = "permitido"
 	if result != nil {

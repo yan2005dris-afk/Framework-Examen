@@ -880,13 +880,22 @@ El SQL y las diferencias de cobertura respecto al RF están en
 
 ---
 
-## 7. Contexto `review` (planificado)
+## 7. Auditoría y contexto `review` (T8/T9)
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| `GET` | `/api/v1/review/submissions?status=&sector=&limit=&cursor=` | Listado para revisión (paginación por cursor) |
-| `GET` | `/api/v1/review/stats` | Conteos por cargo y por estado para el dashboard |
-| `POST` | `/api/v1/review/submissions/{id}/phase` | Habilita una fase del concurso |
+| `GET` | `/api/v1/submissions/{id}/events` | Historial paginado del titular |
+| `GET` | `/api/v1/admin/submissions/{id}/events` | Historial administrativo auditado |
+| `GET` | `/api/v1/admin/competitions` | Períodos activos y cerrados, paginados |
+| `GET` | `/api/v1/admin/submissions?convocatoriaId=&sector=&status=&limit=&cursor=` | Nómina sellada con cursor ligado a filtros |
+| `GET` | `/api/v1/admin/submissions/stats?convocatoriaId=&sector=` | Conteos frescos y recomendación de refresco |
+| `GET` | `/api/v1/admin/submissions/export.xlsx?convocatoriaId=&sector=` | Matriz técnica completa, sin paginación |
+| `GET` | `/api/v1/admin/submissions/export.pdf?convocatoriaId=&sector=` | Misma selección en PDF |
+
+Contrato completo, filtros de legado, formatos, seguridad, límites y propuesta de
+columnas/frecuencia: **[REVIEW_AUDIT.md](REVIEW_AUDIT.md)**. Reemplaza las rutas
+`/review/*` que sólo estaban planificadas; no se añade un alias que eluda T6.
+Las operaciones de fases siguen en T18, no en las lecturas de T9.
 
 ---
 

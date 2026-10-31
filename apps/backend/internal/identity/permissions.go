@@ -87,7 +87,8 @@ func ProtectAdministration(next http.Handler) http.Handler {
 		segment := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/v1/admin/"), "/")[0]
 		permission := map[string]Permission{
 			"submissions": PermissionReview, "documents": PermissionDocuments,
-			"phases": PermissionPhases, "question-bank": PermissionQuestions,
+			"competitions": PermissionReview,
+			"phases":       PermissionPhases, "question-bank": PermissionQuestions,
 			"grades": PermissionGrades, "reconsiderations": PermissionReconsiderations,
 			"applicants": PermissionRoles,
 		}[segment]

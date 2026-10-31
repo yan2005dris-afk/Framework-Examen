@@ -17,6 +17,14 @@ Documento de base de datos v1.0
 
 ## 1. Panorama
 
+**Ampliación T8/T9 (2026-10-31):** las migraciones `00009` y `00010` añaden
+historial sin cascadas, eventos de negocio transaccionales y períodos
+`competitions` relacionados mediante `submissions.competition_id` nullable.
+Los expedientes previos permanecen sin convocatoria; no se infiere un período.
+Sellos, referencias de período y certificados enviados se protegen con triggers.
+Los historiales no se purgan automáticamente; retención institucional pendiente
+de T28. Detalle vigente: [contrato T8/T9](../api-contracts/REVIEW_AUDIT.md).
+
 ```mermaid
 erDiagram
     applicants ||--o{ submissions : "postula"

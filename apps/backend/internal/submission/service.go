@@ -27,9 +27,10 @@ type DocumentVerifier interface {
  * CreateInput son los datos necesarios para abrir una postulación.
  */
 type CreateInput struct {
-	ApplicantID uuid.UUID
-	Code        string
-	Content     json.RawMessage
+	ApplicantID   uuid.UUID
+	CompetitionID *uuid.UUID
+	Code          string
+	Content       json.RawMessage
 	// Solo para composición interna: no forma parte del DTO HTTP público.
 	SaveRelated RelatedChanges
 }
@@ -112,6 +113,13 @@ func (s *Service) SaveSubmission(ctx context.Context, input CreateInput) (*Submi
 	item, err := NewSubmission(id, input.ApplicantID, code, content, now)
 	if err != nil {
 		return nil, err
+	}
+	if input.CompetitionID != nil {
+		if *input.CompetitionID == uuid.Nil {
+			return nil, ErrInvalidCompetition
+		}
+		competitionID := *input.CompetitionID
+		item.CompetitionID = &competitionID
 	}
 
 	related := func(txctx context.Context, current *Submission) error {

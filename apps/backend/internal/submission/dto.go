@@ -11,9 +11,10 @@ import (
  * CreateRequest es el cuerpo de la creación de una postulación.
  */
 type CreateRequest struct {
-	ApplicantID string          `json:"applicantId"`
-	Code        string          `json:"code"`
-	Content     json.RawMessage `json:"content"`
+	CompetitionID *uuid.UUID      `json:"convocatoriaId,omitempty"`
+	ApplicantID   string          `json:"applicantId"`
+	Code          string          `json:"code"`
+	Content       json.RawMessage `json:"content"`
 }
 
 /**
@@ -27,16 +28,17 @@ type UpdateRequest struct {
  * Response es la representación pública de una postulación.
  */
 type Response struct {
-	ID          uuid.UUID       `json:"id"`
-	ApplicantID uuid.UUID       `json:"applicantId"`
-	Code        string          `json:"code"`
-	Status      Status          `json:"status"`
-	Content     json.RawMessage `json:"content"`
-	Hash        string          `json:"hash,omitempty"`
-	SubmittedAt *time.Time      `json:"submittedAt,omitempty"`
-	CreatedAt   time.Time       `json:"createdAt"`
-	UpdatedAt   time.Time       `json:"updatedAt"`
-	Progress    Progress        `json:"progress"`
+	CompetitionID *uuid.UUID      `json:"convocatoriaId,omitempty"`
+	ID            uuid.UUID       `json:"id"`
+	ApplicantID   uuid.UUID       `json:"applicantId"`
+	Code          string          `json:"code"`
+	Status        Status          `json:"status"`
+	Content       json.RawMessage `json:"content"`
+	Hash          string          `json:"hash,omitempty"`
+	SubmittedAt   *time.Time      `json:"submittedAt,omitempty"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	UpdatedAt     time.Time       `json:"updatedAt"`
+	Progress      Progress        `json:"progress"`
 }
 
 /**
@@ -47,16 +49,17 @@ type Response struct {
  */
 func NewResponse(item *Submission) Response {
 	return Response{
-		ID:          item.ID,
-		ApplicantID: item.ApplicantID,
-		Code:        item.Code,
-		Status:      item.Status,
-		Content:     item.Content,
-		Hash:        item.Hash,
-		SubmittedAt: item.SubmittedAt,
-		CreatedAt:   item.CreatedAt,
-		UpdatedAt:   item.UpdatedAt,
-		Progress:    FormProgress(item.Content, time.Now()),
+		CompetitionID: item.CompetitionID,
+		ID:            item.ID,
+		ApplicantID:   item.ApplicantID,
+		Code:          item.Code,
+		Status:        item.Status,
+		Content:       item.Content,
+		Hash:          item.Hash,
+		SubmittedAt:   item.SubmittedAt,
+		CreatedAt:     item.CreatedAt,
+		UpdatedAt:     item.UpdatedAt,
+		Progress:      FormProgress(item.Content, time.Now()),
 	}
 }
 

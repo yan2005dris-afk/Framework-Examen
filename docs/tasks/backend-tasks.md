@@ -414,11 +414,25 @@ ejecutaron sin esa variable. No se iniciaron servicios ni se cambió código fro
 
 - [x] Tabla `submission_events` y eventos `guardada`/`enviada` disponibles desde T5.
 - [x] Guardados, envío y cambios de adjuntos registran eventos en la transacción.
-- [ ] Restringir modificaciones de eventos y definir conservación del historial;
+- [x] Restringir modificaciones de eventos y definir conservación del historial;
       registrar `consultada` y descargas administrativas con actor, fecha y resultado.
-- [ ] Añadir eventos de fases, permisos, elegibilidad, méritos, evaluaciones,
-      reconsideraciones y publicación sin copiar datos sensibles a logs o payloads.
-- [ ] Publicar historial paginado para el propio expediente y para personal autorizado.
+- [x] Proveer tabla y puerto transaccional cerrado para fases, elegibilidad, méritos,
+      evaluaciones, reconsideraciones y publicación, sin payload libre; conservar
+      el trigger de permisos existente y unir sus metadatos al historial.
+- [x] Publicar historial paginado para el propio expediente y para personal autorizado.
+
+**Base T8 implementada (2026-10-31)**: `00009_audit_history.sql` hace append-only
+los eventos del expediente y evita su pérdida por cascadas. Audita bajas y
+cambios de adjuntos en la misma transacción, y enlaza descargas administrativas
+con el expediente. Historial propio/administrativo con cursor por fecha/UUID,
+titularidad, permiso de revisión y registro obligatorio de accesos internos.
+Conservación técnica sin purga automática, pendiente del plazo/procedimiento que
+apruebe la institución en T28. No equivale a una política legal ya aprobada.
+
+- [ ] Instrumentar el puerto de negocio al implementar los módulos futuros
+      T17/T18/T20–T27; una lista de acciones admitidas no acredita que existan.
+
+Contrato, límites y pruebas: [`REVIEW_AUDIT.md`](../api-contracts/REVIEW_AUDIT.md).
 
 **Dependencias**: T5, T6. **Frontend**: FT7, FT19–FT23, FT27.
 
@@ -426,15 +440,30 @@ ejecutaron sin esa variable. No se iniciaron servicios ni se cambió código fro
 
 > **RF EF-13. Obligatoria para el RF completo; no es una mejora opcional.**
 
-- [ ] Listar postulaciones por convocatoria, cargo/sector y estado, con cursor.
-- [ ] Mostrar número de postulantes por cargo y actualizarlo sin recarga manual;
-      definir mecanismo y latencia aceptable de tiempo real (eventos o refresco periódico).
-- [ ] Al abrir una convocatoria cerrada, devolver su nómina completa y los EF-12
+- [x] Listar postulaciones por convocatoria, cargo/sector y estado, con cursor.
+- [x] Exponer conteos frescos por cargo/sector con propuesta de polling cada 30 s;
+      la actualización de la pantalla corresponde a FT7 y la latencia institucional
+      queda sujeta a aprobación, no se anuncia como garantía de tiempo real.
+- [x] Al consultar una convocatoria cerrada, devolver su nómina completa y los EF-12
       sellados de ese período, sin mezclarlos con convocatorias posteriores.
-- [ ] Incluir certificados descargables con autorización y duración de cada experiencia
+- [x] Incluir certificados descargables con autorización y duración de cada experiencia
       en años, meses y días, usando el dato del expediente histórico correspondiente.
-- [ ] Exportar matriz comparativa en `.xlsx` y PDF con la misma selección y filtros;
-      acordar las columnas con Talento Humano porque el RF no las enumera.
+- [x] Exportar matriz comparativa técnica en `.xlsx` y PDF con la misma selección
+      y filtros, sin limitarla a la página visible.
+
+**Backend T9 implementado (2026-10-31)**: contexto `review/` y rutas
+`/api/v1/admin/competitions`, `/admin/submissions`, `/admin/submissions/stats` y
+`/admin/submissions/export.xlsx|pdf` bajo `/api/v1`. `00010` registra períodos y
+protege su asociación, sellos y certificados. Exige `convocatoriaId` o selección
+explícita de legado `sinConvocatoria=true`; no asigna expedientes existentes a una
+convocatoria ficticia. Sólo entrega snapshots enviados, verifica el hash y nunca
+actualiza nombres o duraciones con datos posteriores. Reutiliza detalle y URLs
+temporales de T6/T4. XLSX sin fórmulas y PDF con fuentes embebidas; lectura de
+exportación `REPEATABLE READ READ ONLY`, con límite de filas/bytes y sin truncado.
+
+La gestión y publicación de convocatorias reales permanece en T18. La matriz
+`EF13-TECNICA-v1` es una propuesta interna, no calificación/lista oficial de
+elegibles. Ver [`REVIEW_AUDIT.md`](../api-contracts/REVIEW_AUDIT.md).
 
 **Dependencias**: T6, T8, T18. **Frontend**: FT7–FT8.
 

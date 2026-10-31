@@ -25,19 +25,20 @@ func (q *Queries) CountSubmissionsByApplicant(ctx context.Context, applicantID u
 }
 
 const createSubmission = `-- name: CreateSubmission :one
-INSERT INTO submissions (id, applicant_id, code, status, content, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at
+INSERT INTO submissions (id, applicant_id, code, status, content, created_at, updated_at, competition_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at, competition_id
 `
 
 type CreateSubmissionParams struct {
-	ID          uuid.UUID `json:"id"`
-	ApplicantID uuid.UUID `json:"applicant_id"`
-	Code        string    `json:"code"`
-	Status      string    `json:"status"`
-	Content     []byte    `json:"content"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID            uuid.UUID   `json:"id"`
+	ApplicantID   uuid.UUID   `json:"applicant_id"`
+	Code          string      `json:"code"`
+	Status        string      `json:"status"`
+	Content       []byte      `json:"content"`
+	CreatedAt     time.Time   `json:"created_at"`
+	UpdatedAt     time.Time   `json:"updated_at"`
+	CompetitionID pgtype.UUID `json:"competition_id"`
 }
 
 func (q *Queries) CreateSubmission(ctx context.Context, arg CreateSubmissionParams) (Submission, error) {
@@ -49,6 +50,7 @@ func (q *Queries) CreateSubmission(ctx context.Context, arg CreateSubmissionPara
 		arg.Content,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.CompetitionID,
 	)
 	var i Submission
 	err := row.Scan(
@@ -61,6 +63,7 @@ func (q *Queries) CreateSubmission(ctx context.Context, arg CreateSubmissionPara
 		&i.SubmittedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CompetitionID,
 	)
 	return i, err
 }
@@ -78,7 +81,7 @@ func (q *Queries) DeleteSubmission(ctx context.Context, id uuid.UUID) (int64, er
 }
 
 const getSubmissionByID = `-- name: GetSubmissionByID :one
-SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at FROM submissions WHERE id = $1
+SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at, competition_id FROM submissions WHERE id = $1
 `
 
 func (q *Queries) GetSubmissionByID(ctx context.Context, id uuid.UUID) (Submission, error) {
@@ -94,12 +97,13 @@ func (q *Queries) GetSubmissionByID(ctx context.Context, id uuid.UUID) (Submissi
 		&i.SubmittedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CompetitionID,
 	)
 	return i, err
 }
 
 const getSubmissionForUpdate = `-- name: GetSubmissionForUpdate :one
-SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at FROM submissions WHERE id = $1 FOR UPDATE
+SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at, competition_id FROM submissions WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) GetSubmissionForUpdate(ctx context.Context, id uuid.UUID) (Submission, error) {
@@ -115,12 +119,13 @@ func (q *Queries) GetSubmissionForUpdate(ctx context.Context, id uuid.UUID) (Sub
 		&i.SubmittedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CompetitionID,
 	)
 	return i, err
 }
 
 const listSubmissionsByApplicant = `-- name: ListSubmissionsByApplicant :many
-SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at FROM submissions WHERE applicant_id = $1 ORDER BY updated_at DESC LIMIT $2 OFFSET $3
+SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at, competition_id FROM submissions WHERE applicant_id = $1 ORDER BY updated_at DESC LIMIT $2 OFFSET $3
 `
 
 type ListSubmissionsByApplicantParams struct {
@@ -148,6 +153,7 @@ func (q *Queries) ListSubmissionsByApplicant(ctx context.Context, arg ListSubmis
 			&i.SubmittedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CompetitionID,
 		); err != nil {
 			return nil, err
 		}
@@ -160,7 +166,7 @@ func (q *Queries) ListSubmissionsByApplicant(ctx context.Context, arg ListSubmis
 }
 
 const listSubmissionsByApplicantCursor = `-- name: ListSubmissionsByApplicantCursor :many
-SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at FROM submissions
+SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at, competition_id FROM submissions
 WHERE applicant_id = $1
   AND (updated_at < $2 OR (updated_at = $2 AND id < $3))
 ORDER BY updated_at DESC, id DESC
@@ -198,6 +204,7 @@ func (q *Queries) ListSubmissionsByApplicantCursor(ctx context.Context, arg List
 			&i.SubmittedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CompetitionID,
 		); err != nil {
 			return nil, err
 		}
@@ -210,7 +217,7 @@ func (q *Queries) ListSubmissionsByApplicantCursor(ctx context.Context, arg List
 }
 
 const listSubmissionsByApplicantCursorFirst = `-- name: ListSubmissionsByApplicantCursorFirst :many
-SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at FROM submissions
+SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at, competition_id FROM submissions
 WHERE applicant_id = $1
 ORDER BY updated_at DESC, id DESC
 LIMIT $2
@@ -240,6 +247,7 @@ func (q *Queries) ListSubmissionsByApplicantCursorFirst(ctx context.Context, arg
 			&i.SubmittedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CompetitionID,
 		); err != nil {
 			return nil, err
 		}
@@ -255,7 +263,7 @@ const updateSubmission = `-- name: UpdateSubmission :one
 UPDATE submissions
 SET content = $2, status = $3, hash = $4, submitted_at = $5, updated_at = $6
 WHERE id = $1 AND status <> 'submitted'
-RETURNING id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at
+RETURNING id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at, competition_id
 `
 
 type UpdateSubmissionParams struct {
@@ -287,6 +295,7 @@ func (q *Queries) UpdateSubmission(ctx context.Context, arg UpdateSubmissionPara
 		&i.SubmittedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CompetitionID,
 	)
 	return i, err
 }

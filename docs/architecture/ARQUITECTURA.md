@@ -106,6 +106,12 @@ flowchart LR
 
 ## 4. Vista de componentes del backend
 
+**T8/T9 (2026-10-31):** `internal/audit/` consulta el historial y proporciona
+eventos de negocio transaccionales; `internal/review/` concentra nóminas selladas,
+conteos y exportaciones privadas por período. Las rutas administrativas conservan
+los permisos de T6. No son la gestión de fases de T18 ni una matriz de méritos
+aprobada. Contratos y límites: [REVIEW_AUDIT.md](../api-contracts/REVIEW_AUDIT.md).
+
 El backend se organiza en **bounded contexts**. Cada contexto agrupa sus
 capacidades; cada capacidad se compone de archivos con una responsabilidad
 única:

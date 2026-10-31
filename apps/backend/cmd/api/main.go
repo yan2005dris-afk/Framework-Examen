@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/audit"
 	auditpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/audit/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/catalog"
 	catalogpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/catalog/postgres"
@@ -28,6 +29,8 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/mail"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/storage"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/review"
+	reviewpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/review/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
 	submissionnotification "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/notification"
 	submissionpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/postgres"
@@ -174,6 +177,8 @@ func main() {
 			identity.RegisterRoleRoutes(r, identity.NewRoleService(identityRepo))
 			submission.NewHandler(submissionService).RegisterRoutes(r)
 			document.NewHandler(documentService).RegisterRoutes(r)
+			audit.RegisterHistoryRoutes(r, audit.NewHistoryService(auditor, auditor))
+			review.NewHandler(review.NewService(reviewpostgres.NewRepository(queries, db.NewTxManager(pool)), auditor)).RegisterRoutes(r)
 		})
 		go cleanupDocuments(ctx, documentService)
 	} else {

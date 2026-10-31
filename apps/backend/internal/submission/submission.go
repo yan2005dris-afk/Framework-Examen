@@ -43,15 +43,16 @@ const (
  * nueve secciones del formulario tal como las entrega el cliente.
  */
 type Submission struct {
-	ID          uuid.UUID
-	ApplicantID uuid.UUID
-	Code        string
-	Status      Status
-	Content     json.RawMessage
-	Hash        string
-	SubmittedAt *time.Time
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID            uuid.UUID
+	CompetitionID *uuid.UUID
+	ApplicantID   uuid.UUID
+	Code          string
+	Status        Status
+	Content       json.RawMessage
+	Hash          string
+	SubmittedAt   *time.Time
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 /**

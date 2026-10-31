@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/audit"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
 )
@@ -14,8 +15,12 @@ func NewRepository(queries *sqlcgen.Queries) *Repository { return &Repository{qu
 
 /** Record confirma el evento antes de permitir entregar los datos solicitados. */
 func (r *Repository) Record(ctx context.Context, event audit.Event) error {
+	if event.SubmissionID == [16]byte{} && event.ResourceType == "postulacion" {
+		event.SubmissionID = event.ResourceID
+	}
 	return r.queries.CreateAdministrativeAccessEvent(ctx, sqlcgen.CreateAdministrativeAccessEventParams{
-		ActorID: event.ActorID, ActorRole: event.Role, Action: event.Action,
+		SubmissionID: pgtype.UUID{Bytes: event.SubmissionID, Valid: event.SubmissionID != [16]byte{}},
+		ActorID:      event.ActorID, ActorRole: event.Role, Action: event.Action,
 		ResourceID: event.ResourceID, ResourceType: event.ResourceType, Result: event.Result,
 		CreatedAt: event.CreatedAt,
 	})
