@@ -19,7 +19,7 @@ Guía del entorno de desarrollo
 | Node.js | 22 LTS | Frontend |
 | pnpm | 12 | Gestor de paquetes del workspace |
 | Docker + Compose v2 | Reciente | PostgreSQL, Mailpit y los servicios del proyecto |
-| PostgreSQL (opcional) | 15+ | Solo si se trabaja **sin** Docker |
+| PostgreSQL (opcional) | 18+ | Solo si se trabaja **sin** Docker |
 | Redis (opcional) | 7 | Pendiente de implementar; ver [tareas](../tasks/backend-tasks.md) |
 
 > **Nota**: la versión de Redis no es requisito todavía: el módulo de caché y
@@ -337,7 +337,7 @@ docker compose down -v       # borra también los datos (DESTRUCTIVO)
 
 | Elemento | Estado |
 |---|---|
-| PostgreSQL 17 | ✅ Disponible |
+| PostgreSQL 18 | ✅ Disponible |
 | Mailpit (SMTP de pruebas) | ✅ Disponible |
 | **Redis** (caché y bloqueo de intentos) | ❌ Pendiente de implementar |
 | MinIO / S3 (adjuntos en objetos) | ⚠️ Hoy se usa el backend local en disco |
@@ -345,6 +345,36 @@ docker compose down -v       # borra también los datos (DESTRUCTIVO)
 
 El detalle está en [`../tasks/backend-tasks.md`](../tasks/backend-tasks.md) y
 [`../tasks/frontend-tasks.md`](../tasks/frontend-tasks.md).
+
+---
+
+## 9. Actualizar desde PostgreSQL 17
+
+Si el stack ya estaba levantado con PostgreSQL 17, el directorio de datos del
+volumen **no** lo abre PostgreSQL 18. Además, desde la versión 18 las imágenes
+Docker guardan los datos en `/var/lib/postgresql/<major>/<cluster>`: el
+compose monta el volumen en `/var/lib/postgresql`, no en `.../data`.
+
+En desarrollo el camino corto es recrear la base y volver a aplicar las
+migraciones. Los datos de desarrollo son semilla y se regeneran:
+
+```bash
+# 1. Volcado por si acaso
+docker compose exec -T postgres pg_dump -U postgres -d biess > /tmp/biess.sql
+
+# 2. Recrear el contenedor de PostgreSQL con el layout nuevo
+docker compose up -d --force-recreate postgres
+
+# 3. Aplicar las migraciones sobre el cluster nuevo
+cd apps/backend && make db-migrate
+```
+
+Si el arranque falla con un aviso sobre *"PostgreSQL data in
+/var/lib/postgresql/data"*, el volumen todavía tiene el cluster viejo: hay
+que vaciarlo o usar un volumen nuevo.
+
+El procedimiento de producción, con `pg_upgrade` y con volcado lógico, está
+en [PRODUCTION_DEPLOYMENT.md §6.1](PRODUCTION_DEPLOYMENT.md).
 
 ---
 

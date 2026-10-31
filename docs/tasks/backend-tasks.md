@@ -119,7 +119,7 @@ Implementa el EF-11 completo.
 | Hash de contraseña | `internal/platform/password/argon2.go` | Argon2id (64 MiB, t=3, p=2), sal de 16 bytes |
 | Repositorio | `internal/identity/repository.go` + `postgres/` | Postulantes, sesiones y recuperación |
 | Handler | `internal/identity/handler.go` | Rutas `/api/v1/auth/*` |
-| Migración | `sql/migrations/00002_identity.sql` | `password_hash`, tabla `sessions`, tabla `password_resets` |
+| Migración | `sql/migrations/00003_identity.sql` | `password_hash`, tabla `sessions`, tabla `password_resets` |
 
 **Reglas que debe cumplir**
 

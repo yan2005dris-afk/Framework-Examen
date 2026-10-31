@@ -8,7 +8,7 @@ Diseño de ingeniería e implementación del módulo inicial de registro y postu
 | Documento | TRD v1.0 |
 | PRD asociado | [`../prd/PRD.md`](../prd/PRD.md) |
 | Fuente funcional | `docs/requerimiento.txt` (texto del RF v1.4) |
-| Stack | Go 1.27 · chi v5 · PostgreSQL 17 · Redis 7 · React 19 · Vite 8 · Tailwind v4 |
+| Stack | Go 1.27 · chi v5 · PostgreSQL 18 · Redis 7 · React 19 · Vite 8 · Tailwind v4 |
 
 ---
 
@@ -37,7 +37,7 @@ flowchart LR
     end
 
     subgraph datos["Datos"]
-        PG[("PostgreSQL 17<br/>datos transaccionales")]
+        PG[("PostgreSQL 18<br/>datos transaccionales")]
         REDIS[("Redis 7<br/>TTL · caché de catálogos")]
         OBJ[("Objetos S3<br/>documentos PDF")]
         SMTP["SMTP<br/>notificaciones"]
@@ -78,7 +78,7 @@ flowchart LR
 | Estado remoto | TanStack Query | Cacheo, reintentos y estados de carga/error sin boilerplate |
 | Routing | React Router v7 | Rutas protegidas por sesión |
 | Backend | Go 1.27 + chi v5 | Ver [ADR-001](../decisions/ADR-001-chi-en-vez-de-gin-fiber.md) |
-| Persistencia | PostgreSQL 17 + pgx v5 + sqlc | SQL explícito y tipos Go generados ([ADR-003](../decisions/ADR-003-postgres-sqlc-goose.md)) |
+| Persistencia | PostgreSQL 18 + pgx v5 + sqlc | SQL explícito y tipos Go generados ([ADR-003](../decisions/ADR-003-postgres-sqlc-goose.md), [ADR-007](../decisions/ADR-007-postgresql-18-y-uuidv7.md)) |
 | Migraciones | goose v3 | Migraciones embebidas en el binario, sin CLI en producción |
 | Caché / TTL | Redis 7 | Bloqueo de intentos y caché de catálogos |
 | Objetos | S3 / MinIO | Documentos PDF fuera del servidor de aplicación |
@@ -267,6 +267,10 @@ erDiagram
   descargado contra el registrado en la postulación.
 - **Historial de eventos**: tabla de auditoría append-only para reconstruir
   qué pasó con cada postulación.
+- **`id` UUIDv7**: los identificadores se generan ordenados en el tiempo
+  (RFC 9562). El motor PostgreSQL 18 trae `uuidv7()` de forma nativa, y la
+  aplicación usa la misma versión con `uuid.NewV7()`. Ver
+  [ADR-007](../decisions/ADR-007-postgresql-18-y-uuidv7.md).
 
 ---
 
@@ -445,6 +449,7 @@ de las oficiales de GitHub.
 | [ADR-004](../decisions/ADR-004-ingles-en-codigo-espanol-en-comentarios.md) | Identificadores en inglés, comentarios en español |
 | [ADR-005](../decisions/ADR-005-paginacion-offset-y-cursor.md) | Paginación offset y cursor sobre un kernel compartido |
 | [ADR-006](../decisions/ADR-006-sesiones-en-base-de-datos.md) | Sesiones en PostgreSQL con cookie `HttpOnly` |
+| [ADR-007](../decisions/ADR-007-postgresql-18-y-uuidv7.md) | PostgreSQL 18 y UUIDv7 como estrategia de identificadores |
 
 ---
 

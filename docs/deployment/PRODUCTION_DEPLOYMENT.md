@@ -19,7 +19,7 @@ flowchart LR
     U(("Usuario<br/>navegador")) -->|HTTPS 443| N["nginx<br/>:80/:443<br/>estáticos + proxy"]
     N -->|"/api/v1/**"| A["api<br/>distroless<br/>:8080"]
     N --> SPA["SPA<br/>archivos estáticos"]
-    A --> P[("PostgreSQL 17<br/>volumen persistente")]
+    A --> P[("PostgreSQL 18<br/>volumen persistente")]
     A --> R[("Redis 7<br/>TTL + caché")]
     A --> O[("Objetos S3/MinIO<br/>PDF adjuntos")]
     A --> S["SMTP"]
@@ -210,7 +210,74 @@ curl -s http://localhost/healthz
 Las migraciones se aplican **antes** de recrear la API: el binario nuevo
 siempre espera un esquema compatible.
 
-### 6.1 Rollback
+### 6.1 Actualización de la versión mayor de PostgreSQL
+
+Una versión mayor de PostgreSQL **no** abre el directorio de datos de la
+anterior. Desde PostgreSQL 18, además, las imágenes Docker guardan los datos
+en `/var/lib/postgresql/<major>/<cluster>`, así que el volumen se monta en
+`/var/lib/postgresql` y no en `/var/lib/postgresql/data`.
+
+Hay dos caminos. El primero es el recomendado.
+
+#### Camino A — `pg_upgrade` (conserva todo, no hay downtime largo)
+
+```bash
+cd deploy
+
+# 1. Volcado de seguridad previo, siempre
+docker compose exec -T postgres pg_dump -U postgres -d biess -Fc \
+  > /backups/biess-antes-de-actualizar.dump
+
+# 2. Detener PostgreSQL
+docker compose stop postgres
+
+# 3. pg_upgrade con las dos versiones disponibles
+#    (PGDATA nuevo en /var/lib/postgresql/18/docker)
+docker run --rm -it \
+  -v framework-examen_postgres-data:/var/lib/postgresql \
+  postgres:18-alpine sh -c '
+    apk add --no-cache postgresql17 postgresql17-client
+    pg_upgrade \
+      --old-datadir=/var/lib/postgresql/17/docker \
+      --new-datadir=/var/lib/postgresql/18/docker \
+      --old-bindir=/usr/lib/postgresql17/bin \
+      --new-bindir=/usr/local/bin \
+      --username=postgres
+  '
+
+# 4. Reindexar y analizar las estadísticas del optimizador
+docker compose run --rm postgres vacuumdb --all --analyze-in-stages -U postgres
+
+# 5. Levantar y verificar
+docker compose up -d postgres
+docker compose exec -T postgres postgres --version
+```
+
+#### Camino B — volcado lógico (para bases administradas fuera de Docker)
+
+```bash
+# 1. Volcar desde la versión antigua
+docker compose exec -T postgres pg_dump -U postgres -d biess -Fc \
+  > /backups/biess-pg17.dump
+
+# 2. Levantar la versión nueva con un volumen nuevo
+docker volume create framework-examen_postgres-data18
+#    (y montar ese volumen en el servicio postgres)
+
+# 3. Restaurar
+docker compose exec -T postgres pg_restore -U postgres -d biess \
+  --clean --if-exists < /backups/biess-pg17.dump
+
+# 4. Aplicar las migraciones pendientes
+docker compose run --rm api /app/migrate
+```
+
+> **El orden importa**: el motor se actualiza **antes** de correr las
+> migraciones. La migración `00002_uuidv7.sql` usa `uuidv7()`, que solo
+> existe desde PostgreSQL 18; sobre un motor anterior falla con
+> `function uuidv7() does not exist`.
+
+### 6.2 Rollback
 
 ```bash
 # Volver a la versión anterior del código
@@ -363,6 +430,7 @@ producción:
 | Sin métricas ni trazas | Solo hay logs | Añadir Prometheus + OpenTelemetry |
 | Sin E2E | Los regresiones se detectan en producción | Playwright en el CI |
 | Sin rotación automática de sesiones | La tabla `sessions` crece | Tarea periódica de purga |
+| `pg_upgrade` sin automatizar | La actualización mayor de PostgreSQL es manual | Script de actualización con el dump previo verificado |
 
 ---
 

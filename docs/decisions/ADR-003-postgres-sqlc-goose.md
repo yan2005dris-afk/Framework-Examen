@@ -22,7 +22,9 @@ migraciones instalado en la máquina.
 
 ## Decisión
 
-- **PostgreSQL 17** como base de datos relacional.
+- **PostgreSQL 18** como base de datos relacional. La versión concreta y la
+  estrategia de identificadores están en
+  [ADR-007](ADR-007-postgresql-18-y-uuidv7.md).
 - **pgx v5** como driver, con pool de conexiones y gestor de transacciones
   propio (`internal/platform/db`).
 - **sqlc v1.31** para generar código Go tipado desde las queries SQL.
@@ -87,7 +89,7 @@ migraciones instalado en la máquina.
 ## Reglas
 
 1. **Una migración = un cambio lógico**, con nombre secuencial
-   (`00002_add_password_hash.sql`) y sus bloques `Up` / `Down`.
+   (`00003_add_password_hash.sql`) y sus bloques `Up` / `Down`.
 2. **`schema.sql` se regenera, no se edita**: es la entrada de `sqlc`.
 3. **`sqlcgen/` no se edita a mano**: se regenera.
 4. Las **consultas siempre parametrizadas** (`$1`, `$2`); nunca se concatena
@@ -97,7 +99,7 @@ migraciones instalado en la máquina.
 
 ## Referencias
 
-- Migraciones: `apps/backend/sql/migrations/00001_init.sql`
+- Migraciones: `apps/backend/sql/migrations/`
 - Queries: `apps/backend/sql/queries/submissions.sql`
 - Configuración de sqlc: `apps/backend/sqlc.yaml`
 - Gestor de transacciones: `apps/backend/internal/platform/db/db.go`

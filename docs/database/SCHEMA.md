@@ -6,8 +6,9 @@ Documento de base de datos v1.0
 | Campo | Valor |
 |---|---|
 | Documento | SCHEMA v1.0 |
-| Motor | PostgreSQL 17 |
+| Motor | PostgreSQL 18 |
 | Acceso | `pgx` v5 (pool + transacciones) |
+| Identificadores | UUIDv7 (RFC 9562), generados por la aplicación y con `DEFAULT uuidv7()` en la base |
 | Migraciones | `goose` v3, embebidas en el binario |
 | Acceso tipado | `sqlc` v1.31 (SQL → Go) |
 | TRD asociado | [`../trd/TRD.md`](../trd/TRD.md) |
@@ -26,7 +27,7 @@ erDiagram
     submissions }o--|| catalogs : "sector"
 
     applicants {
-        uuid id PK
+        uuid id PK "UUIDv7"
         varchar cedula UK "10 dígitos, módulo 10"
         varchar nombres
         varchar apellidos
@@ -38,7 +39,7 @@ erDiagram
     }
 
     submissions {
-        uuid id PK
+        uuid id PK "UUIDv7"
         uuid applicant_id FK
         varchar code UK "EF12-AAAA-XXXXXX"
         varchar status "draft | in_review | submitted"
@@ -118,7 +119,9 @@ el destino; el DDL vigente está en la sección 2.
 
 ## 2. DDL vigente
 
-Fuente: `apps/backend/sql/migrations/00001_init.sql`.
+Fuente: `apps/backend/sql/migrations/00001_init.sql`, más la migración
+`00002_uuidv7.sql`, que añade los valores por defecto `uuidv7()` y el índice
+con el identificador.
 
 ```sql
 -- +goose Up
@@ -159,13 +162,41 @@ DROP TABLE IF EXISTS applicants;
 
 | Decisión | Motivo |
 |---|---|
-| `id UUID` generado en la aplicación | Evita depender de extensiones de PostgreSQL y permite generar el ID antes de insertar, dentro de una transacción |
+| `id UUID` **v7** generado en la aplicación | El identificador se conoce antes de insertar (el dominio no depende de la base) y, al estar ordenado en el tiempo, no fragmenta el índice del PRIMARY KEY. Ver [ADR-007](../decisions/ADR-007-postgresql-18-y-uuidv7.md) |
+| `DEFAULT uuidv7()` en la base | Red de seguridad para los caminos de inserción que no fijan el identificador: semillas, importaciones o SQL manual |
 | `content JSONB` | Las 9 secciones del EF-12 evolucionan con el RF; no se fuerza una migración por cada campo nuevo |
 | Columnas propias para lo que se consulta | `code`, `status`, `applicant_id` y `hash` tienen índice y filtro propios |
 | `CHECK` sobre `status` | El conjunto de estados es un invariante del dominio y queda garantizado en la base, no solo en Go |
 | `ON DELETE CASCADE` | No existen postulaciones huérfanas: si se elimina el postulante, se va su postulación |
 | `hash VARCHAR(64)` | SHA-256 en hexadecimal ocupa exactamente 64 caracteres |
-| `submissions_applicant_idx` | Cubre el listado por postulante ordenado por `updated_at DESC`, que es la consulta de "mis postulaciones" |
+| `submissions_applicant_idx` sobre `(applicant_id, updated_at DESC, id DESC)` | Cubre el listado por postulante y **el desempate de la paginación por cursor**: con UUIDv7 el `id` ordena por fecha de creación, así que la clave completa se resuelve dentro del índice |
+
+### 2.2 Identificadores UUIDv7
+
+Desde la migración `00002_uuidv7.sql`, las columnas `id` usan UUIDv7 (RFC 9562):
+los 48 bits iniciales son una marca de tiempo en milisegundos y el resto es
+aleatorio.
+
+```sql
+-- El motor genera el mismo formato que la aplicación
+SELECT uuidv7();
+
+-- La marca de tiempo de creación se recupera del identificador
+SELECT uuid_extract_timestamp(id) FROM submissions;
+```
+
+Tres propiedades que el proyecto usa a propósito:
+
+| Propiedad | Para qué |
+|---|---|
+| Orden por fecha de creación | El índice del PRIMARY KEY no se fragmenta con inserciones nuevas |
+| Marca de tiempo recuperable | Diagnóstico y particionado futuro sin columnas adicionales |
+| Desempate coherente con el cursor | La clave `(updated_at, id)` tiene un orden real, no arbitrario |
+
+> La migración `00002` usa `uuidv7()`, que **solo existe en PostgreSQL 18**.
+> Actualizar el motor es un paso previo a correr las migraciones; el
+> procedimiento está en
+> [`../deployment/PRODUCTION_DEPLOYMENT.md`](../deployment/PRODUCTION_DEPLOYMENT.md).
 
 ---
 
@@ -174,7 +205,7 @@ DROP TABLE IF EXISTS applicants;
 El RF exige la cascada **País → Provincia → Cantón** con las **24 provincias**
 del Ecuador. La semilla vive en `apps/frontend/src/data/ecuadorGeo.ts` (fuente
 de verdad para el frontend) y se cargará en la tabla `catalogs` cuando se
-implemente el contexto `catalog` (migración `00002_catalogs.sql`).
+implemente el contexto `catalog` (migración `00003_catalogs.sql`).
 
 ### 3.1 Provincias y cantones (24 provincias · 221 cantones)
 
@@ -320,13 +351,41 @@ make db-schema      # regenera sql/queries/schema.sql desde las migraciones
 Reglas:
 
 1. Una migración = un cambio lógico. El nombre es secuencial:
-   `00002_add_password_hash.sql`.
+   `00003_add_password_hash.sql`.
 2. Toda migración lleva su bloque `-- +goose Up` y `-- +goose Down`.
 3. `schema.sql` se **regenera**, no se edita a mano: es la entrada de `sqlc`.
 4. Las migraciones viajan **embebidas en el binario** (`sql/migrations/` con
    `embed.FS`), así que en producción no hace falta el CLI de goose.
 5. Los cambios de datos que necesita el seed de catálogos van en una
    migración `INSERT ... ON CONFLICT DO NOTHING`, de modo que sea idempotente.
+6. **Una migración puede requerir una versión mínima del motor.** La
+   `00002_uuidv7.sql` usa `uuidv7()`, que existe desde PostgreSQL 18: aplicar
+   las migraciones sobre un motor anterior falla y hay que actualizarlo antes.
+
+### 7.1 Migraciones vigentes
+
+| Migración | Qué hace |
+|---|---|
+| `00001_init.sql` | Crea `applicants` y `submissions`, con su índice y su restricción de estado |
+| `00002_uuidv7.sql` | Pone `DEFAULT uuidv7()` en los identificadores y recompone el índice con `id DESC` |
+
+### 7.2 El volumen de PostgreSQL 18
+
+Desde la versión 18, las imágenes Docker de PostgreSQL guardan los datos en
+un directorio por versión mayor:
+
+```text
+/var/lib/postgresql/
+└── 18/
+    └── docker/      # PGDATA
+```
+
+Por eso el volumen se monta en **`/var/lib/postgresql`** y no en
+`/var/lib/postgresql/data`. Un directorio de datos de PostgreSQL 17 **no** lo
+abre un PostgreSQL 18: la imagen se niega a arrancar y avisa de que parece un
+intento de actualizar la imagen sin actualizar la base. El procedimiento de
+actualización está en
+[`../deployment/PRODUCTION_DEPLOYMENT.md`](../deployment/PRODUCTION_DEPLOYMENT.md).
 
 ---
 

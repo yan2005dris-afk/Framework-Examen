@@ -34,7 +34,8 @@ docs/
 │   ├── ADR-003-postgres-sqlc-goose.md
 │   ├── ADR-004-ingles-en-codigo-espanol-en-comentarios.md
 │   ├── ADR-005-paginacion-offset-y-cursor.md
-│   └── ADR-006-sesiones-en-base-de-datos.md
+│   ├── ADR-006-sesiones-en-base-de-datos.md
+│   └── ADR-007-postgresql-18-y-uuidv7.md
 ├── deployment/
 │   ├── LOCAL_DEPLOYMENT.md       # entorno de desarrollo
 │   └── PRODUCTION_DEPLOYMENT.md  # entorno de producción
@@ -74,6 +75,7 @@ consecuencias. Son cortos y se leen en minutos.
 | [ADR-004](decisions/ADR-004-ingles-en-codigo-espanol-en-comentarios.md) | Identificadores en inglés, comentarios en español | Aceptada |
 | [ADR-005](decisions/ADR-005-paginacion-offset-y-cursor.md) | Paginación offset y cursor sobre un kernel compartido | Aceptada |
 | [ADR-006](decisions/ADR-006-sesiones-en-base-de-datos.md) | Sesiones en PostgreSQL con cookie `HttpOnly` | Aceptada |
+| [ADR-007](decisions/ADR-007-postgresql-18-y-uuidv7.md) | PostgreSQL 18 y UUIDv7 como estrategia de identificadores | Aceptada |
 
 ---
 

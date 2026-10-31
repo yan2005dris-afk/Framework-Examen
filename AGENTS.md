@@ -30,6 +30,10 @@ tocar código y actualízalo cuando cambie una convención.
 ### Backend
 
 - Go 1.27 — `chi` v5 (routing), `pgx` v5 (Postgres), `uuid`
+- PostgreSQL 18 — los identificadores son **UUIDv7** (`uuid.NewV7()` en Go,
+  `DEFAULT uuidv7()` en la base). La imagen Docker guarda los datos en
+  `/var/lib/postgresql/<major>/<cluster>`: el volumen se monta en
+  `/var/lib/postgresql`, no en `.../data`
 - `sqlc` v1.31 (SQL → Go tipado) + `goose` v3 (migraciones embebidas en el binario)
 - Módulo Go **independiente**: `apps/backend/` no es paquete pnpm, no lo instales con pnpm
 - Config por entorno: `PORT`, `APP_ENV`, `APP_URL`, `DATABASE_URL`, `DB_REQUIRED`,

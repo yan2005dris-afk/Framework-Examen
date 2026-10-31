@@ -104,7 +104,30 @@ offset.
 El cursor es **opaco**: el cliente lo reenvía tal cual y no lo interpreta. Un
 cursor inválido devuelve `400` con el código `cursor_invalido`.
 
-### 1.6 Códigos de error
+### 1.6 Forma de la respuesta de un listado
+
+Cada listado devuelve **sus elementos en la raíz**, con los metadatos de
+paginación como campos hermanos:
+
+```json
+{ "items": [ /* ... */ ], "page": 1, "pageSize": 20, "total": 137 }
+```
+
+Se evaluó la alternativa de envolverlos en claves explícitas
+(`data` / `meta` / `kpis`) y **no se adoptó**, por dos razones:
+
+1. **Cada elemento ya está en un campo con nombre.** `items`, `total` y
+   `nextCursor` se leen igual de bien que `data` y `meta`, y el envoltorio
+   añade un nivel que el cliente tiene que desenvolver sin información nueva.
+2. **La forma es uniforme entre estrategias.** Offset y cursor comparten
+   `items`, así que el frontend tiene un solo caso que resolver.
+
+Queda reservado un campo `kpis` para el listado del **dashboard de revisión**
+(EF-13), donde los conteos por cargo y por estado acompañan a los elementos y
+no son metadatos de paginación. Ese endpoint es planificado (§7), así que la
+forma se definirá cuando exista.
+
+### 1.7 Códigos de error
 
 | HTTP | `codigo` | Cuándo ocurre |
 |---:|---|---|

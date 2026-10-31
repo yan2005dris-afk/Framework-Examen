@@ -75,7 +75,7 @@ flowchart LR
     end
 
     subgraph datos["Almacenamiento"]
-        PG[("<b>PostgreSQL 17</b><br/>datos transaccionales")]
+        PG[("<b>PostgreSQL 18</b><br/>datos transaccionales")]
         RD[("<b>Redis 7</b><br/>TTL · caché de catálogos")]
         FS[("<b>Almacenamiento de objetos</b><br/>S3 / MinIO · disco local")]
         SM["<b>SMTP</b><br/>correo de notificaciones"]
