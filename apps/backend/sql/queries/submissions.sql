@@ -30,9 +30,9 @@ LIMIT $4;
 
 -- name: UpdateSubmission :one
 UPDATE submissions
-SET content = $2, status = $3, hash = $4, submitted_at = $5, updated_at = $6
-WHERE id = $1 AND status <> 'submitted'
+SET content = $2, status = $3, hash = $4, submitted_at = $5, updated_at = $6, eligibility = $7
+WHERE id = $1 AND status IN ('draft','in_review')
 RETURNING *;
 
 -- name: DeleteSubmission :execrows
-DELETE FROM submissions WHERE id = $1 AND status <> 'submitted';
+DELETE FROM submissions WHERE id = $1 AND status IN ('draft','in_review');

@@ -52,6 +52,13 @@ func TestPostgresOutboxIsTransactionalRetryableAndExpiresOTP(t *testing.T) {
 	if err := queue.Send(ctx, message); err != nil {
 		t.Fatal(err)
 	}
+	message.ExpiresAt = time.Now().Add(2 * time.Hour)
+	if err := queue.Send(ctx, message); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM mail_outbox WHERE resource_id=$1`, id).Scan(&count); err != nil || count != 1 {
+		t.Fatal("se duplicó la confirmación lógica", count, err)
+	}
 	sender := &retrySender{fail: true}
 	if err := queue.Dispatch(ctx, sender, nil); err != nil {
 		t.Fatal(err)

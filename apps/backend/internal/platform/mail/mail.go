@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"net"
 	"net/smtp"
 	"strconv"
@@ -27,6 +28,7 @@ var (
  * Message es un correo saliente.
  */
 type Message struct {
+	ID           string
 	Suppressed   bool
 	Kind         string
 	ResourceID   string
@@ -161,9 +163,8 @@ func (s *SMTPSender) Send(ctx context.Context, message Message) error {
 		return fmt.Errorf("no se pudo cerrar el cuerpo del correo: %w", err)
 	}
 
-	if err := client.Quit(); err != nil {
-		return fmt.Errorf("no se pudo cerrar la sesión SMTP: %w", err)
-	}
+	// DATA ya fue aceptado. Un fallo de QUIT no debe causar otro envío.
+	_ = client.Quit()
 
 	return nil
 }
@@ -182,6 +183,9 @@ func buildMessage(from string, message Message) string {
 	builder.WriteString("To: " + message.To + "\r\n")
 	builder.WriteString("Subject: " + message.Subject + "\r\n")
 	builder.WriteString("MIME-Version: 1.0\r\n")
+	if id, err := uuid.Parse(message.ID); err == nil {
+		builder.WriteString("Message-ID: <" + id.String() + "@notificaciones.biess.local>\r\n")
+	}
 	builder.WriteString("Content-Type: text/plain; charset=UTF-8\r\n")
 	builder.WriteString("\r\n")
 	builder.WriteString(message.Body)

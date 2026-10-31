@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/testutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -93,6 +94,8 @@ func integrationRepository(t *testing.T) (*Repository, *submission.Submission) {
 		t.Fatal(err)
 	}
 	repo := NewRepository(sqlcgen.New(pool), db.NewTxManager(pool))
+	period := testutil.OpenCompetition(t, pool)
+	item.CompetitionID = &period
 	if err := repo.Create(ctx, item); err != nil {
 		t.Fatal(err)
 	}

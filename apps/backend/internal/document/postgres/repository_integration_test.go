@@ -15,6 +15,7 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/storage"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
 	submissionpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/postgres"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/testutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -94,6 +95,8 @@ func postgresFixture(t *testing.T) (*Repository, *pgxpool.Pool, *submission.Subm
 	if err != nil {
 		t.Fatal(err)
 	}
+	period := testutil.OpenCompetition(t, pool)
+	item.CompetitionID = &period
 	if err := submissionpostgres.NewRepository(sqlcgen.New(pool), db.NewTxManager(pool)).Create(ctx, item); err != nil {
 		t.Fatal(err)
 	}
@@ -219,6 +222,7 @@ func TestPostgresSealBlocksDocumentsAndCascadesQueueObjects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	second.CompetitionID = item.CompetitionID
 	if err := subrepo.Create(ctx, second); err != nil {
 		t.Fatal(err)
 	}

@@ -97,7 +97,7 @@ func (o *Outbox) Send(ctx context.Context, message Message) error {
 	}
 	encrypted := o.box.Seal(nonce, nonce, raw, []byte(id.String()))
 	// El identificador de deduplicación tampoco contiene destinatario ni OTP legibles.
-	sum := sha256.Sum256(raw)
+	sum := messageDeduplication(message, raw)
 	var resource pgtype.UUID
 	if message.ResourceID != "" {
 		parsed, err := uuid.Parse(message.ResourceID)
@@ -112,6 +112,17 @@ func (o *Outbox) Send(ctx context.Context, message Message) error {
 		return ErrQueueUnavailable
 	}
 	return nil
+}
+
+/** messageDeduplication identifica la operación, no el vencimiento mutable de un reintento. */
+func messageDeduplication(message Message, raw []byte) [32]byte {
+	if message.ChallengeID != "" {
+		return sha256.Sum256([]byte(message.Kind + "|challenge|" + message.ChallengeID))
+	}
+	if message.ResourceID != "" {
+		return sha256.Sum256([]byte(message.Kind + "|resource|" + message.ResourceID))
+	}
+	return sha256.Sum256(raw)
 }
 
 /** State devuelve exclusivamente metadatos; la capa de dominio impone titularidad antes de llamarlo. */

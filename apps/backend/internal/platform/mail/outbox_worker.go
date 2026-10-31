@@ -44,6 +44,7 @@ func (o *Outbox) Dispatch(ctx context.Context, sender Sender, active func(contex
 			}
 		}
 		deliveryCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		message.ID = job.ID.String()
 		if status == "smtp_accepted" && message.Suppressed {
 			status, code = "superseded", "not_applicable"
 		}

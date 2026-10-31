@@ -31,7 +31,11 @@ type ScriptCache interface {
 }
 
 /** OTPStore mantiene un desafío por finalidad/cuenta, ligado al correo y con consumo único. */
-type OTPStore struct{ cache Cache }
+type OTPStore struct {
+	cache       Cache
+	resendDelay time.Duration
+	maxSends    int
+}
 
 /** Challenge identifica el desafío; no contiene el código ni datos personales. */
 type Challenge struct {
@@ -47,7 +51,17 @@ type otpState struct {
 }
 
 /** NewOTPStore construye el puerto; un adaptador sin scripts falla de forma cerrada. */
-func NewOTPStore(c Cache) *OTPStore { return &OTPStore{cache: c} }
+func NewOTPStore(c Cache) *OTPStore {
+	return &OTPStore{cache: c, resendDelay: OTPResendDelay, maxSends: MaxOTPSends}
+}
+
+/** NewConfiguredOTPStore permite configurar reenvíos sin cambiar tres intentos ni TTL de diez minutos. */
+func NewConfiguredOTPStore(c Cache, delay time.Duration, maxSends int) (*OTPStore, error) {
+	if delay < time.Second || delay >= OTPTTL || maxSends < 1 || maxSends > 10 {
+		return nil, ErrUnavailable
+	}
+	return &OTPStore{cache: c, resendDelay: delay, maxSends: maxSends}, nil
+}
 
 /** GenerateOTP usa una fuente criptográfica, nunca el reloj ni math/rand. */
 func GenerateOTP() (string, error) {
@@ -118,20 +132,33 @@ func (s *OTPStore) Issue(ctx context.Context, purpose, identifier, email, code s
 		return Challenge{}, ErrUnavailable
 	}
 	key := challengeKey(purpose, identifier)
-	result, err := a.RunScript(ctx, issueOTP, []string{key, key + ":resend", key + ":sends"}, string(raw), OTPTTL.Milliseconds(), OTPResendDelay.Milliseconds(), MaxOTPSends, MaxOTPAttempts)
+	result, err := a.RunScript(ctx, issueOTP, []string{key, key + ":resend", key + ":sends"}, string(raw), OTPTTL.Milliseconds(), s.resendDelay.Milliseconds(), s.maxSends, MaxOTPAttempts)
 	if err != nil {
 		return Challenge{}, ErrUnavailable
 	}
 	if result == -2 {
-		return Challenge{}, ErrOTPLocked
+		return Challenge{}, s.retryError(ctx, ErrOTPLocked, key)
 	}
 	if result == -1 {
-		return Challenge{}, ErrResendLimited
+		// Antes de agotar la cuota rige sólo el cooldown; después rige la ventana de emisiones.
+		ttl, ttlErr := a.RunScript(ctx, `local ttl=redis.call('PTTL',KEYS[1]);if tonumber(redis.call('GET',KEYS[2]) or '0')>=tonumber(ARGV[1]) then ttl=math.max(ttl,redis.call('PTTL',KEYS[2])) end;return math.max(ttl,0)`, []string{key + ":resend", key + ":sends"}, s.maxSends)
+		if ttlErr != nil {
+			return Challenge{}, ErrUnavailable
+		}
+		return Challenge{}, &RetryError{Cause: ErrResendLimited, RetryAfter: max(time.Duration(ttl)*time.Millisecond, time.Second)}
 	}
 	if result != 1 {
 		return Challenge{}, ErrUnavailable
 	}
 	return Challenge{ID: state.ID, Key: key, ExpiresAt: time.Now().UTC().Add(OTPTTL)}, nil
+}
+
+func (s *OTPStore) retryError(ctx context.Context, cause error, keys ...string) error {
+	ttl, err := remaining(ctx, s.cache, keys...)
+	if err != nil {
+		return cause
+	}
+	return &RetryError{Cause: cause, RetryAfter: max(ttl, time.Second)}
 }
 
 /** Verify compara finalidad, correo, desafío y hash antes de consumir una sola vez.

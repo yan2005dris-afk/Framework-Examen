@@ -3,7 +3,10 @@ SELECT EXISTS(SELECT 1 FROM mail_outbox WHERE false)::boolean AS ready;
 
 -- name: EnqueueMail :exec
 INSERT INTO mail_outbox(id,dedup_key,kind,resource_id,ciphertext,expires_at)
-VALUES(sqlc.arg(id),sqlc.arg(dedup_key),sqlc.arg(kind),sqlc.narg(resource_id),sqlc.arg(ciphertext),sqlc.arg(expires_at))
+SELECT sqlc.arg(id),sqlc.arg(dedup_key),sqlc.arg(kind)::varchar,sqlc.narg(resource_id),sqlc.arg(ciphertext),sqlc.arg(expires_at)
+WHERE sqlc.narg(resource_id)::uuid IS NULL OR NOT EXISTS (
+ SELECT 1 FROM mail_outbox WHERE resource_id=sqlc.narg(resource_id)::uuid AND kind=sqlc.arg(kind)::varchar
+)
 ON CONFLICT(dedup_key) DO NOTHING;
 
 -- name: ClaimMail :many

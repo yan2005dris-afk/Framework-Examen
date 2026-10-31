@@ -2,6 +2,7 @@ package identity_test
 
 import (
 	"context"
+	"errors"
 	"github.com/alicebob/miniredis/v2"
 	"regexp"
 	"sync"
@@ -410,13 +411,13 @@ func TestService_Login_And_Lockout(t *testing.T) {
 
 	// 2. Tercer intento fallido: dispara el bloqueo de 10 minutos (EF-11)
 	_, _, err := svc.Login(ctx, validCedula, wrongPass, "127.0.0.1", "test-ua")
-	if err != identity.ErrAccountLocked {
+	if !errors.Is(err, identity.ErrAccountLocked) {
 		t.Fatalf("Login() esperaba ErrAccountLocked al 3er fallo, obtuve: %v", err)
 	}
 
 	// 3. Intento adicional mientras está bloqueado: debe rechazar incluso con la clave correcta
 	_, _, err = svc.Login(ctx, validCedula, validPass, "127.0.0.1", "test-ua")
-	if err != identity.ErrAccountLocked {
+	if !errors.Is(err, identity.ErrAccountLocked) {
 		t.Fatalf("Login() esperaba ErrAccountLocked cuando la cuenta está bloqueada, obtuve: %v", err)
 	}
 }

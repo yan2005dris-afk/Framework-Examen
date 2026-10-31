@@ -67,6 +67,27 @@ type Competition struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+type CompetitionControl struct {
+	CompetitionID uuid.UUID          `json:"competition_id"`
+	Version       int64              `json:"version"`
+	Approved      bool               `json:"approved"`
+	Published     bool               `json:"published"`
+	FormEnabled   bool               `json:"form_enabled"`
+	Sectors       []string           `json:"sectors"`
+	Phases        []byte             `json:"phases"`
+	ApprovedAt    pgtype.Timestamptz `json:"approved_at"`
+	ApprovedBy    pgtype.UUID        `json:"approved_by"`
+}
+
+type CompetitionVersion struct {
+	ID            uuid.UUID          `json:"id"`
+	CompetitionID uuid.UUID          `json:"competition_id"`
+	Version       int64              `json:"version"`
+	Configuration []byte             `json:"configuration"`
+	ActorID       uuid.UUID          `json:"actor_id"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+}
+
 type Document struct {
 	ID           uuid.UUID `json:"id"`
 	SubmissionID uuid.UUID `json:"submission_id"`
@@ -83,6 +104,18 @@ type Document struct {
 type DocumentDeletion struct {
 	StorageKey string    `json:"storage_key"`
 	CreatedAt  time.Time `json:"created_at"`
+}
+
+type EligibilityCheck struct {
+	ID            uuid.UUID          `json:"id"`
+	SubmissionID  uuid.UUID          `json:"submission_id"`
+	ApplicantID   uuid.UUID          `json:"applicant_id"`
+	CompetitionID uuid.UUID          `json:"competition_id"`
+	Sector        string             `json:"sector"`
+	Result        bool               `json:"result"`
+	Source        string             `json:"source"`
+	CheckedAt     pgtype.Timestamptz `json:"checked_at"`
+	Assessment    []byte             `json:"assessment"`
 }
 
 type MailOutbox struct {
@@ -131,6 +164,7 @@ type Submission struct {
 	CreatedAt     time.Time          `json:"created_at"`
 	UpdatedAt     time.Time          `json:"updated_at"`
 	CompetitionID pgtype.UUID        `json:"competition_id"`
+	Eligibility   []byte             `json:"eligibility"`
 }
 
 type SubmissionEvent struct {

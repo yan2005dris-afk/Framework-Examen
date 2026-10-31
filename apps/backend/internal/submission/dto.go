@@ -28,18 +28,19 @@ type UpdateRequest struct {
  * Response es la representación pública de una postulación.
  */
 type Response struct {
-	Notification  *DeliveryStatus `json:"notificacion,omitempty"`
-	CompetitionID *uuid.UUID      `json:"convocatoriaId,omitempty"`
-	ID            uuid.UUID       `json:"id"`
-	ApplicantID   uuid.UUID       `json:"applicantId"`
-	Code          string          `json:"code"`
-	Status        Status          `json:"status"`
-	Content       json.RawMessage `json:"content"`
-	Hash          string          `json:"hash,omitempty"`
-	SubmittedAt   *time.Time      `json:"submittedAt,omitempty"`
-	CreatedAt     time.Time       `json:"createdAt"`
-	UpdatedAt     time.Time       `json:"updatedAt"`
-	Progress      Progress        `json:"progress"`
+	Eligibility   *EligibilityAssessment `json:"elegibilidad,omitempty"`
+	Notification  *DeliveryStatus        `json:"notificacion,omitempty"`
+	CompetitionID *uuid.UUID             `json:"convocatoriaId,omitempty"`
+	ID            uuid.UUID              `json:"id"`
+	ApplicantID   uuid.UUID              `json:"applicantId"`
+	Code          string                 `json:"code"`
+	Status        Status                 `json:"status"`
+	Content       json.RawMessage        `json:"content"`
+	Hash          string                 `json:"hash,omitempty"`
+	SubmittedAt   *time.Time             `json:"submittedAt,omitempty"`
+	CreatedAt     time.Time              `json:"createdAt"`
+	UpdatedAt     time.Time              `json:"updatedAt"`
+	Progress      Progress               `json:"progress"`
 }
 
 /**
@@ -49,19 +50,21 @@ type Response struct {
  * @returns {Response} DTO listo para serializar.
  */
 func NewResponse(item *Submission) Response {
+	content := contentForRead(item)
 	return Response{
 		Notification:  item.Notification,
+		Eligibility:   item.Eligibility,
 		CompetitionID: item.CompetitionID,
 		ID:            item.ID,
 		ApplicantID:   item.ApplicantID,
 		Code:          item.Code,
 		Status:        item.Status,
-		Content:       item.Content,
+		Content:       content,
 		Hash:          item.Hash,
 		SubmittedAt:   item.SubmittedAt,
 		CreatedAt:     item.CreatedAt,
 		UpdatedAt:     item.UpdatedAt,
-		Progress:      FormProgress(item.Content, time.Now()),
+		Progress:      FormProgress(content, time.Now()),
 	}
 }
 
