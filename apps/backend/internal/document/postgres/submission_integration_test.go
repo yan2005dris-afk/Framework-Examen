@@ -100,7 +100,7 @@ func TestSaveSubmissionCommitsAllTablesOrRollsBackOnDocumentFailure(t *testing.T
 				}
 				return
 			}
-			if headers != 1 || attachments != 2 || events != 1 || pending != 0 {
+			if headers != 1 || attachments != 2 || events != 3 || pending != 0 {
 				t.Fatalf("commit incompleto: cabeceras=%d documentos=%d eventos=%d bajas=%d", headers, attachments, events, pending)
 			}
 			persisted, err := submissions.FindByID(ctx, submissionID)

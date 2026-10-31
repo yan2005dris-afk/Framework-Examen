@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const changeApplicantRole = `-- name: ChangeApplicantRole :one
@@ -43,18 +44,19 @@ func (q *Queries) ChangeApplicantRole(ctx context.Context, arg ChangeApplicantRo
 
 const createAdministrativeAccessEvent = `-- name: CreateAdministrativeAccessEvent :exec
 INSERT INTO administrative_access_events
-    (actor_id, actor_role, action, resource_id, resource_type, result, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+    (actor_id, actor_role, action, resource_id, resource_type, result, created_at, submission_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type CreateAdministrativeAccessEventParams struct {
-	ActorID      uuid.UUID `json:"actor_id"`
-	ActorRole    string    `json:"actor_role"`
-	Action       string    `json:"action"`
-	ResourceID   uuid.UUID `json:"resource_id"`
-	ResourceType string    `json:"resource_type"`
-	Result       string    `json:"result"`
-	CreatedAt    time.Time `json:"created_at"`
+	ActorID      uuid.UUID   `json:"actor_id"`
+	ActorRole    string      `json:"actor_role"`
+	Action       string      `json:"action"`
+	ResourceID   uuid.UUID   `json:"resource_id"`
+	ResourceType string      `json:"resource_type"`
+	Result       string      `json:"result"`
+	CreatedAt    time.Time   `json:"created_at"`
+	SubmissionID pgtype.UUID `json:"submission_id"`
 }
 
 func (q *Queries) CreateAdministrativeAccessEvent(ctx context.Context, arg CreateAdministrativeAccessEventParams) error {
@@ -66,6 +68,7 @@ func (q *Queries) CreateAdministrativeAccessEvent(ctx context.Context, arg Creat
 		arg.ResourceType,
 		arg.Result,
 		arg.CreatedAt,
+		arg.SubmissionID,
 	)
 	return err
 }

@@ -62,6 +62,10 @@ func (r *Repository) WithinSubmission(ctx context.Context, actor, id uuid.UUID, 
 			return submission.ErrForbidden
 		}
 		item := &submission.Submission{ID: row.ID, ApplicantID: row.ApplicantID, Code: row.Code, Status: submission.Status(row.Status), Content: row.Content, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt}
+		if row.CompetitionID.Valid {
+			id := uuid.UUID(row.CompetitionID.Bytes)
+			item.CompetitionID = &id
+		}
 		if !item.IsEditable() {
 			return submission.ErrNotEditable
 		}

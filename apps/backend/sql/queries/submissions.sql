@@ -1,6 +1,6 @@
 -- name: CreateSubmission :one
-INSERT INTO submissions (id, applicant_id, code, status, content, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO submissions (id, applicant_id, code, status, content, created_at, updated_at, competition_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, sqlc.narg(competition_id))
 RETURNING *;
 
 -- name: GetSubmissionByID :one

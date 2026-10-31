@@ -51,13 +51,14 @@ func NewRepository(queries *sqlcgen.Queries, txManager ...*db.TxManager) *Reposi
  */
 func (r *Repository) Create(ctx context.Context, item *submission.Submission) error {
 	params := sqlcgen.CreateSubmissionParams{
-		ID:          item.ID,
-		ApplicantID: item.ApplicantID,
-		Code:        item.Code,
-		Status:      string(item.Status),
-		Content:     item.Content,
-		CreatedAt:   item.CreatedAt,
-		UpdatedAt:   item.UpdatedAt,
+		CompetitionID: nullableUUID(item.CompetitionID),
+		ID:            item.ID,
+		ApplicantID:   item.ApplicantID,
+		Code:          item.Code,
+		Status:        string(item.Status),
+		Content:       item.Content,
+		CreatedAt:     item.CreatedAt,
+		UpdatedAt:     item.UpdatedAt,
 	}
 
 	row, err := r.queries.CreateSubmission(ctx, params)
@@ -279,6 +280,11 @@ func (r *Repository) Mutate(ctx context.Context, id uuid.UUID, change func(conte
  * @param {sqlcgen.Submission} row - Fila leída de PostgreSQL.
  */
 func applyRow(item *submission.Submission, row sqlcgen.Submission) {
+	item.CompetitionID = nil
+	if row.CompetitionID.Valid {
+		id := uuid.UUID(row.CompetitionID.Bytes)
+		item.CompetitionID = &id
+	}
 	item.ID = row.ID
 	item.ApplicantID = row.ApplicantID
 	item.Code = row.Code
@@ -338,11 +344,27 @@ func mapError(err error) error {
 	}
 
 	switch pgErr.Code {
+	case "23514":
+		if pgErr.ConstraintName == "competition_open" {
+			return submission.ErrInvalidCompetition
+		}
 	case "23505":
 		return fmt.Errorf("%w: %s", submission.ErrDuplicateCode, pgErr.ConstraintName)
 	case "23503":
+		if pgErr.ConstraintName == "submissions_competition_id_fkey" {
+			return submission.ErrInvalidCompetition
+		}
 		return fmt.Errorf("%w: %s", submission.ErrInvalidApplicant, pgErr.ConstraintName)
 	default:
 		return err
 	}
+	return err
+}
+
+/** nullableUUID conserva NULL para expedientes anteriores sin período asignado. */
+func nullableUUID(id *uuid.UUID) pgtype.UUID {
+	if id == nil {
+		return pgtype.UUID{}
+	}
+	return pgtype.UUID{Bytes: *id, Valid: true}
 }

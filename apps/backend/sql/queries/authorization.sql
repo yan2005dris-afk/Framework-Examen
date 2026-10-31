@@ -1,7 +1,7 @@
 -- name: CreateAdministrativeAccessEvent :exec
 INSERT INTO administrative_access_events
-    (actor_id, actor_role, action, resource_id, resource_type, result, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7);
+    (actor_id, actor_role, action, resource_id, resource_type, result, created_at, submission_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, sqlc.narg(submission_id));
 
 -- name: LockApplicantsForRoleChange :many
 SELECT id, role FROM applicants WHERE id = ANY(sqlc.arg(ids)::uuid[])
