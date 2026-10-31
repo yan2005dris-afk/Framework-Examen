@@ -65,3 +65,6 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Caché local del registro de skills (la crea el runtime, no es del proyecto)
+.atl/
