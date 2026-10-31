@@ -8,6 +8,7 @@ import {
   ShieldCheckIcon,
   UsersIcon,
 } from "lucide-react"
+import { Link } from "react-router"
 
 import { Badge } from "@/components/ui/badge"
 import {
@@ -88,9 +89,19 @@ const grupos: { titulo: string; entradas: EntradaMenu[] }[] = [
 type AppSidebarProps = {
   vistaActual: VistaId
   onNavigate: (vista: VistaId) => void
+  /**
+   * Ruta del router para cada vista. Cuando una entrada la tiene, se renderiza
+   * como enlace (`Link`) para no recargar la página; si falta, se conserva el
+   * `onNavigate` original.
+   */
+  rutas?: Partial<Record<VistaId, string>>
 }
 
-export function AppSidebar({ vistaActual, onNavigate }: AppSidebarProps) {
+export function AppSidebar({
+  vistaActual,
+  onNavigate,
+  rutas,
+}: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -117,21 +128,39 @@ export function AppSidebar({ vistaActual, onNavigate }: AppSidebarProps) {
             <SidebarGroupLabel>{grupo.titulo}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {grupo.entradas.map((entrada) => (
-                  <SidebarMenuItem key={entrada.id}>
-                    <SidebarMenuButton
-                      isActive={vistaActual === entrada.id}
-                      tooltip={entrada.titulo}
-                      onClick={() => onNavigate(entrada.id)}
-                    >
+                {grupo.entradas.map((entrada) => {
+                  const ruta = rutas?.[entrada.id]
+                  const contenido = (
+                    <>
                       <entrada.icono />
                       <span>{entrada.titulo}</span>
-                    </SidebarMenuButton>
-                    {entrada.badge && (
-                      <SidebarMenuBadge>{entrada.badge}</SidebarMenuBadge>
-                    )}
-                  </SidebarMenuItem>
-                ))}
+                    </>
+                  )
+
+                  return (
+                    <SidebarMenuItem key={entrada.id}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={vistaActual === entrada.id}
+                        tooltip={entrada.titulo}
+                      >
+                        {ruta ? (
+                          <Link to={ruta}>{contenido}</Link>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onNavigate(entrada.id)}
+                          >
+                            {contenido}
+                          </button>
+                        )}
+                      </SidebarMenuButton>
+                      {entrada.badge && (
+                        <SidebarMenuBadge>{entrada.badge}</SidebarMenuBadge>
+                      )}
+                    </SidebarMenuItem>
+                  )
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

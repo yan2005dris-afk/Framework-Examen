@@ -1,4 +1,5 @@
 import { ChevronRightIcon, SearchIcon } from "lucide-react"
+import { Link } from "react-router"
 
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -14,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import type { VistaId } from "@/components/app-sidebar"
+import { RUTAS } from "@/lib/rutas"
 
 const titulos: Record<VistaId, string> = {
   dashboard: "Inicio",
@@ -26,9 +28,14 @@ const titulos: Record<VistaId, string> = {
 
 type AppHeaderProps = {
   vistaActual: VistaId
+  /** Ruta a la que vuelve la miga "Concurso CPMO 2026". */
+  rutaInicio?: string
 }
 
-export function AppHeader({ vistaActual }: AppHeaderProps) {
+export function AppHeader({
+  vistaActual,
+  rutaInicio = RUTAS.dashboard,
+}: AppHeaderProps) {
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
       <SidebarTrigger className="-ml-1" />
@@ -37,7 +44,7 @@ export function AppHeader({ vistaActual }: AppHeaderProps) {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <a href="#">Concurso CPMO 2026</a>
+              <Link to={rutaInicio}>Concurso CPMO 2026</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator>

@@ -2,6 +2,11 @@ import { apiGet, apiPost } from "../api"
 import type { RespuestaMensaje } from "@/types/api"
 
 /**
+ * Rol de la cuenta dentro del portal.
+ */
+export type RolPostulante = "postulante" | "analista"
+
+/**
  * Datos del postulante devueltos por la sesión o el registro.
  */
 export interface PostulanteDto {
@@ -13,6 +18,16 @@ export interface PostulanteDto {
   correo: string
   metodo_validacion: string
   fecha_registro: string
+  /**
+   * Rol de la cuenta en el portal, según lo asigna el servidor.
+   *
+   * La API lo envía siempre en `/auth/session`, en el login y en el registro:
+   * el registro público crea `"postulante"` y `"analista"` se asigna del lado
+   * del servidor. El tipo lo deja opcional a propósito: si una respuesta vieja
+   * o un proxy recorta el campo, la cuenta se trata como `"postulante"` y nunca
+   * hereda permisos de analista.
+   */
+  rol?: RolPostulante
 }
 
 /**

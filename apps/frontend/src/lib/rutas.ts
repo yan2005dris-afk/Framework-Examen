@@ -1,0 +1,134 @@
+import type { PostulanteDto } from "@/lib/clientes/auth"
+
+/**
+ * Nivel de acceso que exige una ruta del portal.
+ *
+ * - `publico`: visible sin sesión.
+ * - `con-sesion`: exige un postulante autenticado.
+ * - `con-rol-analista`: exige sesión y `rol === "analista"`.
+ */
+export type TipoAcceso = "publico" | "con-sesion" | "con-rol-analista"
+
+/**
+ * Rutas estáticas del portal. Las rutas con parámetros se arman con
+ * {@link rutaSeccion} y {@link rutaDetallePostulacion}.
+ */
+export const RUTAS = {
+  inicio: "/",
+  registro: "/registro",
+  login: "/login",
+  recuperarContrasena: "/recuperar-contrasena",
+  postulacion: "/postulacion",
+  postulacionRevision: "/postulacion/revision",
+  postulacionImprimir: "/postulacion/imprimir",
+  dashboard: "/dashboard",
+  dashboardPostulaciones: "/dashboard/postulaciones",
+} as const
+
+/**
+ * Acceso exigido por cada prefijo de ruta. Las rutas hijas
+ * (`/postulacion/:seccion`, `/dashboard/postulaciones/:id`) heredan el acceso
+ * de su prefijo, por eso el guard se monta sobre el layout y no sobre la hoja.
+ */
+export const ACCESO_POR_RUTA: Record<string, TipoAcceso> = {
+  [RUTAS.inicio]: "publico",
+  [RUTAS.registro]: "publico",
+  [RUTAS.login]: "publico",
+  [RUTAS.recuperarContrasena]: "publico",
+  [RUTAS.postulacion]: "con-sesion",
+  [RUTAS.postulacionRevision]: "con-sesion",
+  [RUTAS.postulacionImprimir]: "con-sesion",
+  [RUTAS.dashboard]: "con-rol-analista",
+  [RUTAS.dashboardPostulaciones]: "con-rol-analista",
+}
+
+/** Ruta del formulario para una sección concreta del EF-12. */
+export function rutaSeccion(seccion: number | string): string {
+  return `${RUTAS.postulacion}/${seccion}`
+}
+
+/** Ruta del detalle de una postulación en el panel del analista. */
+export function rutaDetallePostulacion(id: string): string {
+  return `${RUTAS.dashboardPostulaciones}/${id}`
+}
+
+/**
+ * Indica si la cuenta tiene rol de analista.
+ *
+ * La API ya envía `rol` en la sesión, pero el valor ausente nunca concede
+ * permisos de administración: cualquier cosa distinta de `"analista"` se trata
+ * como postulante.
+ */
+export function esAnalista(
+  postulante: PostulanteDto | null | undefined,
+): boolean {
+  return postulante?.rol === "analista"
+}
+
+/**
+ * Decide si una sesión puede abrir una ruta con el acceso indicado.
+ */
+export function puedeAcceder(
+  acceso: TipoAcceso,
+  sesion: PostulanteDto | null,
+): boolean {
+  if (acceso === "publico") {
+    return true
+  }
+  if (!sesion) {
+    return false
+  }
+  if (acceso === "con-rol-analista") {
+    return esAnalista(sesion)
+  }
+  return true
+}
+
+/**
+ * Ruta inicial sugerida después de autenticarse.
+ *
+ * El analista entra al panel y el postulante entra al formulario del EF-12.
+ * Mientras no exista una vista propia de "mis postulaciones", el formulario es
+ * la casa del postulante aunque ya tenga un envío: `/dashboard` exige rol de
+ * analista, así que mandarlo ahí provocaría un `403`.
+ */
+export function rutaInicial(postulante: PostulanteDto | null): string {
+  if (!postulante) {
+    return RUTAS.login
+  }
+  if (esAnalista(postulante)) {
+    return RUTAS.dashboard
+  }
+  return RUTAS.postulacion
+}
+
+/**
+ * Construye la URL de login conservando el destino al que se quería llegar.
+ * Los destinos vacíos o que apuntan al propio login no se arrastran.
+ */
+export function construirRutaLogin(destino?: string): string {
+  const destinoLimpio = destino?.trim() ?? ""
+  if (
+    destinoLimpio === "" ||
+    destinoLimpio === RUTAS.login ||
+    destinoLimpio === RUTAS.inicio
+  ) {
+    return RUTAS.login
+  }
+
+  const parametros = new URLSearchParams({ destino: destinoLimpio })
+  return `${RUTAS.login}?${parametros.toString()}`
+}
+
+/**
+ * Lee el destino guardado en la query string del login.
+ * Si no existe (o viene vacío) devuelve la ruta indicada como respaldo.
+ */
+export function leerDestinoLogin(
+  busqueda: string,
+  porDefecto: string = RUTAS.inicio,
+): string {
+  const parametros = new URLSearchParams(busqueda)
+  const destino = parametros.get("destino")?.trim() ?? ""
+  return destino === "" ? porDefecto : destino
+}
