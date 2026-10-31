@@ -60,7 +60,10 @@ func (q *Queries) ClaimMail(ctx context.Context, leaseID pgtype.UUID) ([]MailOut
 
 const enqueueMail = `-- name: EnqueueMail :exec
 INSERT INTO mail_outbox(id,dedup_key,kind,resource_id,ciphertext,expires_at)
-VALUES($1,$2,$3,$4,$5,$6)
+SELECT $1,$2,$3::varchar,$4,$5,$6
+WHERE $4::uuid IS NULL OR NOT EXISTS (
+ SELECT 1 FROM mail_outbox WHERE resource_id=$4::uuid AND kind=$3::varchar
+)
 ON CONFLICT(dedup_key) DO NOTHING
 `
 

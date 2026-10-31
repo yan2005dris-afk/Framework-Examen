@@ -25,7 +25,8 @@ const (
 	/**
 	 * StatusDraft es una postulación en construcción, editable por el postulante.
 	 */
-	StatusDraft Status = "draft"
+	StatusDraft  Status = "draft"
+	StatusClosed Status = "closed"
 
 	/**
 	 * StatusInReview es una postulación enviada a revisión por el postulante.
@@ -44,6 +45,7 @@ const (
  */
 type Submission struct {
 	Notification  *DeliveryStatus
+	Eligibility   *EligibilityAssessment
 	ID            uuid.UUID
 	CompetitionID *uuid.UUID
 	ApplicantID   uuid.UUID
@@ -155,7 +157,7 @@ func (s *Submission) MarkAsSent(now time.Time) error {
  * @returns {boolean} True mientras no haya sido enviada formalmente.
  */
 func (s *Submission) IsEditable() bool {
-	return s.Status != StatusSubmitted
+	return s.Status == StatusDraft || s.Status == StatusInReview
 }
 
 /**

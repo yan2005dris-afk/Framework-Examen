@@ -18,37 +18,40 @@ const DefaultMaxBodyBytes int64 = 10 * 1024 * 1024
  * Config agrupa la configuración de la aplicación leída desde el entorno.
  */
 type Config struct {
-	Environment       string
-	Port              int
-	PublicURL         string
-	DatabaseURL       string
-	DatabaseRequired  bool
-	RedisURL          string
-	StorageDir        string
-	StorageDriver     string
-	StoragePublicURL  string
-	StorageSigningKey string
-	S3Endpoint        string
-	S3PublicEndpoint  string
-	S3Region          string
-	S3AccessKey       string
-	S3SecretKey       string
-	S3SessionToken    string
-	CORSOrigins       []string
-	SessionTTL        time.Duration
-	ReadTimeout       time.Duration
-	WriteTimeout      time.Duration
-	IdleTimeout       time.Duration
-	RequestTimeout    time.Duration
-	MaxBodyBytes      int64
-	Version           string
-	SMTPHost          string
-	SMTPPort          int
-	SMTPUser          string
-	SMTPPassword      string
-	SMTPFrom          string
-	SMTPUseTLS        bool
-	MailOutboxKey     string
+	Environment               string
+	Port                      int
+	PublicURL                 string
+	DatabaseURL               string
+	DatabaseRequired          bool
+	RedisURL                  string
+	StorageDir                string
+	StorageDriver             string
+	StoragePublicURL          string
+	StorageSigningKey         string
+	S3Endpoint                string
+	S3PublicEndpoint          string
+	S3Region                  string
+	S3AccessKey               string
+	S3SecretKey               string
+	S3SessionToken            string
+	CORSOrigins               []string
+	SessionTTL                time.Duration
+	ReadTimeout               time.Duration
+	WriteTimeout              time.Duration
+	IdleTimeout               time.Duration
+	RequestTimeout            time.Duration
+	MaxBodyBytes              int64
+	Version                   string
+	SMTPHost                  string
+	SMTPPort                  int
+	SMTPUser                  string
+	SMTPPassword              string
+	SMTPFrom                  string
+	SMTPUseTLS                bool
+	MailOutboxKey             string
+	OTPResendDelay            time.Duration
+	OTPMaxSends               int
+	EligibilitySimulationFile string
 }
 
 /**
@@ -59,6 +62,17 @@ type Config struct {
  * @throws {Error} Si una variable existe pero no se puede convertir al tipo esperado.
  */
 func Load() (Config, error) {
+	otpDelay, err := getDuration("OTP_RESEND_DELAY", time.Minute)
+	if err != nil {
+		return Config{}, err
+	}
+	otpSends, err := getInt("OTP_MAX_SENDS", 3)
+	if err != nil {
+		return Config{}, err
+	}
+	if otpDelay < time.Second || otpDelay >= 10*time.Minute || otpSends < 1 || otpSends > 10 {
+		return Config{}, fmt.Errorf("OTP_RESEND_DELAY debe ser entre 1s y menos de 10m; OTP_MAX_SENDS entre 1 y 10")
+	}
 	port, err := getInt("PORT", 8080)
 	if err != nil {
 		return Config{}, err
@@ -141,6 +155,8 @@ func Load() (Config, error) {
 		SMTPFrom:          getString("SMTP_FROM", "no-reply@biess.local"),
 		SMTPUseTLS:        smtpUseTLS,
 		MailOutboxKey:     getString("MAIL_OUTBOX_KEY", ""),
+		OTPResendDelay:    otpDelay, OTPMaxSends: otpSends,
+		EligibilitySimulationFile: getString("ELIGIBILITY_SIMULATION_FILE", ""),
 	}, nil
 }
 

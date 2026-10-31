@@ -30,9 +30,10 @@ func TestSaveSubmissionCommitsAllTablesOrRollsBackOnDocumentFailure(t *testing.T
 			var submissionID, firstDocumentID uuid.UUID
 			code := "EF12-T5-AGGREGATE"
 			saved, err := service.SaveSubmission(ctx, submission.CreateInput{
-				ApplicantID: existing.ApplicantID,
-				Code:        code,
-				Content:     json.RawMessage(`{"seccion5":{"titulos":[{"id":"titulo-1"},{"id":"titulo-2"}]}}`),
+				ApplicantID:   existing.ApplicantID,
+				CompetitionID: existing.CompetitionID,
+				Code:          code,
+				Content:       json.RawMessage(`{"seccion5":{"titulos":[{"id":"titulo-1"},{"id":"titulo-2"}]}}`),
 				SaveRelated: func(txctx context.Context, current *submission.Submission) error {
 					submissionID = current.ID
 					form, err := submission.DecodeForm(current.Content)

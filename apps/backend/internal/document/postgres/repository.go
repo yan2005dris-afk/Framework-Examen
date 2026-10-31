@@ -42,7 +42,7 @@ func (r *Repository) FindSubmission(ctx context.Context, id uuid.UUID) (*submiss
  * @returns {error} Commit de documentos y contenido o rollback de ambos.
  */
 func (r *Repository) WithinSubmission(ctx context.Context, actor, id uuid.UUID, change func(context.Context, *submission.Submission, document.Repository) error) error {
-	return r.transactions.WithinTx(ctx, func(tx pgx.Tx) error {
+	err := r.transactions.WithinTx(ctx, func(tx pgx.Tx) error {
 		txctx := db.WithTransaction(ctx, tx)
 		queries := sqlcgen.New(tx)
 		if _, err := queries.LockDocumentApplicant(txctx, actor); err != nil {
@@ -66,6 +66,9 @@ func (r *Repository) WithinSubmission(ctx context.Context, actor, id uuid.UUID, 
 			id := uuid.UUID(row.CompetitionID.Bytes)
 			item.CompetitionID = &id
 		}
+		if item.Status == submission.StatusClosed {
+			return submission.ErrEligibilityClosed
+		}
 		if !item.IsEditable() {
 			return submission.ErrNotEditable
 		}
@@ -76,8 +79,13 @@ func (r *Repository) WithinSubmission(ctx context.Context, actor, id uuid.UUID, 
 		if err := submissions.Update(txctx, item); err != nil {
 			return err
 		}
-		return submissions.RecordEvent(txctx, item, submission.EventSaved)
+		event := submission.EventSaved
+		if item.Status == submission.StatusClosed {
+			event = "postulacion.cerrada_elegibilidad"
+		}
+		return submissions.RecordEvent(txctx, item, event)
 	})
+	return submissionpostgres.WriteWindowError(err)
 }
 
 /** Find obtiene metadatos sin exponerlos antes de comprobar propietario.
