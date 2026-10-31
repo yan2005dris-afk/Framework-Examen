@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+          cache-dependency-path: apps/backend/go.sum
+
+      - name: Formato (gofmt)
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::Archivos sin gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Análisis estático (go vet)
+        run: go vet ./...
+
+      - name: Tests unitarios
+        run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
+
+      - name: Código generado (sqlc) al día
+        run: |
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
+          sqlc generate
+          if ! git diff --quiet -- internal/platform/sqlcgen; then
+            echo "::error::El código de sqlc está desactualizado. Ejecuta 'make sqlc-generate' y versiona el resultado."
+            git diff -- internal/platform/sqlcgen
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: apps/backend/coverage.out
+
+  frontend:
+    name: Frontend (React)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.16.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+        cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Formato (prettier)
+        run: pnpm format:check
+
+      - name: Lint (eslint)
+        run: pnpm lint
+
+      - name: Tests unitarios (vitest)
+        run: pnpm test
+
+      - name: Build y verificación de tipos (tsc + vite)
+        run: pnpm build

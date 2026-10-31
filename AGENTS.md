@@ -24,6 +24,7 @@ tocar código y actualízalo cuando cambie una convención.
 - shadcn/ui — estilo `radix-nova`, base color `neutral`, iconos Lucide
 - Radix UI, `cmdk` (command palette), `react-day-picker`, `recharts`, `sonner` (toasts),
   `next-themes` (tema claro/oscuro), `cn` (merge de clases Tailwind)
+- **Vitest 5** (tests unitarios) + **Prettier 3** (formato; ignora `src/components/ui/`)
 - pnpm 12 como package manager (workspace) — lockfile `pnpm-lock.yaml`
 
 ### Backend
@@ -33,6 +34,8 @@ tocar código y actualízalo cuando cambie una convención.
 - Módulo Go **independiente**: `apps/backend/` no es paquete pnpm, no lo instales con pnpm
 - Config por entorno: `PORT`, `APP_ENV`, `APP_URL`, `DATABASE_URL`, `DB_REQUIRED`,
   `STORAGE_DIR`, `CORS_ALLOWED_ORIGINS`, `SESSION_TTL`, `MAX_REQUEST_BODY_BYTES`, `LOG_LEVEL`
+- Correo por SMTP: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_TLS`
+  (en desarrollo apunta a Mailpit)
 
 ## Setup commands
 
@@ -42,8 +45,18 @@ Desde la raíz del repo:
 - Frontend dev:   `pnpm dev`      (puerto 5173)
 - Frontend build: `pnpm build`
 - Frontend lint:  `pnpm lint`
+- Frontend test:  `pnpm test`     (Vitest)
+- Frontend formato: `pnpm format` / `pnpm format:check`
 - Backend build:  `cd apps/backend && go build ./...`
 - Backend tests:  `cd apps/backend && go test ./...`
+- Stack completo: `docker compose up -d` — api, frontend, postgres y mailpit
+
+El compose de desarrollo vive en `compose.yaml` (raíz). El de producción en
+`deploy/compose.yaml` y lee sus variables de `deploy/.env`:
+
+```bash
+docker compose -f deploy/compose.yaml up -d
+```
 
 Desde `apps/frontend/` también funcionan `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm preview`.
 
@@ -85,7 +98,7 @@ pnpm dlx shadcn@latest add <componente> --overwrite  # regenerar sobreescribiend
 
 - `cmd/api/` — binario de la API: cableado de contextos + apagado ordenado
 - `cmd/migrate/` — runner de migraciones (goose embebido en `sql/migrations`)
-- `internal/platform/` — transversal: `config`, `db`, `httpx`, `logger`, `storage`, `sqlcgen`
+- `internal/platform/` — transversal: `config`, `db`, `httpx`, `logger`, `mail`, `storage`, `sqlcgen`
 - `internal/shared/domain/` — kernel compartido: errores base y paginación
 - `internal/<contexto>/` — **un bounded context por carpeta** (screaming architecture):
   `identity/`, `submission/`, …
@@ -96,6 +109,14 @@ pnpm dlx shadcn@latest add <componente> --overwrite  # regenerar sobreescribiend
 - `sql/migrations/` — migraciones goose embebidas
 
 Ejemplo de referencia completo: `internal/submission/` (CRUD de postulaciones).
+
+Raíz del repo:
+
+- `compose.yaml` — compose de **desarrollo**: api, frontend (Vite), postgres y mailpit
+- `deploy/compose.yaml` — compose de **producción** (lee `deploy/.env`)
+- `deploy/nginx.conf` — reverse proxy de producción: sirve la SPA y reenvía `/api`
+- `apps/frontend/Dockerfile` — etapas `dev` (Vite) y `prod` (nginx)
+- `.github/workflows/ci.yml` — CI: formato, lint y tests de frontend y backend
 
 ## Code style
 
@@ -108,6 +129,11 @@ Ejemplo de referencia completo: `internal/submission/` (CRUD de postulaciones).
   `seccion1`, `cumpleMayuscula`) — mantener ese idioma en lo nuevo
 - Tailwind para estilos: clases utilitarias, sin CSS en línea salvo valores dinámicos
 - Comentarios JSDoc en las funciones de `src/utils/`
+- **Tests en `src/**/*.test.ts` con Vitest** (entorno node para lógica pura).
+  `src/components/ui/` se excluye de Prettier: lo regenera el CLI de shadcn
+- En desarrollo el frontend habla con la API por el proxy de Vite (`/api` →
+  `VITE_DEV_API_TARGET`): un solo origen, sin CORS. En producción hace lo mismo
+  nginx (`deploy/nginx.conf`)
 
 ### Go (backend)
 

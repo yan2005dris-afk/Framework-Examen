@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -26,6 +27,12 @@ import (
  * HTTP con apagado ordenado.
  */
 func main() {
+	// La imagen de producción es distroless: no hay shell ni curl, así que el
+	// propio binario actúa como sonda de salud del contenedor.
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		os.Exit(runHealthcheck())
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		slog.Error("no se pudo cargar la configuración", "error", err)
@@ -115,4 +122,32 @@ func main() {
 	}
 
 	log.Info("API detenida")
+}
+
+/**
+ * runHealthcheck consulta el endpoint de salud de la API en ejecución.
+ *
+ * @returns {number} 0 si la API responde, 1 en caso contrario.
+ */
+func runHealthcheck() int {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	client := &http.Client{Timeout: 3 * time.Second}
+
+	response, err := client.Get("http://127.0.0.1:" + port + "/healthz")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "healthcheck: no se pudo consultar /healthz:", err)
+		return 1
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		fmt.Fprintf(os.Stderr, "healthcheck: /healthz respondió %d\n", response.StatusCode)
+		return 1
+	}
+
+	return 0
 }

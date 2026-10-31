@@ -1,0 +1,9 @@
+# Componentes generados por el CLI de shadcn/ui: se regeneran con
+# `pnpm dlx shadcn@latest add <componente> --overwrite` y no se formatean a mano.
+src/components/ui
+
+node_modules
+dist
+coverage
+pnpm-lock.yaml
+*.md

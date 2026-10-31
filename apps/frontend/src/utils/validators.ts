@@ -56,6 +56,27 @@ export function validarCedulaEcuatoriana(cedula: string): {
 }
 
 /**
+ * Convierte una fecha "YYYY-MM-DD" en una fecha local. `new Date("2020-01-01")`
+ * se interpreta como UTC y, en Ecuador (UTC-5), al leer las partes locales la
+ * fecha se corre un día. El cálculo de experiencia debe trabajar siempre con
+ * fechas locales.
+ */
+function parsearFechaLocal(valor: string): Date | null {
+  const soloFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor.trim())
+  if (soloFecha) {
+    const fecha = new Date(
+      Number(soloFecha[1]),
+      Number(soloFecha[2]) - 1,
+      Number(soloFecha[3]),
+    )
+    return isNaN(fecha.getTime()) ? null : fecha
+  }
+
+  const fecha = new Date(valor)
+  return isNaN(fecha.getTime()) ? null : fecha
+}
+
+/**
  * Cálculo de duración exacta entre dos fechas en Años, Meses y Días
  */
 export function calcularDuracionExperiencia(
@@ -67,11 +88,13 @@ export function calcularDuracionExperiencia(
     return { anios: 0, meses: 0, dias: 0, texto: "0 días" }
   }
 
-  const inicio = new Date(fechaInicioStr)
+  const inicio = parsearFechaLocal(fechaInicioStr)
   const fin =
-    actualmenteLaborando || !fechaFinStr ? new Date() : new Date(fechaFinStr)
+    actualmenteLaborando || !fechaFinStr
+      ? new Date()
+      : parsearFechaLocal(fechaFinStr)
 
-  if (isNaN(inicio.getTime()) || isNaN(fin.getTime()) || fin < inicio) {
+  if (!inicio || !fin || fin < inicio) {
     return { anios: 0, meses: 0, dias: 0, texto: "Fecha no válida" }
   }
 

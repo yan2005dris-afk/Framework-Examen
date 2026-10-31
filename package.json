@@ -9,6 +9,9 @@
     "dev": "pnpm --filter frontend dev",
     "build": "pnpm --filter frontend build",
     "lint": "pnpm --filter frontend lint",
-    "preview": "pnpm --filter frontend preview"
+    "preview": "pnpm --filter frontend preview",
+    "test": "pnpm --filter frontend test",
+    "format": "pnpm --filter frontend format",
+    "format:check": "pnpm --filter frontend format:check"
   }
 }
