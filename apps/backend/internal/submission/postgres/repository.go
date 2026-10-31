@@ -192,6 +192,9 @@ func (r *Repository) Update(ctx context.Context, item *submission.Submission) er
 
 	row, err := r.queries.UpdateSubmission(ctx, params)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return submission.ErrNotEditable
+		}
 		return mapError(err)
 	}
 
@@ -214,6 +217,13 @@ func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	if rowsAffected == 0 {
+		item, err := r.FindByID(ctx, id)
+		if err != nil {
+			return err
+		}
+		if item != nil && !item.IsEditable() {
+			return submission.ErrNotEditable
+		}
 		return submission.ErrNotFound
 	}
 
@@ -226,12 +236,13 @@ func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
  * @param {function} change - Cambio y validación sobre la versión vigente.
  * @returns {Submission, error} Entidad confirmada o error con rollback.
  */
-func (r *Repository) Mutate(ctx context.Context, id uuid.UUID, change func(*submission.Submission) error) (*submission.Submission, error) {
+func (r *Repository) Mutate(ctx context.Context, id uuid.UUID, change func(context.Context, *submission.Submission) error) (*submission.Submission, error) {
 	if r.transactions == nil {
 		return nil, errors.New("transacciones no configuradas")
 	}
 	var item *submission.Submission
 	err := r.transactions.WithinTx(ctx, func(tx pgx.Tx) error {
+		ctx := db.WithTransaction(ctx, tx)
 		queries := r.queries.WithTx(tx)
 		row, err := queries.GetSubmissionForUpdate(ctx, id)
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -242,7 +253,7 @@ func (r *Repository) Mutate(ctx context.Context, id uuid.UUID, change func(*subm
 		}
 		item = &submission.Submission{}
 		applyRow(item, row)
-		if err := change(item); err != nil {
+		if err := change(ctx, item); err != nil {
 			return err
 		}
 		adapter := &Repository{queries: queries}

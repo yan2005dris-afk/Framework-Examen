@@ -17,6 +17,11 @@ type Notifier interface {
 	Confirm(context.Context, *Submission) error
 }
 
+/** DocumentVerifier comprueba respaldos reales mientras se mantiene el bloqueo del envío. */
+type DocumentVerifier interface {
+	VerifyReferences(context.Context, uuid.UUID, *Form) error
+}
+
 /**
  * CreateInput son los datos necesarios para abrir una postulación.
  */
@@ -30,9 +35,18 @@ type CreateInput struct {
  * Service expone los casos de uso del contexto de postulaciones.
  */
 type Service struct {
-	repo     Repository
-	now      func() time.Time
-	notifier Notifier
+	repo      Repository
+	now       func() time.Time
+	notifier  Notifier
+	documents DocumentVerifier
+}
+
+/** WithDocuments configura la validación obligatoria de respaldos en la composición.
+ * @returns {Service} Servicio configurado antes de atender peticiones.
+ */
+func (s *Service) WithDocuments(verifier DocumentVerifier) *Service {
+	s.documents = verifier
+	return s
 }
 
 /**
@@ -232,7 +246,7 @@ func (s *Service) ListCursor(ctx context.Context, applicantID uuid.UUID, request
  * @throws {Error} ErrNotFound o ErrNotEditable según el estado del recurso.
  */
 func (s *Service) Update(ctx context.Context, id uuid.UUID, content json.RawMessage) (*Submission, error) {
-	return s.repo.Mutate(ctx, id, func(item *Submission) error {
+	return s.repo.Mutate(ctx, id, func(ctx context.Context, item *Submission) error {
 		if !item.IsEditable() {
 			return ErrNotEditable
 		}
@@ -285,7 +299,7 @@ func (s *Service) SaveSection(ctx context.Context, id uuid.UUID, number int, con
 	if _, err := DecodeForm(json.RawMessage(wrapper)); err != nil {
 		return nil, ErrInvalidContent
 	}
-	return s.repo.Mutate(ctx, id, func(item *Submission) error {
+	return s.repo.Mutate(ctx, id, func(ctx context.Context, item *Submission) error {
 		if !item.IsEditable() {
 			return ErrNotEditable
 		}
@@ -319,7 +333,7 @@ func (s *Service) SaveSection(ctx context.Context, id uuid.UUID, number int, con
  * @returns {Submission, error} Postulación sellada o regla incumplida.
  */
 func (s *Service) Submit(ctx context.Context, id uuid.UUID, consent *Consent) (*Submission, error) {
-	item, err := s.repo.Mutate(ctx, id, func(item *Submission) error {
+	item, err := s.repo.Mutate(ctx, id, func(ctx context.Context, item *Submission) error {
 		if !item.IsEditable() {
 			return ErrNotEditable
 		}
@@ -333,6 +347,11 @@ func (s *Service) Submit(ctx context.Context, id uuid.UUID, consent *Consent) (*
 		now := s.now()
 		if err := ValidateForm(form, true, now); err != nil {
 			return err
+		}
+		if s.documents != nil {
+			if err := s.documents.VerifyReferences(ctx, id, form); err != nil {
+				return err
+			}
 		}
 		if form.Consent != nil {
 			form.Consent.Statements = consentStatements
