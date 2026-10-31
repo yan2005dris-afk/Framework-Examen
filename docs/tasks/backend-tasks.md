@@ -35,11 +35,11 @@ recomendado es: **T1 (Redis) → T2 (identidad) → T3 (formulario) → T4
 |---|---|---:|---|---|
 | 1 | Arquitectura backend e inyección de dependencias | 8 | ✅ **8/8** | T6, T7 |
 | 2 | Persistencia relacional y transacciones | 8 | 🟡 **5/8** | T5, T8 |
-| 3 | Caché, expiración y rate limiting (Redis) | 6 | ⬜ **0/6** | **T1** |
+| 3 | Caché, expiración y rate limiting (Redis) | 6 | ✅ **6/6** | T1 |
 | 4 | Frontend SPA (ver [frontend-tasks.md](frontend-tasks.md)) | 6 | — | — |
 | 5 | Consumo de API y manejo asíncrono (ver [frontend-tasks.md](frontend-tasks.md)) | 6 | — | — |
 | 6 | Cumplimiento de las reglas del negocio (RF IESS) | 6 | 🟡 **2/6** | T2, T3, T4 |
-| | **Total backend** | **28** | **15/28** | |
+| | **Total backend** | **28** | **21/28** | |
 
 ---
 
@@ -87,16 +87,16 @@ que hoy está en cero.
 
 **Criterios de aceptación**
 
-- [ ] El servicio de Redis se levanta en `compose.yaml` (desarrollo) y en
+- [x] El servicio de Redis se levanta en `compose.yaml` (desarrollo) y en
       `deploy/compose.yaml` (producción).
-- [ ] `REDIS_URL` en la configuración; la API arranca **degradada** si Redis
+- [x] `REDIS_URL` en la configuración; la API arranca **degradada** si Redis
       no está disponible (fail-open en el login, fail-loud en el arranque con
       `DB_REQUIRED`).
-- [ ] `IncrementAttempts` es **atómico**: usa `INCR` + `EXPIRE` en una
+- [x] `IncrementAttempts` es **atómico**: usa `INCR` + `EXPIRE` en una
       transacción o `pipeline`, nunca dos comandos sueltos.
-- [ ] Los tests usan un servidor Redis efímero o un doble de prueba; no
+- [x] Los tests usan un servidor Redis efímero o un doble de prueba; no
       requieren Redis para probar las reglas puras.
-- [ ] La caché de catálogos reduce las consultas a PostgreSQL: se puede
+- [x] La caché de catálogos reduce las consultas a PostgreSQL: se puede
       observar con `INFO commandstats` en Redis.
 
 **Dependencias**: ninguna. **Esfuerzo estimado**: 2 días.
