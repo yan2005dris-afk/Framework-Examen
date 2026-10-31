@@ -32,6 +32,12 @@ type Config struct {
 	RequestTimeout   time.Duration
 	MaxBodyBytes     int64
 	Version          string
+	SMTPHost         string
+	SMTPPort         int
+	SMTPUser         string
+	SMTPPassword     string
+	SMTPFrom         string
+	SMTPUseTLS       bool
 }
 
 /**
@@ -82,6 +88,16 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	smtpPort, err := getInt("SMTP_PORT", 1025)
+	if err != nil {
+		return Config{}, err
+	}
+
+	smtpUseTLS, err := getBool("SMTP_TLS", false)
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		Environment:      getString("APP_ENV", "development"),
 		Port:             port,
@@ -97,6 +113,12 @@ func Load() (Config, error) {
 		RequestTimeout:   requestTimeout,
 		MaxBodyBytes:     maxBodyBytes,
 		Version:          getString("APP_VERSION", "dev"),
+		SMTPHost:         getString("SMTP_HOST", ""),
+		SMTPPort:         smtpPort,
+		SMTPUser:         getString("SMTP_USER", ""),
+		SMTPPassword:     getString("SMTP_PASSWORD", ""),
+		SMTPFrom:         getString("SMTP_FROM", "no-reply@biess.local"),
+		SMTPUseTLS:       smtpUseTLS,
 	}, nil
 }
 

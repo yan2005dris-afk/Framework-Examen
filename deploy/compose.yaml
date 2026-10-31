@@ -1,0 +1,84 @@
+# Compose de PRODUCCIÓN.
+#
+# Se ejecuta desde esta carpeta para que compose lea las variables de
+# deploy/.env:
+#
+#   docker compose -f deploy/compose.yaml up -d
+#
+# Nginx es el único puerto público: sirve la SPA compilada y reenvía /api a
+# la API Go. Para terminar TLS, basta montar los certificados y añadir el
+# bloque server de https al lado de este.
+
+services:
+  frontend:
+    build:
+      context: ..
+      dockerfile: apps/frontend/Dockerfile
+      target: prod
+    container_name: biess-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  api:
+    build:
+      context: ../apps/backend
+      dockerfile: Dockerfile
+    container_name: biess-api
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      PORT: "8080"
+      DATABASE_URL: ${DATABASE_URL:?define DATABASE_URL en deploy/.env}
+      DB_REQUIRED: "true"
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      STORAGE_DIR: /app/data
+      MAX_REQUEST_BODY_BYTES: ${MAX_REQUEST_BODY_BYTES:-10485760}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@biess.local}
+      SMTP_TLS: ${SMTP_TLS:-true}
+    volumes:
+      - api-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # La imagen es distroless: no hay shell ni curl, así que el propio
+      # binario actúa como sonda de salud.
+      test: ["CMD", "/app/api", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: biess-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en deploy/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-biess}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d biess"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
+  api-data:
