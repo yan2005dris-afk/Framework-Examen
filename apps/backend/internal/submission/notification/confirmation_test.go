@@ -33,7 +33,9 @@ func (s *sender) Send(_ context.Context, m mail.Message) error { s.message = m; 
 func TestConfirmationUsesRegisteredAddressAndSealedContent(t *testing.T) {
 	id := uuid.New()
 	now := time.Now().UTC()
-	item := &submission.Submission{ApplicantID: id, Code: "EF12-2026-PRUEBA", Status: submission.StatusSubmitted, SubmittedAt: &now, Hash: strings.Repeat("a", 64), Content: json.RawMessage(`{"seccion2":{"correo1":"otro@example.test"}}`)}
+	item := &submission.Submission{ID: uuid.New(), ApplicantID: id, Code: "EF12-2026-PRUEBA", Status: submission.StatusSubmitted, SubmittedAt: &now, Hash: strings.Repeat("a", 64), Content: json.RawMessage(`{"seccion2":{"correo1":"otro@example.test"}}`)}
+	canonical, _ := submission.CanonicalContent(item.Content)
+	item.Hash = submission.HashContent(canonical)
 	smtp := &sender{}
 	c := Confirmation{Sender: smtp, Applicants: applicantReader{applicant: &identity.Applicant{ID: id, Email: "registrado@example.test"}}}
 	if err := c.Confirm(context.Background(), item); err != nil {
@@ -54,7 +56,12 @@ func TestConfirmationPropagatesDeliveryFailure(t *testing.T) {
 	failure := errors.New("fallo SMTP de prueba")
 	smtp := &sender{err: failure}
 	c := Confirmation{Sender: smtp, Applicants: applicantReader{applicant: &identity.Applicant{Email: "prueba@example.test"}}}
-	if err := c.Confirm(context.Background(), &submission.Submission{SubmittedAt: &now}); !errors.Is(err, failure) {
+	if err := c.Confirm(context.Background(), sealedFixture(now)); !errors.Is(err, failure) {
 		t.Fatalf("fallo de entrega perdido: %v", err)
 	}
+}
+
+func sealedFixture(now time.Time) *submission.Submission {
+	raw := json.RawMessage(`{}`)
+	return &submission.Submission{ID: uuid.New(), ApplicantID: uuid.New(), Status: submission.StatusSubmitted, SubmittedAt: &now, Content: raw, Hash: submission.HashContent(raw)}
 }

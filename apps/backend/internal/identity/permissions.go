@@ -89,7 +89,7 @@ func ProtectAdministration(next http.Handler) http.Handler {
 			"submissions": PermissionReview, "documents": PermissionDocuments,
 			"competitions": PermissionReview,
 			"phases":       PermissionPhases, "question-bank": PermissionQuestions,
-			"grades": PermissionGrades, "reconsiderations": PermissionReconsiderations,
+			"merits": PermissionGrades, "grades": PermissionGrades, "reconsiderations": PermissionReconsiderations,
 			"applicants": PermissionRoles,
 		}[segment]
 		RequirePermission(permission)(next).ServeHTTP(w, r)

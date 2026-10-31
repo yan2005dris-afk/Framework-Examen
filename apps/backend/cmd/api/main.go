@@ -23,6 +23,8 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/eligibility"
 	eligibilitypostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/eligibility/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/eligibility/simulated"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/merit"
+	meritpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/merit/postgres"
 
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
 	identitypostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity/postgres"
@@ -39,6 +41,7 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
 	submissionnotification "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/notification"
 	submissionpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/postgres"
+	submissionprint "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/print"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/sql/migrations"
 )
 
@@ -145,7 +148,12 @@ func main() {
 			log.Warn("MAIL_OUTBOX_KEY ausente o inválida: nuevos OTP y envíos finales bloqueados")
 		}
 		// Incluso sin SMTP/clave se retiran cargas vencidas; nunca se marcan como entregadas.
-		go outbox.Run(ctx, smtpSender, otpStore.Active)
+		printer := submissionprint.NewRenderer()
+		var deliverySender mail.Sender
+		if smtpSender != nil {
+			deliverySender = &submissionnotification.PrintingSender{Next: smtpSender, Printer: printer}
+		}
+		go outbox.Run(ctx, deliverySender, otpStore.Active)
 		var identityMailer identity.Mailer
 		if smtpSender != nil && outboxErr == nil {
 			identityMailer = outbox
@@ -192,11 +200,12 @@ func main() {
 		}
 		documentService := document.NewService(documentpostgres.NewRepository(pool, db.NewTxManager(pool)), objects).WithAudit(auditor).WithEligibility(eligibilityService)
 		submissionService := submission.NewService(submissionRepository).WithConfirmationQueue(confirmations).
-			WithDocuments(documentService).WithApplicants(identityRepo).WithAudit(auditor).WithEligibility(eligibilityService)
+			WithDocuments(documentService).WithApplicants(identityRepo).WithAudit(auditor).WithEligibility(eligibilityService).WithPrinter(printer)
 		router.Group(func(r chi.Router) {
 			r.Use(identity.RequireSession(identityService))
 			r.Use(identity.ProtectAdministration)
 			competitionHandler.RegisterAdministration(r)
+			merit.NewHandler(merit.NewService(meritpostgres.NewRepository(queries, db.NewTxManager(pool), auditor), auditor)).RegisterRoutes(r)
 			catalog.NewHandler(catalog.NewService(catalogpostgres.NewRepository(queries), cache.NewCatalogStore(cacheClient))).RegisterRoutes(r)
 			identity.RegisterRoleRoutes(r, identity.NewRoleService(identityRepo))
 			submission.NewHandler(submissionService).RegisterRoutes(r)

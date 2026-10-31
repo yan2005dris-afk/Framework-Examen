@@ -942,3 +942,11 @@ El frontend consume la API con un cliente único (`src/lib/api.ts`):
 no degradable, y estado de cola de correo. Prevalece sobre ejemplos anteriores
 que hablen de OTP sin finalidad o afirmen entrega inmediata. La respuesta EF-12
 puede incluir `notificacion` fuera del contenido sellado. Las rutas no cambian.
+
+
+## Copia imprimible y méritos (T19/T20, 2026-10-31)
+
+[MERITS_AND_PRINTING.md](MERITS_AND_PRINTING.md) define la descarga PDF del sello,
+el adjunto desde el outbox cifrado, revisión de respaldos, matrices versionadas,
+aprobación, cálculos y publicación explícita de resoluciones. No añade puntajes
+institucionales por defecto ni habilita un examen desde un cálculo provisional.

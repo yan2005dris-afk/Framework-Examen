@@ -3,6 +3,7 @@ package mail
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
@@ -67,6 +68,9 @@ func (o *Outbox) Dispatch(ctx context.Context, sender Sender, active func(contex
 				status, code = "expired", "expired"
 			} else if err := sender.Send(deliveryCtx, message); err != nil {
 				status, code = "pending", "smtp_error"
+				if errors.Is(err, ErrUnpreparedMessage) {
+					code = "document_preparation_error"
+				}
 			}
 		}
 		cancel()

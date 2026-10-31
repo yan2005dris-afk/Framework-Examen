@@ -3,6 +3,7 @@ package notification
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -29,6 +30,9 @@ type Confirmation struct {
  * @returns {error} Fallo de consulta o de entrega SMTP.
  */
 func (c *Confirmation) Confirm(ctx context.Context, item *submission.Submission) error {
+	if err := submission.ValidateSeal(item); err != nil {
+		return err
+	}
 	applicant, err := c.Applicants.GetByID(ctx, item.ApplicantID)
 	if err != nil {
 		return err
@@ -36,8 +40,13 @@ func (c *Confirmation) Confirm(ctx context.Context, item *submission.Submission)
 	if applicant == nil || c.Sender == nil {
 		return fmt.Errorf("no se pudo preparar la confirmación")
 	}
+	payload, err := json.Marshal(PrintEnvelope{Version: "ef12-print-v1", Snapshot: *item})
+	if err != nil {
+		return err
+	}
 	return c.Sender.Send(ctx, mail.Message{
-		Kind: "submission.confirmation", ResourceID: item.ID.String(), ExpiresAt: item.SubmittedAt.Add(7 * 24 * time.Hour),
+		RenderPayload: payload,
+		Kind:          "submission.confirmation", ResourceID: item.ID.String(), ExpiresAt: item.SubmittedAt.Add(7 * 24 * time.Hour),
 		To:      applicant.Email,
 		Subject: "Confirmación de postulación " + item.Code,
 		Body:    fmt.Sprintf("Su postulación %s fue enviada correctamente.\nFecha: %s\nHash SHA-256: %s\n\nFormulario sellado:\n%s\n\nImprima el formulario y entréguelo con firma manuscrita según las condiciones del concurso.", item.Code, item.SubmittedAt.Format("2006-01-02T15:04:05Z07:00"), item.Hash, item.Content),

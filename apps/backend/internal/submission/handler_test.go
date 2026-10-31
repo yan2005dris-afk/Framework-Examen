@@ -52,7 +52,7 @@ func performRequest(handler http.Handler, method, path, body, token string) *htt
 func TestSubmissionHTTPAuthorization(t *testing.T) {
 	handler, repo := httpFixture(t, true)
 	base := "/api/v1/submissions/" + repo.item.ID.String()
-	for _, methodPath := range [][2]string{{"GET", base}, {"PUT", base}, {"DELETE", base}, {"POST", base + "/sections/1"}, {"POST", base + "/submit"}} {
+	for _, methodPath := range [][2]string{{"GET", base}, {"GET", base + "/print.pdf"}, {"PUT", base}, {"DELETE", base}, {"POST", base + "/sections/1"}, {"POST", base + "/submit"}} {
 		for _, tokenStatus := range []struct {
 			token  string
 			status int
