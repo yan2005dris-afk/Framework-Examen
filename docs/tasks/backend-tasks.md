@@ -594,7 +594,6 @@ notificaciones de fases/resultados de T23.
 
 **Dependencias:** T6, T8. **Frontend:** FT14–FT15, FT25.
 **Contrato compartido:** [COMPETITION_LIFECYCLE.md](../api-contracts/COMPETITION_LIFECYCLE.md).
-**Verificación y operación:** [T15-T18-IMPLEMENTACION.md](T15-T18-IMPLEMENTACION.md).
 
 ### T19 · Formulario final legible, impresión y correo completo
 

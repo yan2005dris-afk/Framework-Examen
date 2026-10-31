@@ -71,6 +71,7 @@ Thumbs.db
 # Caché local del registro de skills (la crea el runtime, no es del proyecto)
 .atl/
 
-# Archivos temporales de correcciones
+# Archivos temporales de correcciones e informes
 CORRECCIONES*.md
 INFORME*.md
+docs/tasks/*-IMPLEMENTACION.md
