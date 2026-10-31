@@ -39,3 +39,27 @@ sql:
             go_type: "time.Time"
           - column: "submissions.updated_at"
             go_type: "time.Time"
+          - column: "sessions.id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "sessions.applicant_id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "sessions.expires_at"
+            go_type: "time.Time"
+          - column: "sessions.created_at"
+            go_type: "time.Time"
+          - column: "password_resets.id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "password_resets.applicant_id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "password_resets.expires_at"
+            go_type: "time.Time"
+          - column: "password_resets.created_at"
+            go_type: "time.Time"

@@ -38,8 +38,8 @@ recomendado es: **T1 (Redis) → T2 (identidad) → T3 (formulario) → T4
 | 3 | Caché, expiración y rate limiting (Redis) | 6 | ✅ **6/6** | T1 |
 | 4 | Frontend SPA (ver [frontend-tasks.md](frontend-tasks.md)) | 6 | — | — |
 | 5 | Consumo de API y manejo asíncrono (ver [frontend-tasks.md](frontend-tasks.md)) | 6 | — | — |
-| 6 | Cumplimiento de las reglas del negocio (RF IESS) | 6 | 🟡 **2/6** | T2, T3, T4 |
-| | **Total backend** | **28** | **21/28** | |
+| 6 | Cumplimiento de las reglas del negocio (RF IESS) | 6 | 🟡 **4/6** | T2, T3, T4 |
+| | **Total backend** | **28** | **23/28** | |
 
 ---
 
@@ -141,18 +141,18 @@ Implementa el EF-11 completo.
 
 **Criterios de aceptación**
 
-- [ ] `POST /api/v1/auth/register` valida la fecha de expedición o el código
+- [x] `POST /api/v1/auth/register` valida la fecha de expedición o el código
       dactilar y devuelve `201`.
-- [ ] `POST /api/v1/auth/login` devuelve la cookie `session` con `HttpOnly` y
+- [x] `POST /api/v1/auth/login` devuelve la cookie `session` con `HttpOnly` y
       `SameSite=Lax`; en producción añade `Secure`.
-- [ ] El token **no** se persiste en claro: en `sessions` solo su SHA-256.
-- [ ] El login responde `429` con `intentos_excedidos` cuando hay bloqueo.
-- [ ] `GET /api/v1/auth/session` responde `200` con el perfil o `401`.
-- [ ] `POST /api/v1/auth/password/forgot` envía el correo con el enlace
+- [x] El token **no** se persiste en claro: en `sessions` solo su SHA-256.
+- [x] El login responde `429` con `intentos_excedidos` cuando hay bloqueo.
+- [x] `GET /api/v1/auth/session` responde `200` con el perfil o `401`.
+- [x] `POST /api/v1/auth/password/forgot` envía el correo con el enlace
       (vía `platform/mail`).
-- [ ] Existe un middleware de autenticación (`RequireSession`) reutilizable
+- [x] Existe un middleware de autenticación (`RequireSession`) reutilizable
       por los demás contextos.
-- [ ] Tests: módulo 10, fortaleza de contraseña, y el flujo de login con
+- [x] Tests: módulo 10, fortaleza de contraseña, y el flujo de login con
       bloqueo tras 3 intentos.
 
 **Dependencias**: T1 (para el bloqueo). **Esfuerzo estimado**: 3 días.

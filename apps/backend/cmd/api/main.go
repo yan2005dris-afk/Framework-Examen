@@ -12,11 +12,14 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
+	identitypostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/cache"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/config"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/db"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/httpx"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/logger"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/mail"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
 	submissionpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/postgres"
@@ -89,7 +92,23 @@ func main() {
 		log.Warn("REDIS_URL no está configurada: la API arranca sin caché ni rate limiting")
 		cacheClient = &cache.NoopCache{}
 	}
-	_ = cacheClient // se usará en los contextos de identidad y catálogos (T2)
+
+	attemptsStore := cache.NewAttemptsStore(cacheClient)
+	otpStore := cache.NewOTPStore(cacheClient)
+
+	// ── Correo (SMTP / Mailpit) ──────────────────────────────────────────────
+	var mailer identity.Mailer
+	if cfg.SMTPHost != "" {
+		mailer = mail.NewSMTPSender(mail.Config{
+			Host:     cfg.SMTPHost,
+			Port:     cfg.SMTPPort,
+			User:     cfg.SMTPUser,
+			Password: cfg.SMTPPassword,
+			From:     cfg.SMTPFrom,
+			UseTLS:   cfg.SMTPUseTLS,
+		})
+		log.Info("Cliente de correo configurado", "host", cfg.SMTPHost, "puerto", cfg.SMTPPort)
+	}
 
 	// ── Router y contextos ───────────────────────────────────────────────────
 	router := httpx.NewRouter(httpx.RouterDependencies{
@@ -101,11 +120,25 @@ func main() {
 	if pool != nil {
 		queries := sqlcgen.New(pool)
 
+		// Contexto de identidad (EF-11: registro, login, sesión, OTP)
+		identityRepo := identitypostgres.NewRepository(queries)
+		identityService := identity.NewService(identity.ServiceDependencies{
+			Applicants: identityRepo,
+			Sessions:   identityRepo,
+			Resets:     identityRepo,
+			Attempts:   attemptsStore,
+			OTPStore:   otpStore,
+			Mailer:     mailer,
+			SessionTTL: cfg.SessionTTL,
+		})
+		identity.NewHandler(identityService, cfg.IsProduction()).RegisterRoutes(router)
+
+		// Contexto de postulaciones
 		submissionRepository := submissionpostgres.NewRepository(queries)
 		submissionService := submission.NewService(submissionRepository)
 		submission.NewHandler(submissionService).RegisterRoutes(router)
 	} else {
-		log.Warn("sin base de datos: no se registran las rutas de postulaciones")
+		log.Warn("sin base de datos: no se registran las rutas de autenticación ni postulaciones")
 	}
 
 	// ── Middleware ───────────────────────────────────────────────────────────

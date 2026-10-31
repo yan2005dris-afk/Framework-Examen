@@ -1,11 +1,11 @@
 // Package identity es el contexto de identidad: postulantes, registro,
-// autenticación y sesiones. Por ahora solo define el modelo de postulante;
-// los casos de uso de registro y acceso llegan en la siguiente iteración.
+// autenticación, sesiones y recuperación de contraseñas.
 package identity
 
 import (
 	"errors"
 	"fmt"
+	"net/mail"
 	"strconv"
 	"strings"
 	"time"
@@ -14,7 +14,7 @@ import (
 )
 
 /**
- * Errores del contexto de identidad.
+ * Errores de validación de identidad.
  */
 var (
 	ErrInvalidIDCardFormat = errors.New("la cédula debe tener exactamente 10 dígitos numéricos")
@@ -94,6 +94,24 @@ func (c IDCard) String() string {
 }
 
 /**
+ * ValidateEmail valida la sintaxis de una dirección de correo electrónico.
+ *
+ * @param {string} email - Correo a validar.
+ * @returns {error} ErrInvalidEmail si no es válido.
+ */
+func ValidateEmail(email string) error {
+	trimmed := strings.TrimSpace(email)
+	if trimmed == "" {
+		return ErrInvalidEmail
+	}
+	addr, err := mail.ParseAddress(trimmed)
+	if err != nil || addr.Address != trimmed {
+		return ErrInvalidEmail
+	}
+	return nil
+}
+
+/**
  * Applicant es la persona natural que se registra y postula al concurso.
  */
 type Applicant struct {
@@ -102,6 +120,8 @@ type Applicant struct {
 	FirstName        string
 	LastName         string
 	Email            string
+	PasswordHash     string
+	IsVerified       bool
 	ValidationMethod string
 	RegisteredAt     time.Time
 }
@@ -114,6 +134,7 @@ type Applicant struct {
  * @param {string} firstName - Nombres del postulante.
  * @param {string} lastName - Apellidos del postulante.
  * @param {string} email - Correo ya validado.
+ * @param {string} passwordHash - Hash Argon2id de la contraseña.
  * @param {string} validationMethod - Método de validación de identidad.
  * @param {time.Time} registeredAt - Fecha de registro.
  * @returns {Applicant} Postulante listo para persistir.
@@ -125,6 +146,7 @@ func NewApplicant(
 	firstName string,
 	lastName string,
 	email string,
+	passwordHash string,
 	validationMethod string,
 	registeredAt time.Time,
 ) (*Applicant, error) {
@@ -135,12 +157,18 @@ func NewApplicant(
 		return nil, fmt.Errorf("%w: nombres y apellidos son obligatorios", ErrInvalidApplicant)
 	}
 
+	if err := ValidateEmail(email); err != nil {
+		return nil, err
+	}
+
 	return &Applicant{
 		ID:               id,
 		IDCard:           idCard,
 		FirstName:        firstName,
 		LastName:         lastName,
 		Email:            strings.ToLower(strings.TrimSpace(email)),
+		PasswordHash:     passwordHash,
+		IsVerified:       true,
 		ValidationMethod: validationMethod,
 		RegisteredAt:     registeredAt,
 	}, nil

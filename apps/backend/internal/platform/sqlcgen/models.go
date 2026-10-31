@@ -17,10 +17,31 @@ type Applicant struct {
 	Nombres          string    `json:"nombres"`
 	Apellidos        string    `json:"apellidos"`
 	Correo           string    `json:"correo"`
+	PasswordHash     string    `json:"password_hash"`
+	IsVerified       bool      `json:"is_verified"`
 	MetodoValidacion string    `json:"metodo_validacion"`
 	FechaRegistro    time.Time `json:"fecha_registro"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+type PasswordReset struct {
+	ID          uuid.UUID `json:"id"`
+	ApplicantID uuid.UUID `json:"applicant_id"`
+	TokenHash   string    `json:"token_hash"`
+	ExpiresAt   time.Time `json:"expires_at"`
+	Used        bool      `json:"used"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type Session struct {
+	ID          uuid.UUID `json:"id"`
+	ApplicantID uuid.UUID `json:"applicant_id"`
+	TokenHash   string    `json:"token_hash"`
+	ExpiresAt   time.Time `json:"expires_at"`
+	Ip          *string   `json:"ip"`
+	UserAgent   *string   `json:"user_agent"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type Submission struct {

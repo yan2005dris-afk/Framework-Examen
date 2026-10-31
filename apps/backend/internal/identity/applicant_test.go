@@ -1,4 +1,4 @@
-package identity
+package identity_test
 
 import (
 	"errors"
@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	. "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
 )
 
 /**
@@ -62,6 +64,7 @@ func TestNewApplicantAndFullName(t *testing.T) {
 		"María",
 		"Fernández",
 		"Maria.Fernandez@Example.COM",
+		"$argon2id$mockhash",
 		"fecha_expedicion",
 		time.Time{},
 	)
@@ -92,6 +95,7 @@ func TestNewApplicantRequiresNames(t *testing.T) {
 		"  ",
 		"Fernández",
 		"maria@example.com",
+		"$argon2id$mockhash",
 		"fecha_expedicion",
 		time.Time{},
 	)
