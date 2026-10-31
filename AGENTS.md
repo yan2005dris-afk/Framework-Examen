@@ -137,11 +137,11 @@ git flow hotfix finish <version>   # fusiona a main + tag, y a develop
 
 ### Reglas de ramas
 
-- **Nunca** commit directo sobre `main` ni sobre `develop`. Todo cambio entra por una
-  rama `feature/*` y se integra con `git flow feature finish`.
+- **`develop` es la rama de trabajo**: los cambios se comitean directamente sobre ella.
 - `main` solo cambia por `release/*` o `hotfix/*`.
-- Una `feature/*` se crea **desde `develop`**, nunca desde `main`.
-- Antes de abrir una PR: `git pull origin develop` para estar al día.
+- Las ramas `feature/*` se crean **desde `develop`** cuando convenga aislar un trabajo
+  grande, pero no son obligatorias.
+- Antes de comitear: `git pull origin develop` para estar al día.
 
 ## Convenciones de commits
 
@@ -190,3 +190,4 @@ decisión que afecte cómo se trabaja en el repo.
 | 2026-10-30 | shadcn/ui con preset `radix-nova` y primitivas Radix | Alineado con shadcn-admin; base neutral + iconos Lucide. |
 | 2026-10-30 | TypeScript fijado en `~6.0.3` | typescript-eslint no soporta TS 7.0; con ESLint activo la 6.x es la última compatible. |
 | 2026-10-30 | `mockups/` se conserva como referencia temporal | Fuente de las 9 vistas y del copy pendientes de migrar a shadcn/ui. |
+| 2026-10-30 | Trabajo directo sobre `develop`, sin rama obligatoria | El equipo integra directo; `feature/*` queda como opción para trabajos grandes. |
