@@ -16,9 +16,9 @@ Lista de trabajo del frontend, priorizada y mapeada a la rúbrica de 40 puntos
 | # | Criterio | Puntos | Estado | Tareas |
 |---|---|---:|---|---|
 | 4 | Frontend SPA: reactividad, componentes y estado | 6 | 🟡 **2/6** | FT2, FT3, FT5 |
-| 5 | Consumo de API y manejo asíncrono | 6 | ⬜ **0/6** | **FT1**, FT4, FT6 |
+| 5 | Consumo de API y manejo asíncrono | 6 | 🟡 **2/6** | **FT1**, FT4, FT6 |
 | 6 | Cumplimiento de las reglas del negocio (RF IESS) | 6 | 🟡 **1/6** | FT7, FT8 |
-| | **Total frontend** | **18** | **3/18** | |
+| | **Total frontend** | **18** | **5/18** | |
 
 ---
 
@@ -34,9 +34,9 @@ Lista de trabajo del frontend, priorizada y mapeada a la rúbrica de 40 puntos
 | Validadores puros | `src/utils/validators.ts` | ✅ con tests |
 | Catálogo geográfico | `src/data/ecuadorGeo.ts` | ✅ con tests (24 provincias, 221 cantones) |
 | Proxy de Vite | `vite.config.ts` | ✅ |
-| Vitest + Prettier | `apps/frontend/package.json` | ✅ (21 tests en verde) |
+| Vitest + Prettier | `apps/frontend/package.json` | ✅ (64 tests en verde) |
 | **Router** | — | ⬜ |
-| **Cliente HTTP** | — | ⬜ |
+| **Cliente HTTP** | `src/lib/api.ts` | ✅ (con clientes de dominio y tests) |
 | **Vistas de registro y login** | — | ⬜ |
 | **Vistas de las 9 secciones** | — | ⬜ |
 | **Vista de impresión** | — | ⬜ |
@@ -88,11 +88,11 @@ export async function obtenerPostulaciones(
 
 **Criterios de aceptación**
 
-- [ ] Todas las llamadas pasan por el cliente único; no hay `fetch` suelto en
+- [x] Todas las llamadas pasan por el cliente único; no hay `fetch` suelto en
       los componentes.
-- [ ] El error que llega a la vista trae `codigo` y `mensaje`.
-- [ ] Un `401` en una ruta protegida dispara la redirección al login.
-- [ ] Test del cliente con un servidor simulado: éxito, 400, 401, 500 y
+- [x] El error que llega a la vista trae `codigo` y `mensaje`.
+- [x] Un `401` en una ruta protegida dispara la redirección al login (vía callback configurable).
+- [x] Test del cliente con un servidor simulado: éxito, 400, 401, 500 y
       error de red.
 
 **Esfuerzo estimado**: 1,5 días.
