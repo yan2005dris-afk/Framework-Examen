@@ -29,8 +29,10 @@ tocar código y actualízalo cuando cambie una convención.
 ### Backend
 
 - Go 1.27 — `chi` v5 (routing), `pgx` v5 (Postgres), `uuid`
+- `sqlc` v1.31 (SQL → Go tipado) + `goose` v3 (migraciones embebidas en el binario)
+- Módulo Go **independiente**: `apps/backend/` no es paquete pnpm, no lo instales con pnpm
 - Config por entorno: `PORT`, `APP_ENV`, `APP_URL`, `DATABASE_URL`, `DB_REQUIRED`,
-  `STORAGE_DIR`, `CORS_ALLOWED_ORIGINS`, `SESSION_TTL`
+  `STORAGE_DIR`, `CORS_ALLOWED_ORIGINS`, `SESSION_TTL`, `MAX_REQUEST_BODY_BYTES`, `LOG_LEVEL`
 
 ## Setup commands
 
@@ -44,6 +46,16 @@ Desde la raíz del repo:
 - Backend tests:  `cd apps/backend && go test ./...`
 
 Desde `apps/frontend/` también funcionan `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm preview`.
+
+### Backend (desde `apps/backend/`)
+
+- `make help` — lista los targets disponibles
+- `make run` — API en desarrollo (puerto 8080)
+- `make docker-up` / `make docker-down` — PostgreSQL local en Docker
+- `make db-migrate` / `make db-status` / `make db-down` / `make db-reset` — migraciones goose
+- `make sqlc-generate` — regenera `internal/platform/sqlcgen` desde `sql/queries`
+- `make db-schema` — regenera `sql/queries/schema.sql` desde las migraciones
+- `make test` / `make vet` / `make fmt` / `make tidy`
 
 ### Componentes shadcn
 
@@ -69,11 +81,21 @@ pnpm dlx shadcn@latest add <componente> --overwrite  # regenerar sobreescribiend
 - `hooks/use-mobile.ts`
 - `assets/images/` — imágenes
 
-`apps/backend/internal/`:
+`apps/backend/`:
 
-- `config/` — carga de configuración desde el entorno
-- `database/` — conexión y acceso a Postgres
-- `httpapi/` — respuestas y helpers HTTP
+- `cmd/api/` — binario de la API: cableado de contextos + apagado ordenado
+- `cmd/migrate/` — runner de migraciones (goose embebido en `sql/migrations`)
+- `internal/platform/` — transversal: `config`, `db`, `httpx`, `logger`, `storage`, `sqlcgen`
+- `internal/shared/domain/` — kernel compartido: errores base y paginación
+- `internal/<contexto>/` — **un bounded context por carpeta** (screaming architecture):
+  `identity/`, `submission/`, …
+- `internal/<contexto>/<capacidad>/` — cada capacidad trae `service.go` (casos de uso),
+  `handler.go` (adaptador HTTP), `repository.go` (puerto), `dto.go`, `errors.go` y
+  `postgres/` (adaptador de persistencia)
+- `sql/queries/` — esquema (`schema.sql`) y queries de sqlc
+- `sql/migrations/` — migraciones goose embebidas
+
+Ejemplo de referencia completo: `internal/submission/` (CRUD de postulaciones).
 
 ## Code style
 
@@ -86,6 +108,26 @@ pnpm dlx shadcn@latest add <componente> --overwrite  # regenerar sobreescribiend
   `seccion1`, `cumpleMayuscula`) — mantener ese idioma en lo nuevo
 - Tailwind para estilos: clases utilitarias, sin CSS en línea salvo valores dinámicos
 - Comentarios JSDoc en las funciones de `src/utils/`
+
+### Go (backend)
+
+- **Identificadores en inglés** (funciones, métodos, tipos, campos) y **comentarios y
+  mensajes al usuario en español**, con bloques JSDoc (`/** … */` + `@param`/`@returns`)
+- Archivos por responsabilidad, sin `package` genérico: `service.go`, `handler.go`,
+  `repository.go`, `dto.go`, `errors.go`
+- **El dominio no importa infraestructura**: los puertos (interfaces) viven junto al
+  dominio y los adaptadores de persistencia en `postgres/`
+- Sin `any` implícito ni panics en la capa HTTP: los errores de dominio se traducen a
+  respuestas JSON con código estable
+- **Paginación reutilizable** en `internal/shared/domain/pagination.go`, con dos
+  estrategias sobre un mismo kernel:
+  - `PageRequest` / `Page[T]` — offset (`page`, `pageSize`), para listados acotados
+  - `CursorRequest` / `CursorPage[T]` — cursor por keyset (`limit`, `cursor`), para
+    listados grandes donde `OFFSET` y el `count(*)` se degradan
+  - Los parsers están en `internal/platform/httpx/pagination.go`: **ningún handler
+    parsea la query string a mano**. Límite duro de 100 elementos por página y el
+    cursor es opaco (el cliente no lo interpreta)
+- `gofmt` obligatorio; `go vet ./...` y `go test ./...` en verde antes de la PR
 
 ### Gotchas verificados
 
@@ -103,10 +145,12 @@ pnpm dlx shadcn@latest add <componente> --overwrite  # regenerar sobreescribiend
 
 ## Testing instructions
 
-- No hay framework de tests configurado todavía.
+- No hay framework de tests configurado todavía en el frontend.
 - Antes de abrir una PR: `pnpm lint` y `pnpm build` deben pasar en verde.
 - La lógica de negocio va acompañada de tests en su módulo: Vitest en frontend,
-  `_test.go` en backend.
+  `_test.go` en backend (`go test ./...`).
+- Las reglas puras del backend se prueban sin base de datos: `internal/identity/`
+  (cédula módulo 10) y `internal/submission/` (contenido canónico, estados, hash).
 
 ## Flujo de trabajo (git flow)
 
@@ -191,3 +235,9 @@ decisión que afecte cómo se trabaja en el repo.
 | 2026-10-30 | TypeScript fijado en `~6.0.3` | typescript-eslint no soporta TS 7.0; con ESLint activo la 6.x es la última compatible. |
 | 2026-10-30 | `mockups/` se conserva como referencia temporal | Fuente de las 9 vistas y del copy pendientes de migrar a shadcn/ui. |
 | 2026-10-30 | Trabajo directo sobre `develop`, sin rama obligatoria | El equipo integra directo; `feature/*` queda como opción para trabajos grandes. |
+| 2026-10-30 | Backend en Go con `chi` v5 (en vez de Gin o Fiber) | chi opera sobre `*http.Request` nativo: interoperable con la stdlib y con `multipart`, clave para los PDF adjuntos; Fiber obliga a `fasthttp.RequestCtx` y a cargar el cuerpo entero en memoria. |
+| 2026-10-30 | Backend organizado por bounded contexts (`internal/<contexto>/<capacidad>`) con `platform/` transversal | Screaming architecture: las carpetas dicen qué hace el sistema. Referencia: `CotizacionCamisas/apps/backend`. |
+| 2026-10-30 | `sqlc` para el acceso a datos y `goose` para migraciones embebidas | SQL visible y tipado; las migraciones viajan dentro del binario, sin depender del CLI en producción. |
+| 2026-10-30 | En Go: identificadores en inglés y comentarios en español con JSDoc | Código legible para el equipo sin perder el idioma del dominio. |
+| 2026-10-30 | El hash del envío se calcula sobre el JSON canónico (claves ordenadas) | El mismo formulario debe producir el mismo hash sin importar el orden de las claves. |
+| 2026-10-30 | Paginación con dos estrategias sobre un kernel compartido (offset y cursor por keyset) | Offset para listados acotados ("mis postulaciones") y cursor para el dashboard de revisión, donde el `OFFSET` y el `count(*)` se degradan con cientos de miles de postulaciones. El cursor es opaco y la clave de orden vive en el contexto, no en el kernel. |
