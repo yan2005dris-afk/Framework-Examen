@@ -57,6 +57,7 @@ docs/
 | [`architecture/ARQUITECTURA.md`](architecture/ARQUITECTURA.md) | Diagramas C4 del sistema, reglas de dependencias, ciclo de una petición, guía para agregar un contexto | Ingeniería |
 | [`database/SCHEMA.md`](database/SCHEMA.md) | ER, DDL por tabla, índices, semillas de catálogos, flujo de migraciones | Ingeniería, DBA |
 | [`api-contracts/API_CONTRACT.md`](api-contracts/API_CONTRACT.md) | Envelope de errores, paginación, especificación de cada endpoint con ejemplos | Frontend, QA |
+| [`api-contracts/IDENTITY_SECURITY.md`](api-contracts/IDENTITY_SECURITY.md) | Corrección OTP/Redis y notificación durable; configuración y límites | Backend, Frontend, Operaciones |
 | [`api-contracts/REVIEW_AUDIT.md`](api-contracts/REVIEW_AUDIT.md) | T8/T9: historial, períodos, nómina, conteos y propuesta de matriz XLSX/PDF | Backend, Frontend, QA |
 | [`deployment/LOCAL_DEPLOYMENT.md`](deployment/LOCAL_DEPLOYMENT.md) | Prerrequisitos, arranque con Docker o nativo, variables de entorno, pruebas | Desarrollo |
 | [`deployment/PRODUCTION_DEPLOYMENT.md`](deployment/PRODUCTION_DEPLOYMENT.md) | Topología, TLS, secretos, backup, monitoreo, rollback | Operaciones |

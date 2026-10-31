@@ -27,7 +27,13 @@ func postgresFixture(t *testing.T) (*Repository, *pgxpool.Pool, *submission.Subm
 	t.Helper()
 	databaseURL := os.Getenv("DOCUMENT_TEST_DATABASE_URL")
 	if databaseURL == "" {
-		t.Skip("defina DOCUMENT_TEST_DATABASE_URL para probar PostgreSQL real")
+		databaseURL = os.Getenv("TEST_DATABASE_URL")
+	}
+	if databaseURL == "" {
+		databaseURL = os.Getenv("DATABASE_URL")
+	}
+	if databaseURL == "" {
+		t.Skip("defina DOCUMENT_TEST_DATABASE_URL o TEST_DATABASE_URL para probar PostgreSQL real")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	t.Cleanup(cancel)

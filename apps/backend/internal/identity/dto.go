@@ -19,12 +19,13 @@ type RegisterRequestDTO struct {
  * RegisterVerifyDTO es la entrada para validar el código OTP y completar el registro.
  */
 type RegisterVerifyDTO struct {
-	Cedula    string `json:"cedula"`
-	Correo    string `json:"correo"`
-	CodigoOTP string `json:"codigo_otp"`
-	Nombres   string `json:"nombres"`
-	Apellidos string `json:"apellidos"`
-	Password  string `json:"password"`
+	ChallengeID string `json:"desafio_id,omitempty"`
+	Cedula      string `json:"cedula"`
+	Correo      string `json:"correo"`
+	CodigoOTP   string `json:"codigo_otp"`
+	Nombres     string `json:"nombres"`
+	Apellidos   string `json:"apellidos"`
+	Password    string `json:"password"`
 }
 
 /**
@@ -46,6 +47,7 @@ type ForgotPasswordDTO struct {
  * ResetPasswordDTO confirma el código OTP y actualiza la contraseña del postulante.
  */
 type ResetPasswordDTO struct {
+	ChallengeID string `json:"desafio_id,omitempty"`
 	Cedula      string `json:"cedula"`
 	CodigoOTP   string `json:"codigo_otp"`
 	NewPassword string `json:"new_password"`

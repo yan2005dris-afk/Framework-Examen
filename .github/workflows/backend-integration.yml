@@ -1,0 +1,86 @@
+name: Backend integration
+
+on:
+  push:
+    branches: [develop, main]
+    paths: ["apps/backend/**", ".github/workflows/backend-integration.yml"]
+  pull_request:
+    branches: [develop, main]
+    paths: ["apps/backend/**", ".github/workflows/backend-integration.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/backend
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: backend_test
+          POSTGRES_PASSWORD: ci-test-only
+          POSTGRES_DB: backend_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U backend_test -d backend_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      rustfs:
+        # Misma imagen que el Compose del proyecto; sólo datos y credenciales de prueba.
+        image: rustfs/rustfs:latest
+        env:
+          RUSTFS_VOLUMES: /data
+          RUSTFS_ADDRESS: 0.0.0.0:9000
+          RUSTFS_ACCESS_KEY: ci-backend
+          RUSTFS_SECRET_KEY: ci-test-only-not-production-2026
+          RUSTFS_CONSOLE_ENABLE: "false"
+        ports: ["9000:9000"]
+    env:
+      AUDIT_TEST_DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
+      REVIEW_TEST_DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
+      SUBMISSION_TEST_DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
+      DOCUMENT_TEST_DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
+      AUTHORIZATION_TEST_DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
+      CATALOG_TEST_DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
+      MAIL_TEST_DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
+      REDIS_TEST_URL: redis://localhost:6379/15
+      STORAGE_TEST_ENDPOINT: http://localhost:9000/backend-ci-tests
+      STORAGE_TEST_ACCESS_KEY: ci-backend
+      STORAGE_TEST_SECRET_KEY: ci-test-only-not-production-2026
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+          cache-dependency-path: apps/backend/go.sum
+      - name: Esperar disponibilidad de RustFS
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://localhost:9000/health > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo "::error::RustFS de pruebas no estuvo disponible"
+          exit 1
+      - name: Pruebas con PostgreSQL, Redis, RustFS y SMTP local
+        # SMTP se crea dentro de TestPostgresOutboxSMTPRealTestServer.
+        run: go test -count=1 -race -json ./... > integration-results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-integration-results
+          path: apps/backend/integration-results.json

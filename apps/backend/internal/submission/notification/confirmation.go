@@ -4,6 +4,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
@@ -36,6 +37,7 @@ func (c *Confirmation) Confirm(ctx context.Context, item *submission.Submission)
 		return fmt.Errorf("no se pudo preparar la confirmación")
 	}
 	return c.Sender.Send(ctx, mail.Message{
+		Kind: "submission.confirmation", ResourceID: item.ID.String(), ExpiresAt: item.SubmittedAt.Add(7 * 24 * time.Hour),
 		To:      applicant.Email,
 		Subject: "Confirmación de postulación " + item.Code,
 		Body:    fmt.Sprintf("Su postulación %s fue enviada correctamente.\nFecha: %s\nHash SHA-256: %s\n\nFormulario sellado:\n%s\n\nImprima el formulario y entréguelo con firma manuscrita según las condiciones del concurso.", item.Code, item.SubmittedAt.Format("2006-01-02T15:04:05Z07:00"), item.Hash, item.Content),

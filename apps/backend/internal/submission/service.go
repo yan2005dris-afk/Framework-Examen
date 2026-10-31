@@ -39,12 +39,13 @@ type CreateInput struct {
  * Service expone los casos de uso del contexto de postulaciones.
  */
 type Service struct {
-	repo       Repository
-	now        func() time.Time
-	notifier   Notifier
-	documents  DocumentVerifier
-	applicants ApplicantReader
-	auditor    audit.Recorder
+	repo          Repository
+	now           func() time.Time
+	notifier      Notifier
+	documents     DocumentVerifier
+	applicants    ApplicantReader
+	auditor       audit.Recorder
+	confirmations ConfirmationQueue
 }
 
 /** WithDocuments configura la validación obligatoria de respaldos en la composición.
@@ -193,6 +194,14 @@ func (s *Service) Get(ctx context.Context, id uuid.UUID) (*Submission, error) {
 		item = &copy
 	}
 
+	if !item.IsEditable() && s.confirmations != nil {
+		state, err := s.confirmations.State(ctx, item.ID)
+		if err != nil {
+			item.Notification = &DeliveryStatus{Status: "unavailable", ErrorCode: "status_unavailable"}
+		} else {
+			item.Notification = state
+		}
+	}
 	return item, nil
 }
 
@@ -416,12 +425,23 @@ func (s *Service) Submit(ctx context.Context, id uuid.UUID, consent *Consent) (*
 		if err := item.UpdateContent(raw, now); err != nil {
 			return err
 		}
-		return item.MarkAsSent(now)
+		if err := item.MarkAsSent(now); err != nil {
+			return err
+		}
+		if s.confirmations != nil {
+			if err := s.confirmations.Enqueue(ctx, item); err != nil {
+				return ErrNotificationUnavailable
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	if s.notifier != nil {
+	if s.confirmations != nil {
+		item.Notification = &DeliveryStatus{Status: "pending", UpdatedAt: s.now().UTC()}
+	}
+	if s.confirmations == nil && s.notifier != nil {
 		if err := s.notifier.Confirm(ctx, item); err != nil {
 			// No se incluyen destinatario, contenido ni errores SMTP con datos personales.
 			slog.WarnContext(ctx, "la postulación se selló pero no se pudo enviar el correo de confirmación")

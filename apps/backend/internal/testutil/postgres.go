@@ -22,7 +22,13 @@ func Postgres(t *testing.T, variable string) *pgxpool.Pool {
 	}
 	url := os.Getenv(variable)
 	if url == "" {
-		t.Skip("defina " + variable + " para ejecutar integración PostgreSQL 18")
+		url = os.Getenv("TEST_DATABASE_URL")
+	}
+	if url == "" {
+		url = os.Getenv("DATABASE_URL")
+	}
+	if url == "" {
+		t.Skip("defina " + variable + " o TEST_DATABASE_URL para ejecutar integración PostgreSQL 18")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()

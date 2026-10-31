@@ -25,7 +25,13 @@ func integrationRepository(t *testing.T) (*Repository, *submission.Submission) {
 	t.Helper()
 	url := os.Getenv("SUBMISSION_TEST_DATABASE_URL")
 	if url == "" {
-		t.Skip("defina SUBMISSION_TEST_DATABASE_URL para probar PostgreSQL real")
+		url = os.Getenv("TEST_DATABASE_URL")
+	}
+	if url == "" {
+		url = os.Getenv("DATABASE_URL")
+	}
+	if url == "" {
+		t.Skip("defina SUBMISSION_TEST_DATABASE_URL o TEST_DATABASE_URL para probar PostgreSQL real")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	t.Cleanup(cancel)

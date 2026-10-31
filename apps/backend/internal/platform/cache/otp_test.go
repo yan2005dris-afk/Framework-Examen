@@ -7,8 +7,8 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/cache"
 )
 
-func TestOTPStore_GenerateAndVerify(t *testing.T) {
-	mem := newMemCache()
+func TestOTPStore_IssueAndVerify(t *testing.T) {
+	mem := cache.NewMemoryCache()
 	store := cache.NewOTPStore(mem)
 	ctx := context.Background()
 
@@ -21,36 +21,50 @@ func TestOTPStore_GenerateAndVerify(t *testing.T) {
 	}
 
 	identifier := "0921234567"
+	email := "test@biess.ec"
 
-	// Guardar
-	if err := store.SaveOTP(ctx, identifier, code); err != nil {
-		t.Fatalf("SaveOTP() error = %v", err)
+	// 1. Emitir desafío de registro
+	challenge, err := store.Issue(ctx, cache.PurposeRegistration, identifier, email, code)
+	if err != nil {
+		t.Fatalf("Issue() error = %v", err)
+	}
+	if challenge.ID == "" {
+		t.Fatal("desafío sin ID")
 	}
 
-	// Código erróneo
-	valid, err := store.VerifyOTP(ctx, identifier, "000000")
+	// 2. Intento con código erróneo
+	valid, err := store.Verify(ctx, cache.PurposeRegistration, identifier, email, challenge.ID, "000000")
 	if err != nil {
-		t.Fatalf("VerifyOTP() error = %v", err)
+		t.Fatalf("Verify() error = %v", err)
 	}
 	if valid {
-		t.Error("VerifyOTP() esperaba false con código incorrecto")
+		t.Error("Verify() esperaba false con código incorrecto")
 	}
 
-	// Código correcto
-	valid, err = store.VerifyOTP(ctx, identifier, code)
+	// 3. Intento con propósito cruzado (recuperación en vez de registro)
+	valid, err = store.Verify(ctx, cache.PurposeRecovery, identifier, email, challenge.ID, code)
 	if err != nil {
-		t.Fatalf("VerifyOTP() error = %v", err)
+		t.Fatalf("Verify() error = %v", err)
+	}
+	if valid {
+		t.Error("Verify() no debe permitir consumir OTP de registro para recuperación")
+	}
+
+	// 4. Intento exitoso con propósito y código correctos
+	valid, err = store.Verify(ctx, cache.PurposeRegistration, identifier, email, challenge.ID, code)
+	if err != nil {
+		t.Fatalf("Verify() error = %v", err)
 	}
 	if !valid {
-		t.Error("VerifyOTP() esperaba true con código correcto")
+		t.Error("Verify() esperaba true con código y propósito correctos")
 	}
 
-	// Ya fue consumido: segundo intento debe retornar false
-	valid, err = store.VerifyOTP(ctx, identifier, code)
+	// 5. Consumo único: segundo intento debe retornar false
+	valid, err = store.Verify(ctx, cache.PurposeRegistration, identifier, email, challenge.ID, code)
 	if err != nil {
-		t.Fatalf("VerifyOTP() error = %v", err)
+		t.Fatalf("Verify() error = %v", err)
 	}
 	if valid {
-		t.Error("VerifyOTP() esperaba false tras haber sido consumido")
+		t.Error("Verify() esperaba false tras haber sido consumido")
 	}
 }

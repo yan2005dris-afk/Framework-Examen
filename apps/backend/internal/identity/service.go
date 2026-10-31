@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,6 +27,7 @@ type Mailer interface {
 type ServiceDependencies struct {
 	Applicants ApplicantRepository
 	Sessions   SessionRepository
+	Recovery   PasswordRecoveryRepository
 	Resets     PasswordResetRepository
 	Attempts   *cache.AttemptsStore
 	OTPStore   *cache.OTPStore
@@ -39,6 +41,7 @@ type ServiceDependencies struct {
 type Service struct {
 	applicants ApplicantRepository
 	sessions   SessionRepository
+	recovery   PasswordRecoveryRepository
 	resets     PasswordResetRepository
 	attempts   *cache.AttemptsStore
 	otpStore   *cache.OTPStore
@@ -60,6 +63,7 @@ func NewService(deps ServiceDependencies) *Service {
 	return &Service{
 		applicants: deps.Applicants,
 		sessions:   deps.Sessions,
+		recovery:   deps.Recovery,
 		resets:     deps.Resets,
 		attempts:   deps.Attempts,
 		otpStore:   deps.OTPStore,
@@ -77,62 +81,66 @@ func NewService(deps ServiceDependencies) *Service {
  * @returns {error} Error de validación o del envío.
  */
 func (s *Service) RequestRegistration(ctx context.Context, req RegisterRequestDTO) error {
+	_, err := s.BeginRegistration(ctx, req)
+	return err
+}
+
+/** BeginRegistration vincula código y desafío a la finalidad, cédula y correo de destino. */
+func (s *Service) BeginRegistration(ctx context.Context, req RegisterRequestDTO) (cache.Challenge, error) {
 	idCard, err := NewIDCard(req.Cedula)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrInvalidInformation, err.Error())
+		return cache.Challenge{}, ErrInvalidInformation
 	}
-
-	if err := ValidateEmail(req.Correo); err != nil {
-		return fmt.Errorf("%w: formato de correo no válido", ErrInvalidInformation)
+	req.Correo = strings.ToLower(strings.TrimSpace(req.Correo))
+	if ValidateEmail(req.Correo) != nil {
+		return cache.Challenge{}, ErrInvalidInformation
 	}
-
-	// Comprobar bloqueo activo por intentos fallidos
-	locked, err := s.attempts.IsLocked(ctx, idCard.String())
+	if err := s.checkSecurity(ctx, idCard.String()); err != nil {
+		return cache.Challenge{}, err
+	}
+	if s.mailer == nil {
+		return cache.Challenge{}, ErrDeliveryUnavailable
+	}
+	if _, err := s.applicants.GetByIDCard(ctx, idCard); err == nil {
+		return cache.Challenge{}, ErrApplicantAlreadyExists
+	} else if !errors.Is(err, ErrApplicantNotFound) {
+		return cache.Challenge{}, err
+	}
+	if _, err := s.applicants.GetByEmail(ctx, req.Correo); err == nil {
+		return cache.Challenge{}, ErrApplicantAlreadyExists
+	} else if !errors.Is(err, ErrApplicantNotFound) {
+		return cache.Challenge{}, err
+	}
+	code, err := cache.GenerateOTP()
 	if err != nil {
-		return err
+		return cache.Challenge{}, err
+	}
+	challenge, err := s.otpStore.Issue(ctx, cache.PurposeRegistration, idCard.String(), req.Correo, code)
+	if err != nil {
+		return cache.Challenge{}, err
+	}
+	message := mail.Message{To: req.Correo, Kind: "otp.registro", ChallengeKey: challenge.Key, ChallengeID: challenge.ID, ExpiresAt: challenge.ExpiresAt,
+		Subject: "Código de verificación de registro - Concurso BIESS", Body: fmt.Sprintf("Concurso BIESS\nSu código de registro es: %s\nExpira en 10 minutos.", code)}
+	if err := s.mailer.Send(ctx, message); err != nil {
+		if cancelErr := s.otpStore.Cancel(ctx, challenge); cancelErr != nil {
+			return cache.Challenge{}, cache.ErrUnavailable
+		}
+		return cache.Challenge{}, ErrDeliveryUnavailable
+	}
+	return challenge, nil
+}
+
+func (s *Service) checkSecurity(ctx context.Context, identifier string) error {
+	if s.otpStore == nil || s.attempts == nil {
+		return cache.ErrUnavailable
+	}
+	locked, err := s.attempts.IsLocked(ctx, identifier)
+	if err != nil {
+		return cache.ErrUnavailable
 	}
 	if locked {
 		return ErrAccountLocked
 	}
-
-	// Comprobar si la cédula ya está registrada
-	if _, err := s.applicants.GetByIDCard(ctx, idCard); err == nil {
-		return ErrApplicantAlreadyExists
-	}
-
-	// Comprobar si el correo ya está registrado
-	if _, err := s.applicants.GetByEmail(ctx, req.Correo); err == nil {
-		return ErrApplicantAlreadyExists
-	}
-
-	// Generar código OTP de 6 dígitos
-	otp, err := cache.GenerateOTP()
-	if err != nil {
-		return err
-	}
-
-	// Guardar en Redis con TTL de 10 minutos
-	if err := s.otpStore.SaveOTP(ctx, idCard.String(), otp); err != nil {
-		return err
-	}
-
-	// Enviar correo de verificación
-	if s.mailer != nil {
-		body := fmt.Sprintf(`
-			<h2>Concurso de Méritos y Oposición - Directorio BIESS</h2>
-			<p>Su código de verificación para completar su registro es:</p>
-			<h1 style="letter-spacing: 5px; color: #1e3a8a;">%s</h1>
-			<p>Este código tiene una vigencia de <strong>10 minutos</strong>.</p>
-			<p>Si usted no solicitó este registro, puede ignorar este mensaje.</p>
-		`, otp)
-
-		_ = s.mailer.Send(ctx, mail.Message{
-			To:      req.Correo,
-			Subject: "Código de verificación de registro - Concurso BIESS",
-			Body:    body,
-		})
-	}
-
 	return nil
 }
 
@@ -167,14 +175,17 @@ func (s *Service) VerifyAndRegister(ctx context.Context, req RegisterVerifyDTO, 
 	}
 
 	// Verificar código OTP
-	validOTP, err := s.otpStore.VerifyOTP(ctx, idCard.String(), req.CodigoOTP)
+	validOTP, err := s.otpStore.Verify(ctx, cache.PurposeRegistration, idCard.String(), req.Correo, req.ChallengeID, req.CodigoOTP)
 	if err != nil {
 		return nil, "", err
 	}
 	if !validOTP {
 		// Intento fallido
 		count, recordErr := s.attempts.RecordFailure(ctx, idCard.String())
-		if recordErr == nil && count >= cache.MaxLoginAttempts {
+		if recordErr != nil {
+			return nil, "", cache.ErrUnavailable
+		}
+		if count >= cache.MaxLoginAttempts {
 			return nil, "", ErrAccountLocked
 		}
 		return nil, "", ErrInvalidOTP
@@ -188,7 +199,7 @@ func (s *Service) VerifyAndRegister(ctx context.Context, req RegisterVerifyDTO, 
 
 	applicantID, err := uuid.NewV7()
 	if err != nil {
-		applicantID = uuid.New()
+		return nil, "", err
 	}
 
 	applicant, err := NewApplicant(
@@ -210,10 +221,12 @@ func (s *Service) VerifyAndRegister(ctx context.Context, req RegisterVerifyDTO, 
 	}
 
 	// Resetear cualquier contador de intentos tras éxito
-	_ = s.attempts.ResetAttempts(ctx, idCard.String())
+	if err := s.attempts.ResetAttempts(ctx, idCard.String()); err != nil {
+		return nil, "", cache.ErrUnavailable
+	}
 
 	// Crear sesión inicial
-	token, sessionErr := s.createSession(ctx, applicant.ID, ip, userAgent)
+	token, sessionErr := s.createSession(ctx, applicant.ID, ip, userAgent, applicant.PasswordHash)
 	if sessionErr != nil {
 		return applicant, "", sessionErr
 	}
@@ -251,7 +264,10 @@ func (s *Service) Login(ctx context.Context, cedula, plainPassword, ip, userAgen
 	applicant, err := s.applicants.GetByIDCard(ctx, idCard)
 	if err != nil {
 		if errors.Is(err, ErrApplicantNotFound) {
-			count, _ := s.attempts.RecordFailure(ctx, idCard.String())
+			count, recordErr := s.attempts.RecordFailure(ctx, idCard.String())
+			if recordErr != nil {
+				return nil, "", cache.ErrUnavailable
+			}
 			if count >= cache.MaxLoginAttempts {
 				return nil, "", ErrAccountLocked
 			}
@@ -263,7 +279,10 @@ func (s *Service) Login(ctx context.Context, cedula, plainPassword, ip, userAgen
 	// Verificar hash de contraseña con Argon2id
 	match, err := password.Verify(plainPassword, applicant.PasswordHash)
 	if err != nil || !match {
-		count, _ := s.attempts.RecordFailure(ctx, idCard.String())
+		count, recordErr := s.attempts.RecordFailure(ctx, idCard.String())
+		if recordErr != nil {
+			return nil, "", cache.ErrUnavailable
+		}
 		if count >= cache.MaxLoginAttempts {
 			return nil, "", ErrAccountLocked
 		}
@@ -271,10 +290,12 @@ func (s *Service) Login(ctx context.Context, cedula, plainPassword, ip, userAgen
 	}
 
 	// Éxito: limpiar intentos fallidos
-	_ = s.attempts.ResetAttempts(ctx, idCard.String())
+	if err := s.attempts.ResetAttempts(ctx, idCard.String()); err != nil {
+		return nil, "", cache.ErrUnavailable
+	}
 
 	// Crear sesión
-	token, err := s.createSession(ctx, applicant.ID, ip, userAgent)
+	token, err := s.createSession(ctx, applicant.ID, ip, userAgent, applicant.PasswordHash)
 	if err != nil {
 		return nil, "", err
 	}
@@ -313,7 +334,9 @@ func (s *Service) ValidateSession(ctx context.Context, rawToken string) (*Applic
 	}
 
 	if session.IsExpired() {
-		_ = s.sessions.DeleteByTokenHash(ctx, tokenHash)
+		if err := s.sessions.DeleteByTokenHash(ctx, tokenHash); err != nil {
+			return nil, err
+		}
 		return nil, ErrSessionExpired
 	}
 
@@ -328,90 +351,102 @@ func (s *Service) ValidateSession(ctx context.Context, rawToken string) (*Applic
  * @returns {error} Error si no se encuentra el postulante o falla el envío.
  */
 func (s *Service) ForgotPassword(ctx context.Context, cedula string) error {
-	idCard, err := NewIDCard(cedula)
-	if err != nil {
-		return ErrInvalidInformation
-	}
-
-	applicant, err := s.applicants.GetByIDCard(ctx, idCard)
-	if err != nil {
-		// Por seguridad, si el postulante no existe no revelamos el dato
-		return nil
-	}
-
-	otp, err := cache.GenerateOTP()
-	if err != nil {
-		return err
-	}
-
-	if err := s.otpStore.SaveOTP(ctx, idCard.String(), otp); err != nil {
-		return err
-	}
-
-	if s.mailer != nil {
-		body := fmt.Sprintf(`
-			<h2>Recuperación de Contraseña - Concurso BIESS</h2>
-			<p>Estimado/a %s,</p>
-			<p>Su código para restablecer su contraseña es:</p>
-			<h1 style="letter-spacing: 5px; color: #1e3a8a;">%s</h1>
-			<p>Este código expira en <strong>10 minutos</strong>.</p>
-		`, applicant.FirstName, otp)
-
-		_ = s.mailer.Send(ctx, mail.Message{
-			To:      applicant.Email,
-			Subject: "Recuperación de contraseña - Concurso BIESS",
-			Body:    body,
-		})
-	}
-
-	return nil
+	_, err := s.BeginRecovery(ctx, cedula)
+	return err
 }
 
-/**
- * ResetPassword verifica el código OTP y actualiza la contraseña con un nuevo hash Argon2id,
- * cerrando todas las sesiones previas del postulante por seguridad.
- *
- * @param {Context} ctx - Contexto de la petición.
- * @param {ResetPasswordDTO} req - Datos de restablecimiento.
- * @returns {error} Error si el código es inválido o la contraseña es débil.
- */
+/** BeginRecovery usa el correo de la cuenta; una cuenta ausente recibe un desafío indistinguible sin correo. */
+func (s *Service) BeginRecovery(ctx context.Context, cedula string) (cache.Challenge, error) {
+	idCard, err := NewIDCard(cedula)
+	if err != nil {
+		return cache.Challenge{}, ErrInvalidInformation
+	}
+	if err := s.checkSecurity(ctx, idCard.String()); err != nil {
+		return cache.Challenge{}, err
+	}
+	if s.mailer == nil {
+		return cache.Challenge{}, ErrDeliveryUnavailable
+	}
+	if ready, ok := s.mailer.(interface{ Ready(context.Context) error }); ok {
+		if ready.Ready(ctx) != nil {
+			return cache.Challenge{}, ErrDeliveryUnavailable
+		}
+	}
+	applicant, err := s.applicants.GetByIDCard(ctx, idCard)
+	if err != nil && !errors.Is(err, ErrApplicantNotFound) {
+		return cache.Challenge{}, err
+	}
+	email := ""
+	if applicant != nil {
+		email = applicant.Email
+	}
+	code, err := cache.GenerateOTP()
+	if err != nil {
+		return cache.Challenge{}, err
+	}
+	challenge, err := s.otpStore.Issue(ctx, cache.PurposeRecovery, idCard.String(), email, code)
+	if err != nil {
+		return cache.Challenge{}, err
+	}
+	if applicant == nil {
+		// Misma aceptación durable sin enviar un correo a una dirección inexistente ni revelar la cuenta.
+		if err := s.mailer.Send(ctx, mail.Message{Suppressed: true, Kind: "otp.recuperacion", ChallengeKey: challenge.Key, ChallengeID: challenge.ID, ExpiresAt: challenge.ExpiresAt}); err != nil {
+			if cancelErr := s.otpStore.Cancel(ctx, challenge); cancelErr != nil {
+				return cache.Challenge{}, cache.ErrUnavailable
+			}
+			return cache.Challenge{}, ErrDeliveryUnavailable
+		}
+		return challenge, nil
+	}
+	message := mail.Message{To: applicant.Email, Kind: "otp.recuperacion", ChallengeKey: challenge.Key, ChallengeID: challenge.ID, ExpiresAt: challenge.ExpiresAt,
+		Subject: "Recuperación de contraseña - Concurso BIESS", Body: fmt.Sprintf("Recuperación de contraseña\nEstimado/a %s, su código es: %s\nExpira en 10 minutos.", applicant.FirstName, code)}
+	if err := s.mailer.Send(ctx, message); err != nil {
+		if cancelErr := s.otpStore.Cancel(ctx, challenge); cancelErr != nil {
+			return cache.Challenge{}, cache.ErrUnavailable
+		}
+		return cache.Challenge{}, ErrDeliveryUnavailable
+	}
+	return challenge, nil
+}
+
+/** ResetPassword consume una sola vez y confirma contraseña/revocación de sesiones en una transacción. */
 func (s *Service) ResetPassword(ctx context.Context, req ResetPasswordDTO) error {
 	idCard, err := NewIDCard(req.Cedula)
 	if err != nil {
-		return ErrInvalidInformation
-	}
-
-	applicant, err := s.applicants.GetByIDCard(ctx, idCard)
-	if err != nil {
-		return ErrInvalidInformation
-	}
-
-	valid, err := s.otpStore.VerifyOTP(ctx, idCard.String(), req.CodigoOTP)
-	if err != nil || !valid {
 		return ErrInvalidOTP
 	}
-
+	if err := s.checkSecurity(ctx, idCard.String()); err != nil {
+		return err
+	}
 	if err := password.ValidateStrength(req.NewPassword); err != nil {
 		return err
 	}
-
-	newHash, err := password.Hash(req.NewPassword)
+	if s.recovery == nil {
+		return cache.ErrUnavailable
+	}
+	applicant, err := s.applicants.GetByIDCard(ctx, idCard)
+	if errors.Is(err, ErrApplicantNotFound) {
+		return ErrInvalidOTP
+	}
 	if err != nil {
 		return err
 	}
-
-	if err := s.applicants.UpdatePassword(ctx, applicant.ID, newHash); err != nil {
+	valid, err := s.otpStore.Verify(ctx, cache.PurposeRecovery, idCard.String(), applicant.Email, req.ChallengeID, req.CodigoOTP)
+	if err != nil {
 		return err
 	}
-
-	// Revocar todas las sesiones existentes tras cambio de clave
-	_ = s.sessions.DeleteByApplicantID(ctx, applicant.ID)
-
-	return nil
+	if !valid {
+		return ErrInvalidOTP
+	}
+	hash, err := password.Hash(req.NewPassword)
+	if err != nil {
+		return err
+	}
+	return s.recovery.ResetPasswordAndSessions(ctx, applicant.ID, hash)
 }
 
 // createSession helper interno para emitir y almacenar un token de sesión
-func (s *Service) createSession(ctx context.Context, applicantID uuid.UUID, ip, userAgent string) (string, error) {
+func (s *Service) createSession(ctx context.Context, applicantID uuid.UUID, ip, userAgent, expectedHash string) (string, error) {
 	rawToken, err := GenerateSessionToken()
 	if err != nil {
 		return "", err
@@ -419,7 +454,7 @@ func (s *Service) createSession(ctx context.Context, applicantID uuid.UUID, ip, 
 
 	sessionID, err := uuid.NewV7()
 	if err != nil {
-		sessionID = uuid.New()
+		return "", err
 	}
 
 	tokenHash := HashSessionToken(rawToken)
@@ -433,7 +468,11 @@ func (s *Service) createSession(ctx context.Context, applicantID uuid.UUID, ip, 
 		CreatedAt:   time.Now(),
 	}
 
-	if err := s.sessions.CreateSession(ctx, session); err != nil {
+	issuer, ok := s.sessions.(AuthenticatedSessionRepository)
+	if !ok {
+		return "", cache.ErrUnavailable
+	}
+	if err := issuer.CreateAuthenticatedSession(ctx, session, expectedHash); err != nil {
 		return "", err
 	}
 

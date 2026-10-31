@@ -22,7 +22,13 @@ func authorizationPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	url := os.Getenv("AUTHORIZATION_TEST_DATABASE_URL")
 	if url == "" {
-		t.Skip("defina AUTHORIZATION_TEST_DATABASE_URL para probar autorización en PostgreSQL")
+		url = os.Getenv("TEST_DATABASE_URL")
+	}
+	if url == "" {
+		url = os.Getenv("DATABASE_URL")
+	}
+	if url == "" {
+		t.Skip("defina AUTHORIZATION_TEST_DATABASE_URL o TEST_DATABASE_URL para probar autorización en PostgreSQL")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

@@ -78,7 +78,7 @@ func (r *RedisClient) Set(ctx context.Context, key string, value string, ttl tim
 
 /**
  * Incr incrementa el contador de la clave de forma atómica.
- * Si la clave es nueva y se pasa un TTL positivo, lo asigna en el mismo pipeline.
+ * Si la clave es nueva y se pasa un TTL positivo, lo asigna en el mismo script Lua.
  * Esto garantiza que no haya ventana de tiempo en que la clave exista sin expiración.
  *
  * @param {Context} ctx - Contexto de la petición.
@@ -88,19 +88,11 @@ func (r *RedisClient) Set(ctx context.Context, key string, value string, ttl tim
  * @throws {error} Error de Redis.
  */
 func (r *RedisClient) Incr(ctx context.Context, key string, ttl time.Duration) (int64, error) {
-	// Usamos un pipeline para hacer INCR + EXPIRE atómicamente cuando aplica.
-	// INCR crea la clave con valor 1 si no existe; EXPIRE solo se aplica
-	// cuando el contador acaba de crearse (valor == 1) para no reiniciar el TTL
-	// en incrementos posteriores dentro de la misma ventana.
-	pipe := r.client.Pipeline()
-	incrCmd := pipe.Incr(ctx, key)
-	pipe.Expire(ctx, key, ttl)
-
-	if _, err := pipe.Exec(ctx); err != nil {
-		return 0, fmt.Errorf("cache: Incr(%q): %w", key, err)
+	result, err := r.RunScript(ctx, `local n=redis.call('INCR',KEYS[1]); if n==1 and tonumber(ARGV[1])>0 then redis.call('PEXPIRE',KEYS[1],ARGV[1]) end;return n`, []string{key}, ttl.Milliseconds())
+	if err != nil {
+		return 0, ErrUnavailable
 	}
-
-	return incrCmd.Val(), nil
+	return result, nil
 }
 
 /**
@@ -124,4 +116,13 @@ func (r *RedisClient) Delete(ctx context.Context, key string) error {
  */
 func (r *RedisClient) Close() error {
 	return r.client.Close()
+}
+
+/** RunScript ejecuta una operación indivisible de seguridad en Redis. */
+func (r *RedisClient) RunScript(ctx context.Context, script string, keys []string, args ...interface{}) (int64, error) {
+	result, err := redis.NewScript(script).Run(ctx, r.client, keys, args...).Int64()
+	if err != nil {
+		return 0, ErrUnavailable
+	}
+	return result, nil
 }

@@ -3,6 +3,7 @@ module github.com/yan2005dris-afk/Framework-Examen/apps/backend
 go 1.27.3
 
 require (
+	github.com/alicebob/miniredis/v2 v2.35.0
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-pdf/fpdf v0.9.0
 	github.com/google/uuid v1.6.0
@@ -19,6 +20,7 @@ require (
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/redis/go-redis/v9 v9.23.0 // indirect
 	github.com/sethvargo/go-retry v0.5.0 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.uber.org/atomic v1.12.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.58.0 // indirect

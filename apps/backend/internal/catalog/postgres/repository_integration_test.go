@@ -21,7 +21,13 @@ func catalogPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	url := os.Getenv("CATALOG_TEST_DATABASE_URL")
 	if url == "" {
-		t.Skip("defina CATALOG_TEST_DATABASE_URL para comprobar catálogos en PostgreSQL 18")
+		url = os.Getenv("TEST_DATABASE_URL")
+	}
+	if url == "" {
+		url = os.Getenv("DATABASE_URL")
+	}
+	if url == "" {
+		t.Skip("defina CATALOG_TEST_DATABASE_URL o TEST_DATABASE_URL para comprobar catálogos en PostgreSQL 18")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

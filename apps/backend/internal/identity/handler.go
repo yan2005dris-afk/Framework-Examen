@@ -4,11 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/cache"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/httpx"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/password"
 )
@@ -65,8 +69,11 @@ func (h *Handler) requestRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.RequestRegistration(r.Context(), body)
+	challenge, err := h.service.BeginRegistration(r.Context(), body)
 	if err != nil {
+		if writeOperationalError(w, r, err) {
+			return
+		}
 		switch {
 		case errors.Is(err, ErrAccountLocked):
 			httpx.RespondError(w, r, http.StatusTooManyRequests, "intentos_excedidos", ErrAccountLocked.Error())
@@ -81,7 +88,8 @@ func (h *Handler) requestRegistration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpx.Respond(w, r, http.StatusOK, map[string]any{
-		"mensaje": "Código de verificación enviado al correo electrónico.",
+		"mensaje":    "Solicitud de código recibida. Revise su correo electrónico.",
+		"desafio_id": challenge.ID, "expira_en": challenge.ExpiresAt,
 	})
 }
 
@@ -97,6 +105,9 @@ func (h *Handler) verifyAndRegister(w http.ResponseWriter, r *http.Request) {
 
 	applicant, token, err := h.service.VerifyAndRegister(r.Context(), body, ip, ua)
 	if err != nil {
+		if writeOperationalError(w, r, err) {
+			return
+		}
 		switch {
 		case errors.Is(err, ErrAccountLocked):
 			httpx.RespondError(w, r, http.StatusTooManyRequests, "intentos_excedidos", ErrAccountLocked.Error())
@@ -133,6 +144,9 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 
 	applicant, token, err := h.service.Login(r.Context(), body.Cedula, body.Password, ip, ua)
 	if err != nil {
+		if writeOperationalError(w, r, err) {
+			return
+		}
 		switch {
 		case errors.Is(err, ErrAccountLocked):
 			httpx.RespondError(w, r, http.StatusTooManyRequests, "intentos_excedidos", ErrAccountLocked.Error())
@@ -154,7 +168,11 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(sessionCookieName)
 	if err == nil && cookie.Value != "" {
-		_ = h.service.Logout(r.Context(), cookie.Value)
+		if err := h.service.Logout(r.Context(), cookie.Value); err != nil {
+			h.clearSessionCookie(w)
+			httpx.RespondError(w, r, 503, "sesion_no_revocada", "No se pudo confirmar la revocación de la sesión.")
+			return
+		}
 	}
 
 	h.clearSessionCookie(w)
@@ -190,10 +208,31 @@ func (h *Handler) forgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = h.service.ForgotPassword(r.Context(), body.Cedula)
+	challenge, err := h.service.BeginRecovery(r.Context(), body.Cedula)
+	if err != nil {
+		// Las caídas globales y límites se evalúan antes de consultar existencia de cuenta.
+		if errors.Is(err, cache.ErrUnavailable) || errors.Is(err, cache.ErrOTPLocked) || errors.Is(err, cache.ErrResendLimited) || errors.Is(err, ErrAccountLocked) {
+			if writeOperationalError(w, r, err) {
+				return
+			}
+		}
+		if errors.Is(err, ErrInvalidInformation) {
+			httpx.RespondError(w, r, 422, "informacion_invalida", ErrInvalidInformation.Error())
+			return
+		}
+		// No convertir una incidencia de entrega/consulta de una cuenta concreta en un oráculo de existencia.
+		slog.WarnContext(r.Context(), "no se pudo aceptar una solicitud de recuperación")
+		id, idErr := uuid.NewRandom()
+		if idErr != nil {
+			httpx.RespondError(w, r, 503, "recuperacion_no_disponible", "La recuperación no está disponible.")
+			return
+		}
+		challenge = cache.Challenge{ID: id.String(), ExpiresAt: time.Now().UTC().Add(cache.OTPTTL)}
+	}
 
 	httpx.Respond(w, r, http.StatusOK, map[string]any{
-		"mensaje": "Si la cédula está registrada, se ha enviado un código de recuperación a su correo.",
+		"mensaje":    "Solicitud recibida. Si la cuenta existe y el servicio está disponible, recibirá un código en su correo registrado.",
+		"desafio_id": challenge.ID, "expira_en": challenge.ExpiresAt,
 	})
 }
 
@@ -206,6 +245,9 @@ func (h *Handler) resetPassword(w http.ResponseWriter, r *http.Request) {
 
 	err := h.service.ResetPassword(r.Context(), body)
 	if err != nil {
+		if writeOperationalError(w, r, err) {
+			return
+		}
 		switch {
 		case errors.Is(err, ErrInvalidOTP):
 			httpx.RespondError(w, r, http.StatusUnauthorized, "otp_invalido", ErrInvalidOTP.Error())

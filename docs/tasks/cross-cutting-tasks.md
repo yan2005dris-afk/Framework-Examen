@@ -41,7 +41,7 @@ documentado, pruebas y evidencia de integración en los módulos afectados.
 
 ## 3. P0-X — Seguridad y consistencia
 
-### XT-01 · Seguridad de sesión, CSRF y cookies
+### XT-01 · Seguridad de sesión, CSRF y cookies [✅ hecho]
 
 **Origen:** EF-1, RNF de seguridad, `T2`, `T6`, `FT2` y `FT3`.  
 **Prioridad:** P0-X.
@@ -51,35 +51,35 @@ autenticación no debe depender únicamente de que el navegador oculte la cookie
 
 **Backend**
 
-- [ ] Mantener las cookies con `HttpOnly`, `SameSite` y `Secure` según el entorno.
-- [ ] Definir protección CSRF para `POST`, `PUT`, `PATCH` y `DELETE`.
-- [ ] Validar `Origin` o el mecanismo CSRF elegido en todas las rutas mutantes.
-- [ ] No aceptar `Origin` o `Referer` arbitrarios como prueba de confianza.
-- [ ] Rotar la sesión después de login y de recuperación de contraseña.
-- [ ] Revocar sesiones anteriores en los eventos definidos por la política de seguridad.
-- [ ] Aplicar expiración absoluta y, si corresponde, expiración por inactividad.
-- [ ] No aceptar tokens de sesión en query string, cuerpo o `localStorage`.
+- [x] Mantener las cookies con `HttpOnly`, `SameSite` y `Secure` según el entorno.
+- [x] Definir protección CSRF para `POST`, `PUT`, `PATCH` y `DELETE`.
+- [x] Validar `Origin` o el mecanismo CSRF elegido en todas las rutas mutantes.
+- [x] No aceptar `Origin` o `Referer` arbitrarios como prueba de confianza.
+- [x] Rotar la sesión después de login y de recuperación de contraseña.
+- [x] Revocar sesiones anteriores en los eventos definidos por la política de seguridad.
+- [x] Aplicar expiración absoluta y, si corresponde, expiración por inactividad.
+- [x] No aceptar tokens de sesión en query string, cuerpo o `localStorage`.
 
 **Frontend**
 
-- [ ] Enviar el mecanismo CSRF requerido por el backend en todas las mutaciones.
-- [ ] No persistir tokens, códigos OTP ni datos personales sensibles en
+- [x] Enviar el mecanismo CSRF requerido por el backend en todas las mutaciones.
+- [x] No persistir tokens, códigos OTP ni datos personales sensibles en
       `localStorage` o `sessionStorage`.
-- [ ] Tratar `401` y `403` de forma diferenciada.
-- [ ] Evitar reintentos automáticos de mutaciones no idempotentes.
+- [x] Tratar `401` y `403` de forma diferenciada.
+- [x] Evitar reintentos automáticos de mutaciones no idempotentes.
 
 **Criterios de aceptación**
 
-- [ ] Una mutación sin protección CSRF recibe un error estable y no modifica datos.
-- [ ] Un token de sesión anterior al login o reset deja de ser válido según la política.
-- [ ] Las cookies tienen atributos correctos en desarrollo y producción.
-- [ ] Existen pruebas HTTP para origen válido, origen inválido, sesión expirada y
+- [x] Una mutación sin protección CSRF recibe un error estable y no modifica datos.
+- [x] Un token de sesión anterior al login o reset deja de ser válido según la política.
+- [x] Las cookies tienen atributos correctos en desarrollo y producción.
+- [x] Existen pruebas HTTP para origen válido, origen inválido, sesión expirada y
       rotación de sesión.
 
 **Dependencias:** `T2`, `T6`, `FT1`–`FT3`.  
 **Esfuerzo estimado:** 2 días.
 
-### XT-02 · Consolidación segura de OTP y rate limiting
+### XT-02 · Consolidación segura de OTP y rate limiting [✅ hecho]
 
 **Origen:** `T1`, `T2`, `T16`, `FT3` y `FT16`.  
 **Prioridad:** P0-X.
@@ -89,29 +89,29 @@ que los controles de seguridad permanezcan activos cuando Redis no esté disponi
 
 **Criterios técnicos**
 
-- [ ] Vincular cada desafío a cédula, correo, finalidad y un identificador de desafío.
-- [ ] Invalidar el desafío anterior al reenviar.
-- [ ] Consumir el OTP de forma atómica y de uso único.
-- [ ] Aplicar TTL, límite de intentos y límite de reenvíos desde el servidor.
-- [ ] No permitir utilizar un OTP de registro para recuperación, ni al contrario.
-- [ ] No revelar la existencia de una cuenta durante recuperación.
-- [ ] Separar el caché opcional de catálogos del almacenamiento obligatorio de seguridad.
-- [ ] Si Redis es indispensable y no está disponible, rechazar claramente los flujos
+- [x] Vincular cada desafío a cédula, correo, finalidad y un identificador de desafío.
+- [x] Invalidar el desafío anterior al reenviar.
+- [x] Consumir el OTP de forma atómica y de uso único.
+- [x] Aplicar TTL, límite de intentos y límite de reenvíos desde el servidor.
+- [x] No permitir utilizar un OTP de registro para recuperación, ni al contrario.
+- [x] No revelar la existencia de una cuenta durante recuperación.
+- [x] Separar el caché opcional de catálogos del almacenamiento obligatorio de seguridad.
+- [x] Si Redis es indispensable y no está disponible, rechazar claramente los flujos
       que dependen de él; no continuar con controles desactivados.
-- [ ] Limitar por cédula, correo, desafío e IP según la política aprobada.
+- [x] Limitar por cédula, correo, desafío e IP según la política aprobada.
 
 **Criterios de aceptación**
 
-- [ ] Dos verificaciones concurrentes no pueden consumir el mismo OTP.
-- [ ] Un reenvío invalida el desafío anterior.
-- [ ] El vencimiento y los intentos restantes provienen de la API.
-- [ ] Los límites sobreviven al reinicio y a múltiples instancias.
-- [ ] Existen pruebas de concurrencia, expiración, reenvío, bloqueo y Redis no disponible.
+- [x] Dos verificaciones concurrentes no pueden consumir el mismo OTP.
+- [x] Un reenvío invalida el desafío anterior.
+- [x] El vencimiento y los intentos restantes provienen de la API.
+- [x] Los límites sobreviven al reinicio y a múltiples instancias.
+- [x] Existen pruebas de concurrencia, expiración, reenvío, bloqueo y Redis no disponible.
 
 **Dependencias:** `T1`, `T2`, `T16`, `FT3`, `FT16`.  
 **Esfuerzo estimado:** 2 días.
 
-### XT-03 · Contratos y compatibilidad frontend/backend
+### XT-03 · Contratos y compatibilidad frontend/backend [✅ hecho]
 
 **Origen:** `T3`, `T4`, `T6`–`T9`, `FT1`, `FT4`–`FT8` y `FT16`–`FT27`.  
 **Prioridad:** P0-X.
@@ -119,25 +119,25 @@ que los controles de seguridad permanezcan activos cuando Redis no esté disponi
 Establecer una única fuente verificable para DTO, estados, errores, paginación,
 consentimientos, documentos y notificaciones.
 
-- [ ] Mantener `API_CONTRACT.md` actualizado por cada endpoint.
-- [ ] Documentar request, response, códigos HTTP, códigos de error y campos opcionales.
-- [ ] Definir los estados de postulación, documento, fase, notificación y evaluación.
-- [ ] Definir el envelope de errores y su comportamiento para `401`, `403`, `409`,
+- [x] Mantener `API_CONTRACT.md` actualizado por cada endpoint.
+- [x] Documentar request, response, códigos HTTP, códigos de error y campos opcionales.
+- [x] Definir los estados de postulación, documento, fase, notificación y evaluación.
+- [x] Definir el envelope de errores y su comportamiento para `401`, `403`, `409`,
       `422`, `429` y `5xx`.
-- [ ] Documentar paginación por offset y cursor, incluyendo el formato opaco del cursor.
-- [ ] Versionar cambios incompatibles del contrato.
-- [ ] Alinear nombres de campos EF-12 entre `definition.json`, Go y TypeScript.
-- [ ] Probar que los cinco consentimientos, referencias de documentos y hashes
+- [x] Documentar paginación por offset y cursor, incluyendo el formato opaco del cursor.
+- [x] Versionar cambios incompatibles del contrato.
+- [x] Alinear nombres de campos EF-12 entre `definition.json`, Go y TypeScript.
+- [x] Probar que los cinco consentimientos, referencias de documentos y hashes
       mantienen la misma forma en ambos clientes.
-- [ ] Añadir pruebas de contrato automatizadas para endpoints críticos.
+- [x] Añadir pruebas de contrato automatizadas para endpoints críticos.
 
 **Criterios de aceptación**
 
-- [ ] El frontend puede generar sus tipos o validaciones desde un contrato mantenido.
-- [ ] Una respuesta de error del backend se presenta correctamente sin parsear texto libre.
-- [ ] Los contratos cubren registro, OTP, sesión, postulación, documentos, revisión,
+- [x] El frontend puede generar sus tipos o validaciones desde un contrato mantenido.
+- [x] Una respuesta de error del backend se presenta correctamente sin parsear texto libre.
+- [x] Los contratos cubren registro, OTP, sesión, postulación, documentos, revisión,
       exportaciones y notificaciones.
-- [ ] Una modificación incompatible falla en CI antes de integrarse.
+- [x] Una modificación incompatible falla en CI antes de integrarse.
 
 **Dependencias:** todas las tareas que expongan endpoints.  
 **Esfuerzo estimado:** 2 días iniciales y mantenimiento continuo.
@@ -172,7 +172,7 @@ reintentos, pestañas abiertas o carreras cambien ilegalmente el expediente.
 
 ## 4. P1-X — Operación, privacidad e integración
 
-### XT-05 · Notificaciones persistentes y reintentos
+### XT-05 · Notificaciones persistentes y reintentos [✅ hecho]
 
 **Origen:** `T3`, `T15`, `T19`, `T23`, `T27`, `FT6`, `FT22` y `FT27`.  
 **Prioridad:** P1-X.
@@ -180,29 +180,29 @@ reintentos, pestañas abiertas o carreras cambien ilegalmente el expediente.
 Separar el resultado de negocio de la entrega del correo. Sellar una postulación
 no debe deshacerse por un fallo SMTP, pero tampoco debe presentarse como notificada.
 
-- [ ] Crear un registro persistente de notificación con evento, destinatario,
+- [x] Crear un registro persistente de notificación con evento, destinatario,
       plantilla, versión, estado y número de intentos.
-- [ ] Encolar la notificación dentro de la transacción que confirma el evento.
-- [ ] Enviar después del commit con reintentos y backoff.
-- [ ] Garantizar idempotencia para que un reintento no duplique el correo lógico.
-- [ ] Persistir estados `pending`, `sending`, `sent`, `failed` y `retrying` o
+- [x] Encolar la notificación dentro de la transacción que confirma el evento.
+- [x] Enviar después del commit con reintentos y backoff.
+- [x] Garantizar idempotencia para que un reintento no duplique el correo lógico.
+- [x] Persistir estados `pending`, `sending`, `sent`, `failed` y `retrying` o
       equivalentes documentados.
-- [ ] Registrar errores sanitizados sin OTP ni datos sensibles.
-- [ ] Permitir reintento autorizado de notificaciones fallidas.
-- [ ] Entregar al frontend el estado real de notificación.
+- [x] Registrar errores sanitizados sin OTP ni datos sensibles.
+- [x] Permitir reintento autorizado de notificaciones fallidas.
+- [x] Entregar al frontend el estado real de notificación.
 
 **Criterios de aceptación**
 
-- [ ] Un fallo SMTP no revierte el sellado ni se presenta como envío exitoso.
-- [ ] Un reinicio no pierde notificaciones pendientes.
-- [ ] Una notificación se entrega como máximo una vez por evento lógico, según
+- [x] Un fallo SMTP no revierte el sellado ni se presenta como envío exitoso.
+- [x] Un reinicio no pierde notificaciones pendientes.
+- [x] Una notificación se entrega como máximo una vez por evento lógico, según
       la garantía definida por el adaptador SMTP.
-- [ ] Existen pruebas de rollback, reintento, duplicado y fallo permanente.
+- [x] Existen pruebas de rollback, reintento, duplicado y fallo permanente.
 
 **Dependencias:** `T5`, `T8`, `T19`, `T23`, `FT6`, `FT22`.  
 **Esfuerzo estimado:** 3 días.
 
-### XT-06 · Integración, CI y pruebas con servicios reales
+### XT-06 · Integración, CI y pruebas con servicios reales [✅ hecho]
 
 **Origen:** criterios de verificación de `T1`–`T9`, `FT1`–`FT6` y convenciones de
 desarrollo.  
@@ -211,28 +211,28 @@ desarrollo.
 Convertir las pruebas que hoy dependen de variables externas en una matriz
 reproducible de CI y desarrollo local.
 
-- [ ] Levantar PostgreSQL, Redis, SMTP de prueba y almacenamiento S3/RustFS en CI.
-- [ ] Ejecutar migraciones sobre una base vacía y sobre una base con datos previos.
-- [ ] Ejecutar pruebas de idempotencia de semillas y rollback de transacciones.
-- [ ] Ejecutar pruebas de contrato HTTP contra el backend real.
-- [ ] Ejecutar pruebas de carga/concurrencia para OTP, cuota, envío y examen.
-- [ ] Mantener secretos y credenciales de CI fuera del repositorio.
-- [ ] Separar pruebas unitarias, integración y E2E con comandos identificables.
-- [ ] Publicar artefactos de cobertura, logs sanitizados y diagnósticos de fallos.
-- [ ] Hacer obligatorios `gofmt`, `go vet`, `go test`, lint, build y formato frontend
+- [x] Levantar PostgreSQL, Redis, SMTP de prueba y almacenamiento S3/RustFS en CI.
+- [x] Ejecutar migraciones sobre una base vacía y sobre una base con datos previos.
+- [x] Ejecutar pruebas de idempotencia de semillas y rollback de transacciones.
+- [x] Ejecutar pruebas de contrato HTTP contra el backend real.
+- [x] Ejecutar pruebas de carga/concurrencia para OTP, cuota, envío y examen.
+- [x] Mantener secretos y credenciales de CI fuera del repositorio.
+- [x] Separar pruebas unitarias, integración y E2E con comandos identificables.
+- [x] Publicar artefactos de cobertura, logs sanitizados y diagnósticos de fallos.
+- [x] Hacer obligatorios `gofmt`, `go vet`, `go test`, lint, build y formato frontend
       en los cambios correspondientes.
 
 **Criterios de aceptación**
 
-- [ ] Un checkout limpio puede ejecutar la suite documentada con los servicios de prueba.
-- [ ] Las migraciones y semillas pasan desde una base vacía.
-- [ ] Un fallo de integración identifica el servicio y la etapa afectada.
-- [ ] CI no depende de servicios personales o variables locales no documentadas.
+- [x] Un checkout limpio puede ejecutar la suite documentada con los servicios de prueba.
+- [x] Las migraciones y semillas pasan desde una base vacía.
+- [x] Un fallo de integración identifica el servicio y la etapa afectada.
+- [x] CI no depende de servicios personales o variables locales no documentadas.
 
 **Dependencias:** `T1`–`T9`, `FT1`–`FT8`, infraestructura de desarrollo.  
 **Esfuerzo estimado:** 3 días.
 
-### XT-07 · Privacidad, retención y protección de datos
+### XT-07 · Privacidad, retención y protección de datos [🟡 parcial]
 
 **Origen:** EF-1, `T8`, `T28`, `FT6`, `FT22`, `FT23` y `FT28`.  
 **Prioridad:** P1-X.
@@ -240,29 +240,29 @@ reproducible de CI y desarrollo local.
 Aplicar una política uniforme al tratamiento de cédulas, nombres, correos,
 documentos, resultados y exportaciones.
 
-- [ ] Definir qué datos pueden aparecer en logs, errores, auditoría y métricas.
-- [ ] Redactar o truncar cédulas, correos y nombres en logs técnicos.
-- [ ] No registrar OTP, contraseñas, tokens ni contenido de documentos.
+- [x] Definir qué datos pueden aparecer en logs, errores, auditoría y métricas.
+- [x] Redactar o truncar cédulas, correos y nombres en logs técnicos.
+- [x] No registrar OTP, contraseñas, tokens ni contenido de documentos.
 - [ ] Definir retención, purga y excepciones legales para sesiones, documentos,
       expedientes, auditoría, exportaciones y notificaciones.
-- [ ] Aplicar autorización y expiración a todas las URLs temporales.
-- [ ] Evitar guardar exportaciones o URLs temporales en almacenamiento persistente
+- [x] Aplicar autorización y expiración a todas las URLs temporales.
+- [x] Evitar guardar exportaciones o URLs temporales en almacenamiento persistente
       del navegador.
-- [ ] Separar listados públicos, reportes internos y expediente administrativo.
-- [ ] Versionar la política de privacidad y los cinco consentimientos.
+- [x] Separar listados públicos, reportes internos y expediente administrativo.
+- [x] Versionar la política de privacidad y los cinco consentimientos.
 - [ ] Documentar eliminación lógica, eliminación física y trazabilidad de cada una.
 
 **Criterios de aceptación**
 
-- [ ] Una revisión de logs no encuentra OTP, tokens, contraseñas ni PDFs.
-- [ ] Las URLs temporales caducan y no permiten acceso tras revocación.
-- [ ] Una exportación solo contiene columnas autorizadas para su actor.
+- [x] Una revisión de logs no encuentra OTP, tokens, contraseñas ni PDFs.
+- [x] Las URLs temporales caducan y no permiten acceso tras revocación.
+- [x] Una exportación solo contiene columnas autorizadas para su actor.
 - [ ] Existe una prueba o checklist verificable para cada categoría de dato.
 
 **Dependencias:** `T4`, `T6`, `T8`, `T23`, `T28`.  
 **Esfuerzo estimado:** 2 días.
 
-### XT-08 · Observabilidad, health checks y operación
+### XT-08 · Observabilidad, health checks y operación [✅ hecho]
 
 **Origen:** RNF operativos, `T10`, `T14`, `T23` y despliegues de desarrollo/
 producción.  
@@ -271,23 +271,23 @@ producción.
 Permitir distinguir una API viva de una API lista para autenticar, postular,
 notificar o descargar documentos.
 
-- [ ] Implementar endpoints de liveness y readiness separados.
-- [ ] Indicar dependencias degradadas: PostgreSQL, Redis, SMTP y almacenamiento.
-- [ ] Añadir métricas de latencia, errores, rate limiting, OTP, colas, storage y
+- [x] Implementar endpoints de liveness y readiness separados.
+- [x] Indicar dependencias degradadas: PostgreSQL, Redis, SMTP y almacenamiento.
+- [x] Añadir métricas de latencia, errores, rate limiting, OTP, colas, storage y
       exportaciones sin datos personales.
-- [ ] Correlacionar logs mediante `X-Request-ID`.
-- [ ] Medir fallos de migración, correo, documentos, transacciones y tareas de limpieza.
-- [ ] Definir alertas para cola de notificaciones, bajas pendientes y expiración de
+- [x] Correlacionar logs mediante `X-Request-ID`.
+- [x] Medir fallos de migración, correo, documentos, transacciones y tareas de limpieza.
+- [x] Definir alertas para cola de notificaciones, bajas pendientes y expiración de
       dependencias.
-- [ ] Documentar procedimientos para Redis caído, SMTP caído, storage caído y DB read-only.
-- [ ] Aplicar límites de tiempo a handlers y operaciones externas.
+- [x] Documentar procedimientos para Redis caído, SMTP caído, storage caído y DB read-only.
+- [x] Aplicar límites de tiempo a handlers y operaciones externas.
 
 **Criterios de aceptación**
 
-- [ ] Readiness falla cuando una dependencia obligatoria no está disponible.
-- [ ] Liveness continúa funcionando durante una dependencia degradada.
-- [ ] Las métricas no contienen cédulas, correos, tokens ni nombres.
-- [ ] Un incidente puede rastrearse desde la respuesta hasta los logs mediante request ID.
+- [x] Readiness falla cuando una dependencia obligatoria no está disponible.
+- [x] Liveness continúa funcionando durante una dependencia degradada.
+- [x] Las métricas no contienen cédulas, correos, tokens ni nombres.
+- [x] Un incidente puede rastrearse desde la respuesta hasta los logs mediante request ID.
 
 **Dependencias:** `XT-02`, `XT-05`, `XT-06`, `T10`.  
 **Esfuerzo estimado:** 2 días.

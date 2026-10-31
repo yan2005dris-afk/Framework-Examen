@@ -68,6 +68,29 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: framework_examen_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: apps/backend
@@ -91,7 +114,17 @@ jobs:
       - name: Análisis estático (go vet)
         run: go vet ./...
 
-      - name: Tests unitarios
+      - name: Tests y cobertura
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          AUDIT_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          REVIEW_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          CATALOG_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          DOCUMENT_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          AUTHORIZATION_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          SUBMISSION_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          REDIS_URL: redis://localhost:6379
         run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
 
       - name: Código generado (sqlc) al día

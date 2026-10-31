@@ -316,6 +316,8 @@ func decodeJSON(request *http.Request, target any) error {
  */
 func writeError(writer http.ResponseWriter, request *http.Request, err error) {
 	switch {
+	case errors.Is(err, ErrNotificationUnavailable):
+		httpx.RespondError(writer, request, 503, "notificacion_no_disponible", ErrNotificationUnavailable.Error())
 	case errors.Is(err, ErrInvalidCompetition):
 		httpx.RespondError(writer, request, 409, "convocatoria_no_disponible", ErrInvalidCompetition.Error())
 	case errors.Is(err, ErrForbidden):

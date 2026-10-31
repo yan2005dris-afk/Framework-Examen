@@ -85,6 +85,22 @@ type DocumentDeletion struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
+type MailOutbox struct {
+	ID            uuid.UUID          `json:"id"`
+	DedupKey      string             `json:"dedup_key"`
+	Kind          string             `json:"kind"`
+	ResourceID    pgtype.UUID        `json:"resource_id"`
+	Ciphertext    []byte             `json:"ciphertext"`
+	Status        string             `json:"status"`
+	Attempts      int32              `json:"attempts"`
+	NextAttemptAt pgtype.Timestamptz `json:"next_attempt_at"`
+	ExpiresAt     pgtype.Timestamptz `json:"expires_at"`
+	LeaseID       pgtype.UUID        `json:"lease_id"`
+	LastErrorCode string             `json:"last_error_code"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
 type PasswordReset struct {
 	ID          uuid.UUID `json:"id"`
 	ApplicantID uuid.UUID `json:"applicant_id"`

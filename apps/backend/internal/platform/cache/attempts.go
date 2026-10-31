@@ -37,6 +37,15 @@ type AttemptsStore struct {
  * @returns {*AttemptsStore} Store listo para usar.
  */
 func NewAttemptsStore(c Cache) *AttemptsStore {
+	if _, atomic := c.(ScriptCache); !atomic {
+		c = &UnavailableCache{}
+	}
+	if c == nil {
+		c = &UnavailableCache{}
+	}
+	if _, noop := c.(*NoopCache); noop {
+		c = &UnavailableCache{}
+	}
 	return &AttemptsStore{cache: c}
 }
 
@@ -49,12 +58,15 @@ func NewAttemptsStore(c Cache) *AttemptsStore {
  * @throws {error} Error de Redis.
  */
 func (s *AttemptsStore) IsLocked(ctx context.Context, cedula string) (bool, error) {
+	if s == nil {
+		return false, ErrUnavailable
+	}
 	_, err := s.cache.Get(ctx, lockoutKey(cedula))
 	if errors.Is(err, ErrNotFound) {
 		return false, nil
 	}
 	if err != nil {
-		return false, err
+		return false, ErrUnavailable
 	}
 	return true, nil
 }
@@ -72,18 +84,17 @@ func (s *AttemptsStore) IsLocked(ctx context.Context, cedula string) (bool, erro
  * @throws {error} Error de Redis.
  */
 func (s *AttemptsStore) RecordFailure(ctx context.Context, cedula string) (int64, error) {
-	count, err := s.cache.Incr(ctx, attemptsKey(cedula), LockoutDuration)
+	if s == nil {
+		return 0, ErrUnavailable
+	}
+	a, ok := s.cache.(ScriptCache)
+	if !ok {
+		return 0, ErrUnavailable
+	}
+	count, err := a.RunScript(ctx, `local n=redis.call('INCR',KEYS[1]);if n==1 then redis.call('PEXPIRE',KEYS[1],ARGV[1]) end;if n>=tonumber(ARGV[2]) then redis.call('SET',KEYS[2],'1','PX',ARGV[1]) end;return n`, []string{attemptsKey(cedula), lockoutKey(cedula)}, LockoutDuration.Milliseconds(), MaxLoginAttempts)
 	if err != nil {
-		return 0, fmt.Errorf("attempts: RecordFailure(%q): %w", cedula, err)
+		return 0, ErrUnavailable
 	}
-
-	if count >= MaxLoginAttempts {
-		// Activa el bloqueo. Si ya existía, lo renueva.
-		if err := s.cache.Set(ctx, lockoutKey(cedula), "1", LockoutDuration); err != nil {
-			return count, fmt.Errorf("attempts: activar bloqueo para %q: %w", cedula, err)
-		}
-	}
-
 	return count, nil
 }
 
@@ -96,17 +107,17 @@ func (s *AttemptsStore) RecordFailure(ctx context.Context, cedula string) (int64
  */
 func (s *AttemptsStore) ResetAttempts(ctx context.Context, cedula string) error {
 	if err := s.cache.Delete(ctx, attemptsKey(cedula)); err != nil {
-		return fmt.Errorf("attempts: ResetAttempts(%q): %w", cedula, err)
+		return ErrUnavailable
 	}
 	return nil
 }
 
 // attemptsKey devuelve la clave del contador de intentos para una cédula.
 func attemptsKey(cedula string) string {
-	return fmt.Sprintf("identity:login-attempts:%s", cedula)
+	return fmt.Sprintf("identity:auth:{%s}:attempts", digest(cedula))
 }
 
 // lockoutKey devuelve la clave de bloqueo para una cédula.
 func lockoutKey(cedula string) string {
-	return fmt.Sprintf("identity:lockout:%s", cedula)
+	return fmt.Sprintf("identity:auth:{%s}:lock", digest(cedula))
 }
