@@ -259,7 +259,9 @@ export const PROVINCIAS_ECUADOR: Record<string, string[]> = {
   ],
 }
 
-export const LISTA_PROVINCIAS = Object.keys(PROVINCIAS_ECUADOR).sort()
+export const LISTA_PROVINCIAS = Object.keys(PROVINCIAS_ECUADOR).sort((a, b) =>
+  a.localeCompare(b, "es"),
+)
 
 export const PAISES = [
   "Ecuador",
