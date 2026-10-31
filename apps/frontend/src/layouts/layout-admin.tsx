@@ -20,12 +20,16 @@ const RUTA_POR_VISTA: Record<VistaId, string> = {
   imprimir: RUTAS.postulacionImprimir,
   postulaciones: RUTAS.dashboardPostulaciones,
   reportes: RUTAS.dashboardReportes,
+  convocatorias: RUTAS.adminConvocatorias,
+  fases: RUTAS.adminFases,
 }
 
 /**
  * Deriva la entrada activa del sidebar a partir de la URL, sin estado local.
  */
 function vistaDesdeRuta(ruta: string): VistaId {
+  if (ruta.startsWith(RUTAS.adminConvocatorias)) return "convocatorias"
+  if (ruta.startsWith(RUTAS.adminFases)) return "fases"
   if (ruta.startsWith(RUTAS.dashboardReportes)) return "reportes"
   if (ruta.startsWith(RUTAS.dashboardPostulaciones)) {
     return "postulaciones"
@@ -63,6 +67,7 @@ export function LayoutAdmin() {
     <SidebarProvider>
       <AppSidebar
         administrativo
+        rol={postulante?.rol}
         vistaActual={vistaActual}
         onNavigate={(vista) => navegar(rutas[vista])}
         rutas={rutas}

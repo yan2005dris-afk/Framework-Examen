@@ -24,6 +24,8 @@ const titulos: Record<VistaId, string> = {
   imprimir: "Imprimir",
   postulaciones: "Postulaciones",
   reportes: "Reportes",
+  convocatorias: "Convocatorias",
+  fases: "Fases y cronograma",
 }
 
 type AppHeaderProps = {
