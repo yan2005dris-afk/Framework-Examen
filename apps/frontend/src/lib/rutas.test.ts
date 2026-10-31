@@ -5,6 +5,7 @@ import {
   ACCESO_POR_RUTA,
   RUTAS,
   construirRutaLogin,
+  esAdministrador,
   esAnalista,
   leerDestinoLogin,
   puedeAcceder,
@@ -38,10 +39,22 @@ const ANALISTA: PostulanteDto = {
   rol: "analista",
 }
 
+const ADMINISTRADOR: PostulanteDto = {
+  ...POSTULANTE_SIN_ROL,
+  id: "33333333-3333-7333-8333-333333333333",
+  cedula: "0102030405",
+  nombres: "Carlos",
+  apellidos: "Gómez",
+  nombre_completo: "Carlos Gómez",
+  correo: "carlos@example.com",
+  rol: "administrador",
+}
+
 describe("Rutas del portal (rutas.ts)", () => {
   describe("esAnalista", () => {
-    it("solo concede el rol cuando la sesión lo declara explícitamente", () => {
+    it("concede el rol a analistas y a administradores (herencia de privilegios)", () => {
       expect(esAnalista(ANALISTA)).toBe(true)
+      expect(esAnalista(ADMINISTRADOR)).toBe(true)
       expect(esAnalista(POSTULANTE)).toBe(false)
     })
 
@@ -49,6 +62,17 @@ describe("Rutas del portal (rutas.ts)", () => {
       expect(esAnalista(POSTULANTE_SIN_ROL)).toBe(false)
       expect(esAnalista(null)).toBe(false)
       expect(esAnalista(undefined)).toBe(false)
+    })
+  })
+
+  describe("esAdministrador", () => {
+    it("solo concede el rol de administrador a quien lo declare explícitamente", () => {
+      expect(esAdministrador(ADMINISTRADOR)).toBe(true)
+      expect(esAdministrador(ANALISTA)).toBe(false)
+      expect(esAdministrador(POSTULANTE)).toBe(false)
+      expect(esAdministrador(POSTULANTE_SIN_ROL)).toBe(false)
+      expect(esAdministrador(null)).toBe(false)
+      expect(esAdministrador(undefined)).toBe(false)
     })
   })
 
@@ -62,13 +86,23 @@ describe("Rutas del portal (rutas.ts)", () => {
       expect(puedeAcceder("con-sesion", null)).toBe(false)
       expect(puedeAcceder("con-sesion", POSTULANTE)).toBe(true)
       expect(puedeAcceder("con-sesion", ANALISTA)).toBe(true)
+      expect(puedeAcceder("con-sesion", ADMINISTRADOR)).toBe(true)
     })
 
-    it("exige rol de analista en el panel de revisión", () => {
+    it("exige rol de analista o administrador en el panel de revisión", () => {
       expect(puedeAcceder("con-rol-analista", null)).toBe(false)
       expect(puedeAcceder("con-rol-analista", POSTULANTE)).toBe(false)
       expect(puedeAcceder("con-rol-analista", POSTULANTE_SIN_ROL)).toBe(false)
       expect(puedeAcceder("con-rol-analista", ANALISTA)).toBe(true)
+      expect(puedeAcceder("con-rol-analista", ADMINISTRADOR)).toBe(true)
+    })
+
+    it("exige exclusivamente rol de administrador en las rutas admin", () => {
+      expect(puedeAcceder("con-rol-admin", null)).toBe(false)
+      expect(puedeAcceder("con-rol-admin", POSTULANTE)).toBe(false)
+      expect(puedeAcceder("con-rol-admin", POSTULANTE_SIN_ROL)).toBe(false)
+      expect(puedeAcceder("con-rol-admin", ANALISTA)).toBe(false)
+      expect(puedeAcceder("con-rol-admin", ADMINISTRADOR)).toBe(true)
     })
   })
 
@@ -85,12 +119,18 @@ describe("Rutas del portal (rutas.ts)", () => {
     it("nunca manda al postulante a una ruta que le da 403", () => {
       for (const postulante of [POSTULANTE, POSTULANTE_SIN_ROL]) {
         expect(puedeAcceder("con-rol-analista", postulante)).toBe(false)
+        expect(puedeAcceder("con-rol-admin", postulante)).toBe(false)
         expect(rutaInicial(postulante)).not.toBe(RUTAS.dashboard)
+        expect(rutaInicial(postulante)).not.toBe(RUTAS.adminConvocatorias)
       }
     })
 
     it("manda al panel al analista", () => {
       expect(rutaInicial(ANALISTA)).toBe(RUTAS.dashboard)
+    })
+
+    it("manda a convocatorias al administrador", () => {
+      expect(rutaInicial(ADMINISTRADOR)).toBe(RUTAS.adminConvocatorias)
     })
   })
 
@@ -142,8 +182,16 @@ describe("Rutas del portal (rutas.ts)", () => {
         [RUTAS.postulacion]: "con-sesion",
         [RUTAS.postulacionRevision]: "con-sesion",
         [RUTAS.postulacionImprimir]: "con-sesion",
+        [RUTAS.seguimiento]: "con-sesion",
+        [RUTAS.reconsideracion]: "con-sesion",
+        [RUTAS.evaluacion]: "con-sesion",
+        [RUTAS.evaluacionExamen]: "con-sesion",
+        [RUTAS.evaluacionResultado]: "con-sesion",
         [RUTAS.dashboard]: "con-rol-analista",
         [RUTAS.dashboardPostulaciones]: "con-rol-analista",
+        [RUTAS.adminConvocatorias]: "con-rol-admin",
+        [RUTAS.adminFases]: "con-rol-admin",
+        [RUTAS.adminPreguntas]: "con-rol-admin",
       }
 
       expect(ACCESO_POR_RUTA).toEqual(esperado)

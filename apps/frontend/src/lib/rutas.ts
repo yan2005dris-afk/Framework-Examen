@@ -5,9 +5,11 @@ import type { PostulanteDto } from "@/lib/clientes/auth"
  *
  * - `publico`: visible sin sesión.
  * - `con-sesion`: exige un postulante autenticado.
- * - `con-rol-analista`: exige sesión y `rol === "analista"`.
+ * - `con-rol-analista`: exige sesión y `rol === "analista"` o `"administrador"`.
+ * - `con-rol-admin`: exige sesión y `rol === "administrador"` (Comisión de Selección).
  */
-export type TipoAcceso = "publico" | "con-sesion" | "con-rol-analista"
+export type TipoAcceso =
+  "publico" | "con-sesion" | "con-rol-analista" | "con-rol-admin"
 
 /**
  * Rutas estáticas del portal. Las rutas con parámetros se arman con
@@ -23,6 +25,15 @@ export const RUTAS = {
   postulacionImprimir: "/postulacion/imprimir",
   dashboard: "/dashboard",
   dashboardPostulaciones: "/dashboard/postulaciones",
+  // Seguimiento, reconsideraciones y evaluación EF-14 (FT14-FT27)
+  seguimiento: "/seguimiento",
+  reconsideracion: "/reconsideracion",
+  evaluacion: "/evaluacion",
+  evaluacionExamen: "/evaluacion/examen",
+  evaluacionResultado: "/evaluacion/resultado",
+  adminConvocatorias: "/admin/convocatorias",
+  adminFases: "/admin/fases",
+  adminPreguntas: "/admin/preguntas",
 } as const
 
 /**
@@ -38,8 +49,16 @@ export const ACCESO_POR_RUTA: Record<string, TipoAcceso> = {
   [RUTAS.postulacion]: "con-sesion",
   [RUTAS.postulacionRevision]: "con-sesion",
   [RUTAS.postulacionImprimir]: "con-sesion",
+  [RUTAS.seguimiento]: "con-sesion",
+  [RUTAS.reconsideracion]: "con-sesion",
+  [RUTAS.evaluacion]: "con-sesion",
+  [RUTAS.evaluacionExamen]: "con-sesion",
+  [RUTAS.evaluacionResultado]: "con-sesion",
   [RUTAS.dashboard]: "con-rol-analista",
   [RUTAS.dashboardPostulaciones]: "con-rol-analista",
+  [RUTAS.adminConvocatorias]: "con-rol-admin",
+  [RUTAS.adminFases]: "con-rol-admin",
+  [RUTAS.adminPreguntas]: "con-rol-admin",
 }
 
 /** Ruta del formulario para una sección concreta del EF-12. */
@@ -53,16 +72,21 @@ export function rutaDetallePostulacion(id: string): string {
 }
 
 /**
- * Indica si la cuenta tiene rol de analista.
- *
- * La API ya envía `rol` en la sesión, pero el valor ausente nunca concede
- * permisos de administración: cualquier cosa distinta de `"analista"` se trata
- * como postulante.
+ * Indica si la cuenta tiene rol de analista (o superior).
  */
 export function esAnalista(
   postulante: PostulanteDto | null | undefined,
 ): boolean {
-  return postulante?.rol === "analista"
+  return postulante?.rol === "analista" || postulante?.rol === "administrador"
+}
+
+/**
+ * Indica si la cuenta tiene rol de administrador (Comisión de Selección).
+ */
+export function esAdministrador(
+  postulante: PostulanteDto | null | undefined,
+): boolean {
+  return postulante?.rol === "administrador"
 }
 
 /**
@@ -78,6 +102,9 @@ export function puedeAcceder(
   if (!sesion) {
     return false
   }
+  if (acceso === "con-rol-admin") {
+    return esAdministrador(sesion)
+  }
   if (acceso === "con-rol-analista") {
     return esAnalista(sesion)
   }
@@ -87,14 +114,16 @@ export function puedeAcceder(
 /**
  * Ruta inicial sugerida después de autenticarse.
  *
- * El analista entra al panel y el postulante entra al formulario del EF-12.
- * Mientras no exista una vista propia de "mis postulaciones", el formulario es
- * la casa del postulante aunque ya tenga un envío: `/dashboard` exige rol de
- * analista, así que mandarlo ahí provocaría un `403`.
+ * - Administrador -> Panel de convocatorias y fases.
+ * - Analista -> Dashboard de postulaciones.
+ * - Postulante -> Formulario EF-12.
  */
 export function rutaInicial(postulante: PostulanteDto | null): string {
   if (!postulante) {
     return RUTAS.login
+  }
+  if (esAdministrador(postulante)) {
+    return RUTAS.adminConvocatorias
   }
   if (esAnalista(postulante)) {
     return RUTAS.dashboard

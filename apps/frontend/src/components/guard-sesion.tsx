@@ -37,7 +37,11 @@ export function GuardSesion({ acceso, children }: GuardSesionProps) {
       const destino = `${ubicacion.pathname}${ubicacion.search}`
       return <Navigate to={construirRutaLogin(destino)} replace />
     }
-    return <SinPermisoView />
+    return (
+      <SinPermisoView
+        rolRequerido={acceso === "con-rol-admin" ? "administrador" : "analista"}
+      />
+    )
   }
 
   return <>{children}</>
