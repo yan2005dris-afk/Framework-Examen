@@ -137,9 +137,17 @@ export async function obtenerPostulaciones(
 | `/postulacion/:seccion` | Sección concreta | Con sesión |
 | `/postulacion/revision` | Revisión antes de enviar | Con sesión |
 | `/postulacion/imprimir` | Vista imprimible (HU-11) | Con sesión |
-| `/dashboard` | Panel del analista | Con rol |
-| `/dashboard/postulaciones` | Listado de revisión | Con rol |
-| `/dashboard/postulaciones/:id` | Detalle | Con rol |
+| `/seguimiento` | Seguimiento de fases y resultados (FT22) | Con sesión |
+| `/reconsideracion` | Reconsideraciones (FT21) | Con sesión |
+| `/evaluacion` | Portal evaluación técnica EF-14 (FT25) | Con sesión |
+| `/evaluacion/examen` | Examen interactivo EF-14 (FT26) | Con sesión |
+| `/evaluacion/resultado` | Resultados evaluación EF-14 (FT27) | Con sesión |
+| `/dashboard` | Panel del analista | Con rol analista |
+| `/dashboard/postulaciones` | Listado de revisión | Con rol analista |
+| `/dashboard/postulaciones/:id` | Detalle | Con rol analista |
+| `/admin/convocatorias` | Gestión de convocatorias (FT15) | Con rol admin |
+| `/admin/fases` | Fases y cronograma (FT15) | Con rol admin |
+| `/admin/preguntas` | Banco de preguntas EF-14 (FT24) | Con rol admin |
 | `*` | 404 | Público |
 
 **Criterios de aceptación**
@@ -153,9 +161,9 @@ export async function obtenerPostulaciones(
 - [x] El guard muestra un estado de carga mientras consulta la sesión, sin
       parpadeo de la pantalla de login.
 - [x] La navegación interna no recarga la página.
-- [ ] Extender permisos al rol `administrador` (Comisión de Selección) y distinguirlo
+- [x] Extender permisos al rol `administrador` (Comisión de Selección) y distinguirlo
       del analista; mantener el rechazo de acceso cuando falte autorización (T6).
-- [ ] Añadir rutas de convocatoria, fases, méritos, reconsideraciones y EF-14 según
+- [x] Añadir rutas de convocatoria, fases, méritos, reconsideraciones y EF-14 según
       FT14–FT27. La admisión a examen exige elegibilidad y horario del servidor.
 
 

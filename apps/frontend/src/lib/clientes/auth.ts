@@ -3,8 +3,11 @@ import type { RespuestaMensaje } from "@/types/api"
 
 /**
  * Rol de la cuenta dentro del portal.
+ * - `postulante`: postulante al concurso EF-12.
+ * - `analista`: revisor de postulaciones (Talento Humano).
+ * - `administrador`: Comisión de Selección (gestión de convocatorias, fases y banco EF-14).
  */
-export type RolPostulante = "postulante" | "analista"
+export type RolPostulante = "postulante" | "analista" | "administrador"
 
 /**
  * Datos del postulante devueltos por la sesión o el registro.
