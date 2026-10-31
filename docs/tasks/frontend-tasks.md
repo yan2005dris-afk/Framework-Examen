@@ -232,10 +232,10 @@ export async function obtenerPostulaciones(
 | Hooks | `src/features/<contexto>/queries.ts` | `usePostulaciones`, `useGuardarSeccion`, … |
 | Estados | `src/components/estados/` | `Cargando`, `Vacio`, `Error` reutilizables |
 
-- [ ] Cada vista maneja **loading / success / error** de forma uniforme.
-- [ ] Los errores de red se reintentan con retroceso exponencial; los 4xx no.
-- [ ] El caché de React Query invalida la postulación tras guardar.
-- [ ] Un `toast` (sonner) informa del resultado de cada acción.
+- [x] Cada vista maneja **loading / success / error** de forma uniforme.
+- [x] Los errores de red se reintentan con retroceso exponencial; los 4xx no.
+- [x] El caché de React Query invalida la postulación tras guardar.
+- [x] Un `toast` (sonner) informa del resultado de cada acción.
 
 **Esfuerzo estimado**: 1,5 días.
 
