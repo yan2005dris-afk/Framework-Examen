@@ -38,6 +38,7 @@ services:
       APP_ENV: production
       PORT: "8080"
       DATABASE_URL: ${DATABASE_URL:?define DATABASE_URL en deploy/.env}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       DB_REQUIRED: "true"
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       STORAGE_DIR: /app/data
@@ -53,6 +54,8 @@ services:
       - api-data:/app/data
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       # La imagen es distroless: no hay shell ni curl, así que el propio
@@ -82,6 +85,19 @@ services:
       timeout: 5s
       retries: 10
 
+
+  redis:
+    image: redis:7-alpine
+    container_name: biess-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 volumes:
+  redis-data:
   postgres-data:
   api-data:

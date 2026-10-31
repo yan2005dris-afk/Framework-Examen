@@ -1,7 +1,7 @@
-# Compose de DESARROLLO. El de producci贸n vive en deploy/.
+# Compose de DESARROLLO. El de producci髇 vive en deploy/.
 #
-# Cada servicio declara 煤nicamente su Dockerfile: el contexto es la carpeta
-# donde vive ese Dockerfile y no hay pasos de build en l铆nea.
+# Cada servicio declara 鷑icamente su Dockerfile: el contexto es la carpeta
+# donde vive ese Dockerfile y no hay pasos de build en l韓ea.
 
 services:
   frontend:
@@ -12,14 +12,14 @@ services:
     container_name: biess-frontend
     restart: unless-stopped
     environment:
-      # Vite reenv铆a /api a la API Go: el navegador ve un solo origen.
+      # Vite reenv韆 /api a la API Go: el navegador ve un solo origen.
       VITE_DEV_API_TARGET: http://api:8080
     ports:
       - "5173:5173"
     depends_on:
       - api
     volumes:
-      # El c贸digo se monta para recargar al vuelo; node_modules vive en la
+      # El c骴igo se monta para recargar al vuelo; node_modules vive en la
       # imagen para no perder las dependencias instaladas.
       - ./apps/frontend/src:/app/apps/frontend/src
       - ./apps/frontend/public:/app/apps/frontend/public
@@ -42,9 +42,10 @@ services:
       APP_ENV: development
       PORT: "8080"
       DATABASE_URL: postgres://postgres@postgres:5432/biess?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
       CORS_ALLOWED_ORIGINS: http://localhost:5173
       LOG_LEVEL: info
-      # Correo: Mailpit captura todo lo que env铆a la API.
+      # Correo: Mailpit captura todo lo que env韆 la API.
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_FROM: no-reply@biess.local
@@ -52,6 +53,8 @@ services:
       - "8080:8080"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       mailpit:
         condition: service_started
@@ -65,13 +68,13 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DB: biess
-      # Solo para desarrollo: la base local no pide contrase帽a. En producci贸n
-      # la contrase帽a llega por variable de entorno.
+      # Solo para desarrollo: la base local no pide contrase馻. En producci髇
+      # la contrase馻 llega por variable de entorno.
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5432:5432"
     volumes:
-      # PostgreSQL 18 usa un directorio por versi贸n mayor
+      # PostgreSQL 18 usa un directorio por versi髇 mayor
       # (/var/lib/postgresql/18/docker). El montaje va en /var/lib/postgresql
       # y no en .../data, que es lo que exige la imagen desde la 18.
       - postgres-data:/var/lib/postgresql
@@ -91,6 +94,21 @@ services:
     volumes:
       - mailpit-data:/data
 
+
+  redis:
+    image: redis:7-alpine
+    container_name: biess-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 volumes:
   postgres-data:
   mailpit-data:
+  redis-data:
