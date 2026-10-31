@@ -12,6 +12,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/cache"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/config"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/db"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/httpx"
@@ -23,8 +24,8 @@ import (
 )
 
 /**
- * main arma la aplicación: configuración, base de datos, contextos y servidor
- * HTTP con apagado ordenado.
+ * main arma la aplicación: configuración, base de datos, Redis, contextos y
+ * servidor HTTP con apagado ordenado.
  */
 func main() {
 	// La imagen de producción es distroless: no hay shell ni curl, así que el
@@ -45,6 +46,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// ── Base de datos ────────────────────────────────────────────────────────
 	var pool *pgxpool.Pool
 	if cfg.DatabaseURL != "" {
 		pool, err = db.Connect(ctx, cfg.DatabaseURL)
@@ -68,6 +70,28 @@ func main() {
 		log.Warn("DATABASE_URL no está configurada: la API arranca solo con los healthchecks")
 	}
 
+	// ── Redis (fail-open) ────────────────────────────────────────────────────
+	// Si Redis no está disponible la API arranca en modo degradado: el rate
+	// limiting y la caché de catálogos quedan desactivados, pero el resto
+	// de la aplicación funciona con normalidad.
+	var cacheClient cache.Cache
+	if cfg.RedisURL != "" {
+		redisClient, redisErr := cache.NewRedis(ctx, cfg.RedisURL)
+		if redisErr != nil {
+			log.Warn("no se pudo conectar a Redis: la API arranca sin caché ni rate limiting", "error", redisErr)
+			cacheClient = &cache.NoopCache{}
+		} else {
+			defer redisClient.Close()
+			cacheClient = redisClient
+			log.Info("Redis conectado", "url", cfg.RedisURL)
+		}
+	} else {
+		log.Warn("REDIS_URL no está configurada: la API arranca sin caché ni rate limiting")
+		cacheClient = &cache.NoopCache{}
+	}
+	_ = cacheClient // se usará en los contextos de identidad y catálogos (T2)
+
+	// ── Router y contextos ───────────────────────────────────────────────────
 	router := httpx.NewRouter(httpx.RouterDependencies{
 		Logger:  log,
 		Pool:    pool,
@@ -84,6 +108,7 @@ func main() {
 		log.Warn("sin base de datos: no se registran las rutas de postulaciones")
 	}
 
+	// ── Middleware ───────────────────────────────────────────────────────────
 	handler := httpx.RequestID(
 		httpx.Recover(
 			httpx.Logging(
@@ -95,6 +120,7 @@ func main() {
 		),
 	)
 
+	// ── Servidor HTTP ────────────────────────────────────────────────────────
 	server := &http.Server{
 		Addr:         cfg.Address(),
 		Handler:      handler,

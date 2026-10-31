@@ -23,6 +23,7 @@ type Config struct {
 	PublicURL        string
 	DatabaseURL      string
 	DatabaseRequired bool
+	RedisURL         string
 	StorageDir       string
 	CORSOrigins      []string
 	SessionTTL       time.Duration
@@ -104,6 +105,7 @@ func Load() (Config, error) {
 		PublicURL:        getString("APP_URL", "http://localhost:5173"),
 		DatabaseURL:      getString("DATABASE_URL", ""),
 		DatabaseRequired: databaseRequired,
+		RedisURL:         getString("REDIS_URL", ""),
 		StorageDir:       getString("STORAGE_DIR", "./data/uploads"),
 		CORSOrigins:      getList("CORS_ALLOWED_ORIGINS", []string{"http://localhost:5173"}),
 		SessionTTL:       sessionTTL,
