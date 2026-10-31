@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/audit"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
 	"io"
 	"log/slog"
@@ -36,6 +37,7 @@ type Service struct {
 	repo    Repository
 	storage Storage
 	now     func() time.Time
+	auditor audit.Recorder
 }
 
 /** NewService inyecta los puertos de documentos.

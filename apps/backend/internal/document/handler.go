@@ -25,10 +25,42 @@ func NewHandler(service *Service) *Handler { return &Handler{service: service} }
  * @param {chi.Router} router - Grupo protegido por RequireSession.
  */
 func (h *Handler) RegisterRoutes(router chi.Router) {
+	router.With(identity.RequirePermission(identity.PermissionDocuments)).Get("/api/v1/admin/submissions/{id}/documents", h.listForReview)
+	router.With(identity.RequirePermission(identity.PermissionDocuments)).Get("/api/v1/admin/documents/{id}/download", h.downloadForReview)
 	router.Post("/api/v1/submissions/{id}/documents", h.upload)
 	router.Get("/api/v1/submissions/{id}/documents", h.list)
 	router.Delete("/api/v1/documents/{id}", h.delete)
 	router.Get("/api/v1/documents/{id}/download", h.download)
+}
+
+func (h *Handler) listForReview(w http.ResponseWriter, r *http.Request) {
+	_, id, ok := requestIdentity(w, r)
+	if !ok {
+		return
+	}
+	actor, _ := identity.ApplicantFromContext(r.Context())
+	items, err := h.service.ListForReview(r.Context(), actor, id)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	httpx.Respond(w, r, 200, items)
+}
+
+func (h *Handler) downloadForReview(w http.ResponseWriter, r *http.Request) {
+	_, id, ok := requestIdentity(w, r)
+	if !ok {
+		return
+	}
+	actor, _ := identity.ApplicantFromContext(r.Context())
+	result, err := h.service.DownloadForReview(r.Context(), actor, id)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	httpx.Respond(w, r, 200, result)
 }
 
 func requestIdentity(w http.ResponseWriter, r *http.Request) (uuid.UUID, uuid.UUID, bool) {
@@ -163,7 +195,7 @@ func writeError(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, submission.ErrNotFound):
 		httpx.RespondError(w, r, 404, "postulacion_no_encontrada", submission.ErrNotFound.Error())
 	case errors.Is(err, submission.ErrForbidden):
-		httpx.RespondError(w, r, 403, "acceso_denegado", "La postulación pertenece a otro postulante.")
+		httpx.RespondError(w, r, 403, "acceso_denegado", "No tiene permiso para acceder a esta postulación.")
 	case errors.Is(err, submission.ErrNotEditable):
 		httpx.RespondError(w, r, 409, "postulacion_no_editable", submission.ErrNotEditable.Error())
 	case errors.Is(err, ErrNotFound):

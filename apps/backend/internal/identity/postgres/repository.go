@@ -21,7 +21,8 @@ import (
  * utilizando sqlc sobre PostgreSQL.
  */
 type Repository struct {
-	queries *sqlcgen.Queries
+	queries      *sqlcgen.Queries
+	transactions *db.TxManager
 }
 
 /**
@@ -30,8 +31,12 @@ type Repository struct {
  * @param {*sqlcgen.Queries} queries - Consultas tipadas de sqlc.
  * @returns {*Repository} Repositorio listo para usar.
  */
-func NewRepository(queries *sqlcgen.Queries) *Repository {
-	return &Repository{queries: queries}
+func NewRepository(queries *sqlcgen.Queries, managers ...*db.TxManager) *Repository {
+	r := &Repository{queries: queries}
+	if len(managers) > 0 {
+		r.transactions = managers[0]
+	}
+	return r
 }
 
 // ── ApplicantRepository ──────────────────────────────────────────────────────

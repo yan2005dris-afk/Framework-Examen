@@ -17,6 +17,12 @@ sql:
         # Los UUID y las fechas se mapean a tipos nativos de Go para que los
         # adaptadores no tengan que desempaquetar pgtype en cada lectura.
         overrides:
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "administrative_access_events.created_at"
+            go_type: "time.Time"
           - column: "applicants.id"
             go_type:
               import: "github.com/google/uuid"

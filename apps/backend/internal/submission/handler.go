@@ -41,6 +41,7 @@ func NewHandler(service *Service) *Handler {
  * @param {chi.Router} router - Router raíz de la API.
  */
 func (h *Handler) RegisterRoutes(router chi.Router) {
+	router.With(identity.RequirePermission(identity.PermissionReview)).Get("/api/v1/admin/submissions/{id}", h.review)
 	router.Route("/api/v1/submissions", func(r chi.Router) {
 		r.Get("/form-definition", h.definition)
 		r.Post("/", h.create)
@@ -54,6 +55,23 @@ func (h *Handler) RegisterRoutes(router chi.Router) {
 			r.Post("/submit", h.submit)
 		})
 	})
+}
+
+/** review entrega el expediente sellado por una ruta administrativa separada. */
+func (h *Handler) review(w http.ResponseWriter, r *http.Request) {
+	actor, _ := identity.ApplicantFromContext(r.Context())
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, r, ErrInvalidIdentifier)
+		return
+	}
+	item, err := h.service.GetForReview(r.Context(), actor, id)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	httpx.Respond(w, r, http.StatusOK, NewResponse(item))
 }
 
 /** definition entrega los mismos catálogos y literales usados en la validación.
@@ -298,7 +316,7 @@ func decodeJSON(request *http.Request, target any) error {
 func writeError(writer http.ResponseWriter, request *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrForbidden):
-		httpx.RespondError(writer, request, http.StatusForbidden, "acceso_denegado", "La postulación pertenece a otro postulante.")
+		httpx.RespondError(writer, request, http.StatusForbidden, "acceso_denegado", "No tiene permiso para acceder a esta postulación.")
 	case errors.Is(err, ErrBusinessRule):
 		httpx.RespondError(writer, request, http.StatusUnprocessableEntity, "regla_de_negocio", err.Error())
 	case errors.Is(err, ErrInvalidSection):

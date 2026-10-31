@@ -17,7 +17,7 @@ INSERT INTO applicants (
     id, cedula, nombres, apellidos, correo, password_hash, metodo_validacion, is_verified, role, fecha_registro
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, now()
-) RETURNING id, cedula, nombres, apellidos, correo, password_hash, is_verified, metodo_validacion, fecha_registro, created_at, updated_at, role
+) RETURNING id, cedula, nombres, apellidos, correo, metodo_validacion, fecha_registro, created_at, updated_at, password_hash, is_verified, role
 `
 
 type CreateApplicantParams struct {
@@ -51,12 +51,12 @@ func (q *Queries) CreateApplicant(ctx context.Context, arg CreateApplicantParams
 		&i.Nombres,
 		&i.Apellidos,
 		&i.Correo,
-		&i.PasswordHash,
-		&i.IsVerified,
 		&i.MetodoValidacion,
 		&i.FechaRegistro,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordHash,
+		&i.IsVerified,
 		&i.Role,
 	)
 	return i, err
@@ -166,7 +166,7 @@ func (q *Queries) DeleteSessionsByApplicantID(ctx context.Context, applicantID u
 }
 
 const getApplicantByCedula = `-- name: GetApplicantByCedula :one
-SELECT id, cedula, nombres, apellidos, correo, password_hash, is_verified, metodo_validacion, fecha_registro, created_at, updated_at, role FROM applicants
+SELECT id, cedula, nombres, apellidos, correo, metodo_validacion, fecha_registro, created_at, updated_at, password_hash, is_verified, role FROM applicants
 WHERE cedula = $1 LIMIT 1
 `
 
@@ -179,19 +179,19 @@ func (q *Queries) GetApplicantByCedula(ctx context.Context, cedula string) (Appl
 		&i.Nombres,
 		&i.Apellidos,
 		&i.Correo,
-		&i.PasswordHash,
-		&i.IsVerified,
 		&i.MetodoValidacion,
 		&i.FechaRegistro,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordHash,
+		&i.IsVerified,
 		&i.Role,
 	)
 	return i, err
 }
 
 const getApplicantByEmail = `-- name: GetApplicantByEmail :one
-SELECT id, cedula, nombres, apellidos, correo, password_hash, is_verified, metodo_validacion, fecha_registro, created_at, updated_at, role FROM applicants
+SELECT id, cedula, nombres, apellidos, correo, metodo_validacion, fecha_registro, created_at, updated_at, password_hash, is_verified, role FROM applicants
 WHERE correo = $1 LIMIT 1
 `
 
@@ -204,19 +204,19 @@ func (q *Queries) GetApplicantByEmail(ctx context.Context, correo string) (Appli
 		&i.Nombres,
 		&i.Apellidos,
 		&i.Correo,
-		&i.PasswordHash,
-		&i.IsVerified,
 		&i.MetodoValidacion,
 		&i.FechaRegistro,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordHash,
+		&i.IsVerified,
 		&i.Role,
 	)
 	return i, err
 }
 
 const getApplicantByID = `-- name: GetApplicantByID :one
-SELECT id, cedula, nombres, apellidos, correo, password_hash, is_verified, metodo_validacion, fecha_registro, created_at, updated_at, role FROM applicants
+SELECT id, cedula, nombres, apellidos, correo, metodo_validacion, fecha_registro, created_at, updated_at, password_hash, is_verified, role FROM applicants
 WHERE id = $1 LIMIT 1
 `
 
@@ -229,12 +229,12 @@ func (q *Queries) GetApplicantByID(ctx context.Context, id uuid.UUID) (Applicant
 		&i.Nombres,
 		&i.Apellidos,
 		&i.Correo,
-		&i.PasswordHash,
-		&i.IsVerified,
 		&i.MetodoValidacion,
 		&i.FechaRegistro,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordHash,
+		&i.IsVerified,
 		&i.Role,
 	)
 	return i, err
