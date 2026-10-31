@@ -1,20 +1,51 @@
 # Dependencias
 node_modules/
 .pnpm-store/
+.vite/
 
-# Builds
+# Lockfiles de otros gestores. Este proyecto usa pnpm, asi que pnpm-lock.yaml
+# SI se versiona (reproducibilidad de instalaciones).
+package-lock.json
+yarn.lock
+bun.lockb
+bun.lock
+
+# Builds y cobertura
 dist/
 dist-ssr/
 build/
+coverage/
+*.tsbuildinfo
 
 # Go
 apps/backend/bin/
 *.exe
 
-# Secretos — nunca versionar (solo .env.example)
+# Secretos y credenciales — nunca versionar (solo .env.example)
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+
+# Documentos y adjuntos. Los postulantes suben titulos, certificados y
+# documentos de identidad: contienen datos personales y no van al repositorio.
+apps/backend/data/
+data/uploads/
+uploads/
+storage/
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+# Mockup original: referencia local durante la migracion de vistas.
+# Se elimina del equipo cuando termine; no se versiona.
+mockups/
 
 # Logs
 logs
