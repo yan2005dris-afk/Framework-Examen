@@ -18,27 +18,36 @@ const DefaultMaxBodyBytes int64 = 10 * 1024 * 1024
  * Config agrupa la configuración de la aplicación leída desde el entorno.
  */
 type Config struct {
-	Environment      string
-	Port             int
-	PublicURL        string
-	DatabaseURL      string
-	DatabaseRequired bool
-	RedisURL         string
-	StorageDir       string
-	CORSOrigins      []string
-	SessionTTL       time.Duration
-	ReadTimeout      time.Duration
-	WriteTimeout     time.Duration
-	IdleTimeout      time.Duration
-	RequestTimeout   time.Duration
-	MaxBodyBytes     int64
-	Version          string
-	SMTPHost         string
-	SMTPPort         int
-	SMTPUser         string
-	SMTPPassword     string
-	SMTPFrom         string
-	SMTPUseTLS       bool
+	Environment       string
+	Port              int
+	PublicURL         string
+	DatabaseURL       string
+	DatabaseRequired  bool
+	RedisURL          string
+	StorageDir        string
+	StorageDriver     string
+	StoragePublicURL  string
+	StorageSigningKey string
+	S3Endpoint        string
+	S3PublicEndpoint  string
+	S3Region          string
+	S3AccessKey       string
+	S3SecretKey       string
+	S3SessionToken    string
+	CORSOrigins       []string
+	SessionTTL        time.Duration
+	ReadTimeout       time.Duration
+	WriteTimeout      time.Duration
+	IdleTimeout       time.Duration
+	RequestTimeout    time.Duration
+	MaxBodyBytes      int64
+	Version           string
+	SMTPHost          string
+	SMTPPort          int
+	SMTPUser          string
+	SMTPPassword      string
+	SMTPFrom          string
+	SMTPUseTLS        bool
 }
 
 /**
@@ -100,27 +109,36 @@ func Load() (Config, error) {
 	}
 
 	return Config{
-		Environment:      getString("APP_ENV", "development"),
-		Port:             port,
-		PublicURL:        getString("APP_URL", "http://localhost:5173"),
-		DatabaseURL:      getString("DATABASE_URL", ""),
-		DatabaseRequired: databaseRequired,
-		RedisURL:         getString("REDIS_URL", ""),
-		StorageDir:       getString("STORAGE_DIR", "./data/uploads"),
-		CORSOrigins:      getList("CORS_ALLOWED_ORIGINS", []string{"http://localhost:5173"}),
-		SessionTTL:       sessionTTL,
-		ReadTimeout:      readTimeout,
-		WriteTimeout:     writeTimeout,
-		IdleTimeout:      idleTimeout,
-		RequestTimeout:   requestTimeout,
-		MaxBodyBytes:     maxBodyBytes,
-		Version:          getString("APP_VERSION", "dev"),
-		SMTPHost:         getString("SMTP_HOST", ""),
-		SMTPPort:         smtpPort,
-		SMTPUser:         getString("SMTP_USER", ""),
-		SMTPPassword:     getString("SMTP_PASSWORD", ""),
-		SMTPFrom:         getString("SMTP_FROM", "no-reply@biess.local"),
-		SMTPUseTLS:       smtpUseTLS,
+		Environment:       getString("APP_ENV", "development"),
+		Port:              port,
+		PublicURL:         getString("APP_URL", "http://localhost:5173"),
+		DatabaseURL:       getString("DATABASE_URL", ""),
+		DatabaseRequired:  databaseRequired,
+		RedisURL:          getString("REDIS_URL", ""),
+		StorageDir:        getString("STORAGE_DIR", "./data/uploads"),
+		StorageDriver:     getString("STORAGE_DRIVER", "s3"),
+		StoragePublicURL:  getString("STORAGE_PUBLIC_URL", ""),
+		StorageSigningKey: getString("STORAGE_SIGNING_KEY", ""),
+		S3Endpoint:        getString("S3_ENDPOINT", ""),
+		S3PublicEndpoint:  getString("S3_PUBLIC_ENDPOINT", ""),
+		S3Region:          getString("S3_REGION", "us-east-1"),
+		S3AccessKey:       getString("S3_ACCESS_KEY", ""),
+		S3SecretKey:       getString("S3_SECRET_KEY", ""),
+		S3SessionToken:    getString("S3_SESSION_TOKEN", ""),
+		CORSOrigins:       getList("CORS_ALLOWED_ORIGINS", []string{"http://localhost:5173"}),
+		SessionTTL:        sessionTTL,
+		ReadTimeout:       readTimeout,
+		WriteTimeout:      writeTimeout,
+		IdleTimeout:       idleTimeout,
+		RequestTimeout:    requestTimeout,
+		MaxBodyBytes:      maxBodyBytes,
+		Version:           getString("APP_VERSION", "dev"),
+		SMTPHost:          getString("SMTP_HOST", ""),
+		SMTPPort:          smtpPort,
+		SMTPUser:          getString("SMTP_USER", ""),
+		SMTPPassword:      getString("SMTP_PASSWORD", ""),
+		SMTPFrom:          getString("SMTP_FROM", "no-reply@biess.local"),
+		SMTPUseTLS:        smtpUseTLS,
 	}, nil
 }
 

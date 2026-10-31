@@ -68,6 +68,7 @@ Desde `apps/frontend/` también funcionan `pnpm dev`, `pnpm build`, `pnpm lint`,
 
 - `make help` — lista los targets disponibles
 - `make run` — API en desarrollo (puerto 8080)
+- `go run ./cmd/api storage` — servidor local de objetos (8081); comparte `STORAGE_DIR`, `STORAGE_PUBLIC_URL` y `STORAGE_SIGNING_KEY` con la API
 - `make docker-up` / `make docker-down` — PostgreSQL local en Docker
 - `make db-migrate` / `make db-status` / `make db-down` / `make db-reset` — migraciones goose
 - `make sqlc-generate` — regenera `internal/platform/sqlcgen` desde `sql/queries`
@@ -105,7 +106,7 @@ pnpm dlx shadcn@latest add <componente> --overwrite  # regenerar sobreescribiend
 - `internal/platform/` — transversal: `config`, `db`, `httpx`, `logger`, `mail`, `storage`, `sqlcgen`
 - `internal/shared/domain/` — kernel compartido: errores base y paginación
 - `internal/<contexto>/` — **un bounded context por carpeta** (screaming architecture):
-  `identity/`, `submission/`, …
+  `identity/`, `submission/`, `document/`, …
 - `internal/<contexto>/<capacidad>/` — cada capacidad trae `service.go` (casos de uso),
   `handler.go` (adaptador HTTP), `repository.go` (puerto), `dto.go`, `errors.go` y
   `postgres/` (adaptador de persistencia)
@@ -278,3 +279,6 @@ decisión que afecte cómo se trabaja en el repo.
 
 | 2026-10-31 | EF-12 tipado con JSON compatible con frontend, guardado parcial por sección y sello con bloqueo de fila | Los borradores admiten campos pendientes; el envío exige las nueve secciones y cinco consentimientos. `SELECT FOR UPDATE` serializa cambios y envío; el hash canoniza objetos anidados. |
 | 2026-10-31 | Confirmación SMTP posterior al commit del envío | Un fallo de correo no deshace un sello confirmado. El destinatario es la cuenta registrada; los reintentos persistentes quedan para T15. |
+
+| 2026-10-31 | Documentos PDF con cuota por postulante y referencia confirmada en la misma transacción | Bloquear postulante y luego postulación serializa la cuota de 50 MiB entre todas sus postulaciones; el envío verifica cada respaldo y sella su SHA-256. |
+| 2026-10-31 | Descargas temporales desde servidor local separado o S3; cola persistente de bajas | La API no hace proxy de PDFs. El modo local firma URLs HMAC de cinco minutos; S3 usa SigV4. Los borrados y las cascadas generan tareas reintentables dentro de PostgreSQL. |

@@ -10,7 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/document"
+	documentpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/document/postgres"
 
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
 	identitypostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity/postgres"
@@ -21,6 +24,7 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/logger"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/mail"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/storage"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
 	submissionnotification "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/notification"
 	submissionpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/postgres"
@@ -143,8 +147,27 @@ func main() {
 				Applicants: identityRepo,
 			}
 		}
-		submissionService := submission.NewService(submissionRepository, submissionNotifier)
-		submission.NewHandler(submissionService).RegisterRoutes(router)
+		var objects document.Storage
+		switch cfg.StorageDriver {
+		case "local":
+			objects, err = storage.NewSignedLocal(cfg.StorageDir, cfg.StoragePublicURL, cfg.StorageSigningKey)
+		case "s3":
+			objects, err = storage.NewS3(storage.S3Config{Endpoint: cfg.S3Endpoint, PublicEndpoint: cfg.S3PublicEndpoint, Region: cfg.S3Region, AccessKey: cfg.S3AccessKey, SecretKey: cfg.S3SecretKey, SessionToken: cfg.S3SessionToken})
+		default:
+			err = fmt.Errorf("STORAGE_DRIVER debe ser local o s3")
+		}
+		if err != nil {
+			log.Error("no se pudo configurar el almacenamiento", "error", err)
+			os.Exit(1)
+		}
+		documentService := document.NewService(documentpostgres.NewRepository(pool, db.NewTxManager(pool)), objects)
+		submissionService := submission.NewService(submissionRepository, submissionNotifier).WithDocuments(documentService)
+		router.Group(func(r chi.Router) {
+			r.Use(identity.RequireSession(identityService))
+			submission.NewHandler(submissionService).RegisterRoutes(r)
+			document.NewHandler(documentService).RegisterRoutes(r)
+		})
+		go cleanupDocuments(ctx, documentService)
 	} else {
 		log.Warn("sin base de datos: no se registran las rutas de autenticación ni postulaciones")
 	}

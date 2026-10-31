@@ -73,8 +73,10 @@ type PositionSection struct {
 	Document           *DocumentReference `json:"documentoRespaldoPdf,omitempty"`
 }
 
-/** DocumentReference conserva metadatos del cliente; T4 verificará el archivo. */
+/** DocumentReference vincula el respaldo; el envío verifica y normaliza sus metadatos. */
 type DocumentReference struct {
+	ID         string `json:"id,omitempty"`
+	SHA256     string `json:"sha256,omitempty"`
 	Name       string `json:"nombre"`
 	Size       string `json:"tamano"`
 	UploadedAt string `json:"fechaSubida,omitempty"`

@@ -122,7 +122,7 @@ apps/
 │   │   ├── shared/domain/        # kernel compartido: errores base y paginación
 │   │   ├── identity/             # bounded context: postulante y cédula (resto pendiente)
 │   │   ├── submission/           # bounded context: formulario EF-12 ✅
-│   │   ├── document/             # bounded context: adjuntos PDF (pendiente)
+│   │   ├── document/             # bounded context: adjuntos PDF
 │   │   ├── catalog/              # bounded context: catálogos geográficos (pendiente)
 │   │   └── review/               # bounded context: administración y dashboard (pendiente)
 │   ├── sql/
@@ -404,8 +404,10 @@ transacciones.
 | Descarga | URL prefirmada de corta duración; la API nunca hace proxy del binario |
 
 En desarrollo, `internal/platform/storage` permite un backend local en disco
-para no depender de MinIO; la interfaz es la misma, así que el cambio es de un
-adaptador.
+para no depender de MinIO. El comando `go run ./cmd/api storage` ejecuta un
+servidor separado que entrega únicamente URLs HMAC temporales; la API no sirve
+el binario. El adaptador S3 usa endpoints con bucket incluido y firma SigV4.
+La configuración y los permisos se detallan en `api-contracts/API_CONTRACT.md`.
 
 ---
 

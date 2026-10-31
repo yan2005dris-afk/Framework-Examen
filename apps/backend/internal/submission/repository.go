@@ -18,5 +18,5 @@ type Repository interface {
 	ListByApplicantCursor(ctx context.Context, applicantID uuid.UUID, before time.Time, beforeID uuid.UUID, limit int) ([]*Submission, error)
 	Update(ctx context.Context, item *Submission) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	Mutate(ctx context.Context, id uuid.UUID, change func(*Submission) error) (*Submission, error)
+	Mutate(ctx context.Context, id uuid.UUID, change func(context.Context, *Submission) error) (*Submission, error)
 }

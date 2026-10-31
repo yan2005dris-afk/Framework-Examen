@@ -11,7 +11,7 @@ Contrato HTTP v1.0
 | TRD asociado | [`../trd/TRD.md`](../trd/TRD.md) |
 
 > **Estado**: este documento describe el contrato **vigente** (el contexto
-> `submission` y los endpoints transversales) y **anticipa** el de los contextos
+> `submission`, `document` y los endpoints transversales) y **anticipa** el de los contextos
 > que faltan. Los endpoints marcados como *planificado* todavía no existen en
 > el servidor: su forma está declarada para que el frontend y el backend se
 > desarrollen en paralelo sin sorpresas.
@@ -433,8 +433,9 @@ declarado por el cliente. Se valida la regla y se rechaza el estado negativo
 con el mensaje del RF, pero **todavía no se consulta al IESS**. Del mismo modo,
 `verificadoRegistroCivil` no acredita una consulta al Registro Civil. El catálogo
 geográfico replica la referencia local del frontend; su persistencia y caché
-corresponden a T7. Los metadatos `documentoPdf`/`documentoRespaldoPdf` no prueban
-que exista un archivo: la carga, obligatoriedad y validación real corresponden a T4.
+corresponden a T7. Los respaldos se cargan mediante el contexto `document` (sección 4.3). Al enviar,
+se comprueban sus identificadores y se normalizan sus metadatos desde PostgreSQL;
+un nombre y tamaño declarados por el cliente no acreditan un archivo.
 
 ### 4.2 `POST /api/v1/submissions/{id}/submit`
 
@@ -492,13 +493,127 @@ Se habilitan con `SUBMISSION_TEST_DATABASE_URL` contra una base de pruebas; crea
 eliminan un esquema aislado. Cubren concurrencia, abortos, doble sellado, hash
 reproducible desde JSONB y rechazo de escrituras obsoletas.
 
-### 4.3 Endpoints pendientes (T4 y siguientes)
+### 4.3 Adjuntos PDF (`document`, vigente)
+
+Todas las rutas requieren cookie de sesión y titularidad. La carga y la baja
+requieren una postulación editable; la descarga sigue disponible después del envío.
+
+| Método | Ruta | Respuesta |
+|---|---|---|
+| `POST` | `/api/v1/submissions/{id}/documents` | `201`, metadatos del PDF |
+| `GET` | `/api/v1/submissions/{id}/documents` | `200`, array de metadatos (sin paginación) |
+| `GET` | `/api/v1/documents/{id}/download` | `200`, `{ "url": "https://...", "expiresAt": "..." }` |
+| `DELETE` | `/api/v1/documents/{id}` | `204`, baja lógica confirmada y borrado del objeto encolado |
+
+**Carga:** `multipart/form-data`, exactamente un archivo en `file` y los campos:
+
+| Campo | Tipo | Regla |
+|---|---|---|
+| `section` | Entero | 4, 5, 6, 7 u 8 |
+| `recordId` | Texto | ID estable del título/experiencia/publicación/capacitación previamente guardado; vacío u omitido para sección 4 |
+| `file` | Archivo | MIME declarado `application/pdf` y contenido detectado como PDF (`%PDF-`) |
+
+Guardar primero el registro de la sección con un `id` no vacío. La sección 4
+requiere `cuentaConRespaldoOrganizacion: "Sí"`. Solo se admite un respaldo por
+registro; para reemplazarlo, eliminar el anterior y volver a cargar.
+
+```bash
+curl -b cookies.txt -F 'section=5' -F 'recordId=titulo-1' \
+  -F 'file=@titulo.pdf;type=application/pdf' \
+  http://localhost:8080/api/v1/submissions/UUID/documents
+```
+
+Ejemplo de metadatos (la clave del almacenamiento nunca se devuelve):
+
+```json
+{
+  "id": "019c0000-0000-7000-8000-000000000001",
+  "submissionId": "019c0000-0000-7000-8000-000000000002",
+  "section": 5,
+  "recordId": "titulo-1",
+  "name": "titulo.pdf",
+  "mime": "application/pdf",
+  "sizeBytes": 123456,
+  "sha256": "<64 caracteres hexadecimales>",
+  "createdAt": "2026-10-31T12:00:00Z"
+}
+```
+
+Los límites usan **MiB**: sección 4 hasta **4 194 304 bytes**; secciones 5–8 hasta
+**2 097 152 bytes**; total por cuenta, entre todas sus postulaciones, hasta
+**52 428 800 bytes**. El servidor cuenta bytes reales y admite el límite exacto.
+El envoltorio multipart está acotado a 4 MiB + 64 KiB y también se aplica
+`MAX_REQUEST_BODY_BYTES` (10 MiB por defecto). Se rechazan campos desconocidos,
+archivos múltiples y cuerpos chunked que exceden el límite.
+
+La carga confirma metadatos y referencia del formulario en una transacción.
+La referencia JSON utiliza `id`, `nombre`, `tamano` (bytes decimales como texto),
+`fechaSubida` y `sha256`. La clave aleatoria es
+`{submission_id}/{section}/{uuidv4}.pdf`; el ID del documento en PostgreSQL es UUIDv7.
+La cuota se serializa bloqueando al postulante y luego la postulación. Cargas,
+bajas y envío comparten el bloqueo de la postulación. Una carga rechazada se
+compensa eliminando el objeto; si el resultado de COMMIT es incierto, primero se
+consulta si existen sus metadatos para evitar borrar un objeto confirmado.
+
+**Envío:** exige respaldos reales para organización (cuando corresponde), títulos,
+experiencias, publicaciones y capacitaciones declaradas. Comprueba documento,
+postulación, sección y registro; reemplaza los metadatos enviados por los de la
+base de datos antes de calcular el SHA-256 canónico. Si se retiró un registro del
+formulario, debe eliminarse su respaldo antes de enviar. Faltantes, referencias
+falsas o respaldos sin registro producen `422 regla_de_negocio`. El guardado de
+borradores sigue permitiendo campos pendientes.
+
+**Descarga:** la API entrega JSON con una URL de **300 segundos**, sin proxy del
+binario ni redirección. Es una capacidad de lectura: quien la posea puede usarla
+hasta que expire; no registrar ni compartir su query string. Las respuestas de
+listado y URL llevan `Cache-Control: no-store`. El servidor de objetos fuerza PDF,
+`Content-Disposition: attachment` y ausencia de caché. La baja física se procesa
+al arrancar y cada minuto; los enlaces emitidos pueden funcionar hasta el borrado
+o su expiración. Los fallos de almacenamiento conservan la baja en PostgreSQL,
+incluidas las cascadas al eliminar borradores.
+
+| HTTP | Código | Causa |
+|---|---|---|
+| 400 | `cuerpo_invalido` | Multipart malformado, campos desconocidos o número de archivos incorrecto |
+| 400 | `identificador_invalido` / `seccion_invalida` / `nombre_invalido` | Parámetros inválidos |
+| 401 | `no_autenticado` / `sesion_invalida` | Sesión ausente o expirada |
+| 403 | `acceso_denegado` | Documento o postulación de otra cuenta |
+| 404 | `documento_no_encontrado` / `postulacion_no_encontrada` | Recurso inexistente |
+| 409 | `postulacion_no_editable` | Carga o baja después del envío |
+| 409 | `documento_duplicado` | Ya existe un PDF para ese registro |
+| 413 | `archivo_muy_grande` / `cuota_documentos_excedida` | Límite de archivo/multipart o cuota total |
+| 413 | `cuerpo_muy_grande` | Límite global de petición anterior al handler |
+| 415 | `tipo_no_soportado` | MIME declarado o firma binaria diferente de PDF |
+| 422 | `registro_invalido` | Registro inexistente o sin ID estable |
+| 500 | `error_interno` | Fallo de persistencia/almacenamiento; sin datos sensibles |
+
+**Almacenamiento local:** `STORAGE_DRIVER=local`, `STORAGE_DIR`,
+`STORAGE_PUBLIC_URL` y `STORAGE_SIGNING_KEY` (mínimo 32 bytes). Ejecutar un segundo
+proceso con `go run ./cmd/api storage` (`STORAGE_PORT=8081`). Ambos procesos deben
+compartir directorio y clave; `compose.yaml` ya lo configura. El servidor solo
+sirve GET/HEAD con firma HMAC y vencimiento; no publica directorios ni rutas sin
+firma. Las aperturas usan `os.Root` para impedir escapes por rutas o symlinks.
+
+**S3:** `STORAGE_DRIVER=s3`, `S3_ENDPOINT` (URL con bucket incluido), `S3_REGION`,
+`S3_ACCESS_KEY`, `S3_SECRET_KEY` y opcional `S3_SESSION_TOKEN`. Para un host de
+lectura distinto, definir `S3_PUBLIC_ENDPOINT`. Ejemplos de endpoint:
+`https://bucket.s3.region.amazonaws.com` o `http://minio:9000/bucket`. El bucket
+privado debe existir; se requieren permisos PutObject/GetObject/DeleteObject.
+No se aprovisiona el bucket ni se refrescan credenciales STS automáticamente.
+Las credenciales se inyectan por entorno; en producción se usa HTTPS.
+
+**Pruebas:** reglas y HTTP sin red; firma SigV4 contra el vector público oficial
+AWS; transporte S3 y respuestas 503 con doble HTTP. PostgreSQL optativo:
+`DOCUMENT_TEST_DATABASE_URL` (PostgreSQL 18, esquema aislado). Simulación Postman:
+`postman simulation run postman/simulations/document-storage/document-storage.sim.yaml --port 4011 --no-history`;
+después ejecutar `go test ./internal/platform/storage -run TestS3Simulation` con
+`S3_SIMULATION_ENDPOINT=http://127.0.0.1:4011/s3/bucket`. El doble no valida IAM ni
+SigV4: no sustituye una comprobación con el bucket real.
+
+### 4.4 Endpoint pendiente
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| `POST` | `/api/v1/submissions/{id}/documents` | Adjunta un PDF validando MIME, tamaño y total |
-| `GET` | `/api/v1/submissions/{id}/documents` | Lista adjuntos |
-| `DELETE` | `/api/v1/documents/{id}` | Elimina un adjunto de un borrador |
 | `GET` | `/api/v1/submissions/{id}/print` | Formulario imprimible con espacio de firma |
 
 ---

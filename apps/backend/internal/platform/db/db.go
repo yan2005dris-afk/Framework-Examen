@@ -21,6 +21,25 @@ type DBTX interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
+type transactionKey struct{}
+
+/** WithTransaction comparte la transacción entre adaptadores sin exponerla al dominio.
+ * @returns {context.Context} Contexto limitado al callback transaccional.
+ */
+func WithTransaction(ctx context.Context, tx pgx.Tx) context.Context {
+	return context.WithValue(ctx, transactionKey{}, tx)
+}
+
+/** Executor reutiliza la conexión transaccional o el pool fuera de una transacción.
+ * @returns {DBTX} Ejecutor para las queries generadas.
+ */
+func Executor(ctx context.Context, fallback DBTX) DBTX {
+	if tx, ok := ctx.Value(transactionKey{}).(pgx.Tx); ok {
+		return tx
+	}
+	return fallback
+}
+
 /**
  * Connect crea el pool de conexiones de PostgreSQL y verifica la
  * conectividad mediante un ping con timeout corto.

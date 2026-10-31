@@ -25,6 +25,24 @@ type Applicant struct {
 	UpdatedAt        time.Time `json:"updated_at"`
 }
 
+type Document struct {
+	ID           uuid.UUID `json:"id"`
+	SubmissionID uuid.UUID `json:"submission_id"`
+	Section      int32     `json:"section"`
+	RecordID     string    `json:"record_id"`
+	Name         string    `json:"name"`
+	Mime         string    `json:"mime"`
+	SizeBytes    int64     `json:"size_bytes"`
+	Sha256       string    `json:"sha256"`
+	StorageKey   string    `json:"storage_key"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+type DocumentDeletion struct {
+	StorageKey string    `json:"storage_key"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
 type PasswordReset struct {
 	ID          uuid.UUID `json:"id"`
 	ApplicantID uuid.UUID `json:"applicant_id"`

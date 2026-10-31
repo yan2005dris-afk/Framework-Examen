@@ -38,8 +38,8 @@ recomendado es: **T1 (Redis) → T2 (identidad) → T3 (formulario) → T4
 | 3 | Caché, expiración y rate limiting (Redis) | 6 | ✅ **6/6** | T1 |
 | 4 | Frontend SPA (ver [frontend-tasks.md](frontend-tasks.md)) | 6 | — | — |
 | 5 | Consumo de API y manejo asíncrono (ver [frontend-tasks.md](frontend-tasks.md)) | 6 | — | — |
-| 6 | Cumplimiento de las reglas del negocio (RF IESS) | 6 | 🟡 **4/6** | T2, T3, T4 |
-| | **Total backend** | **28** | **23/28** | |
+| 6 | Cumplimiento de las reglas del negocio (RF IESS) | 6 | ✅ **6/6** | T2, T3, T4 |
+| | **Total backend** | **28** | **25/28** | |
 
 ---
 
@@ -210,6 +210,8 @@ Implementa el EF-11 completo.
 
 > **Criterio 6 — Reglas del negocio (6 pts) · Criterio 2 — Persistencia**
 
+**Backend implementado (2026-10-31)**: carga PDF, metadatos transaccionales, cuota por cuenta, respaldos verificables al enviar, descarga temporal local/S3 (RustFS) y cola persistente de bajas.
+
 **Límites del RF**
 
 | Documento | Tamaño máximo |
@@ -226,20 +228,22 @@ Implementa el EF-11 completo.
 | Servicio | `internal/document/service.go` | Validación de MIME, tamaño por tipo y total |
 | Puerto | `internal/document/repository.go` | Persistencia de metadatos |
 | Handler | `internal/document/handler.go` | `multipart` con `chi` (ventaja de ADR-001) |
-| Migración | `sql/migrations/00003_documents.sql` | Tabla `documents` |
-| Almacenamiento | `internal/platform/storage/` | Interface + backend local (ya existe) + adaptador S3 |
+| Migración | `sql/migrations/00004_documents.sql` | Tabla `documents` |
+| Almacenamiento | `internal/platform/storage/` | Interface + backend local + adaptador S3 compatible con RustFS |
 
 **Criterios de aceptación**
 
-- [ ] Se acepta solo `application/pdf`; el resto devuelve `415`.
-- [ ] El tamaño por tipo y el total de 50 MB se verifican en el servidor.
-- [ ] La clave de almacenamiento es **no adivinable**:
+- [x] Se acepta solo `application/pdf`; el resto devuelve `415`.
+- [x] El tamaño por tipo y el total de 50 MB se verifican en el servidor.
+- [x] La clave de almacenamiento es **no adivinable**:
       `{submission_id}/{section}/{uuid}.pdf`.
-- [ ] Se guarda el SHA-256 del archivo para verificar su integridad.
-- [ ] La descarga usa una URL prefirmada de corta duración; la API no hace
+- [x] Se guarda el SHA-256 del archivo para verificar su integridad.
+- [x] La descarga usa una URL prefirmada de corta duración; la API no hace
       proxy del binario.
-- [ ] Los adjuntos de una postulación enviada no se pueden eliminar.
-- [ ] Test del límite total con varios archivos.
+- [x] Los adjuntos de una postulación enviada no se pueden eliminar.
+- [x] Test del límite total con varios archivos.
+
+**Verificación**: pasan las pruebas de reglas, HTTP, cuota concurrente con dobles, referencias y firma SigV4 oficial compatible con RustFS/S3. RustFS está integrado en `compose.yaml` como servicio de almacenamiento de objetos S3 (`rustfs/rustfs:latest` en puertos 9000 y 9001). Los tests PostgreSQL se habilitan con `DOCUMENT_TEST_DATABASE_URL` y fueron validados con base de datos real. El SMTP preexistente falla en local por sockets bloqueados y `-race` requiere CGO.
 
 **Dependencias**: T3. **Esfuerzo estimado**: 3 días.
 

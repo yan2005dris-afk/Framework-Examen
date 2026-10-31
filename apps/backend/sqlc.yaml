@@ -63,3 +63,19 @@ sql:
             go_type: "time.Time"
           - column: "password_resets.created_at"
             go_type: "time.Time"
+
+          - column: "documents.id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+
+          - column: "documents.submission_id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+
+          - column: "documents.created_at"
+            go_type: "time.Time"
+
+          - column: "document_deletions.created_at"
+            go_type: "time.Time"

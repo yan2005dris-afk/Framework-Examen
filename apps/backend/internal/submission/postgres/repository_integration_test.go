@@ -94,7 +94,7 @@ func TestPostgresSerializesMutationsAndRollsBack(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := range 8 {
 		wg.Go(func() {
-			_, err := repo.Mutate(ctx, item.ID, func(current *submission.Submission) error {
+			_, err := repo.Mutate(ctx, item.ID, func(ctx context.Context, current *submission.Submission) error {
 				var fields map[string]int
 				if err := json.Unmarshal(current.Content, &fields); err != nil {
 					return err
@@ -125,7 +125,7 @@ func TestPostgresSerializesMutationsAndRollsBack(t *testing.T) {
 	}
 	before, _ := submission.CanonicalContent(stored.Content)
 	rollback := errors.New("fallo forzado antes del commit")
-	_, err = repo.Mutate(ctx, item.ID, func(current *submission.Submission) error {
+	_, err = repo.Mutate(ctx, item.ID, func(ctx context.Context, current *submission.Submission) error {
 		current.Content = json.RawMessage(`{"alterado":true}`)
 		return rollback
 	})
@@ -146,7 +146,7 @@ func TestPostgresSealsOnceAndRejectsStaleUpdatesAndDeletes(t *testing.T) {
 	repo, item := integrationRepository(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	if _, err := repo.Mutate(ctx, item.ID, func(current *submission.Submission) error {
+	if _, err := repo.Mutate(ctx, item.ID, func(ctx context.Context, current *submission.Submission) error {
 		return current.UpdateContent(json.RawMessage(`{"z":[{"b":2,"a":1}],"a":true}`), time.Now().UTC())
 	}); err != nil {
 		t.Fatal(err)
@@ -155,7 +155,9 @@ func TestPostgresSealsOnceAndRejectsStaleUpdatesAndDeletes(t *testing.T) {
 	var wg sync.WaitGroup
 	for range 2 {
 		wg.Go(func() {
-			_, err := repo.Mutate(ctx, item.ID, func(current *submission.Submission) error { return current.MarkAsSent(time.Now().UTC()) })
+			_, err := repo.Mutate(ctx, item.ID, func(ctx context.Context, current *submission.Submission) error {
+				return current.MarkAsSent(time.Now().UTC())
+			})
 			results <- err
 		})
 	}

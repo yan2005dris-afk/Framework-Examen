@@ -66,7 +66,7 @@ func (q *Queries) CreateSubmission(ctx context.Context, arg CreateSubmissionPara
 }
 
 const deleteSubmission = `-- name: DeleteSubmission :execrows
-DELETE FROM submissions WHERE id = $1
+DELETE FROM submissions WHERE id = $1 AND status <> 'submitted'
 `
 
 func (q *Queries) DeleteSubmission(ctx context.Context, id uuid.UUID) (int64, error) {
@@ -254,7 +254,7 @@ func (q *Queries) ListSubmissionsByApplicantCursorFirst(ctx context.Context, arg
 const updateSubmission = `-- name: UpdateSubmission :one
 UPDATE submissions
 SET content = $2, status = $3, hash = $4, submitted_at = $5, updated_at = $6
-WHERE id = $1
+WHERE id = $1 AND status <> 'submitted'
 RETURNING id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at
 `
 

@@ -54,14 +54,14 @@ func (r *memoryRepository) Delete(_ context.Context, id uuid.UUID) error {
 	r.item = nil
 	return nil
 }
-func (r *memoryRepository) Mutate(_ context.Context, id uuid.UUID, change func(*Submission) error) (*Submission, error) {
+func (r *memoryRepository) Mutate(ctx context.Context, id uuid.UUID, change func(context.Context, *Submission) error) (*Submission, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.item == nil || r.item.ID != id {
 		return nil, ErrNotFound
 	}
 	item := copySubmission(r.item)
-	if err := change(item); err != nil {
+	if err := change(ctx, item); err != nil {
 		return nil, err
 	}
 	if r.fail {
@@ -75,6 +75,48 @@ type recordingNotifier struct {
 	calls int
 	fail  bool
 	repo  *memoryRepository
+}
+
+type verifyingDocuments struct {
+	failure error
+	calls   int
+}
+
+func (v *verifyingDocuments) VerifyReferences(_ context.Context, _ uuid.UUID, form *Form) error {
+	v.calls++
+	if v.failure != nil {
+		return v.failure
+	}
+	form.Position.Document = &DocumentReference{ID: "documento-verificado", Name: "respaldo.pdf", Size: "100", SHA256: "hash-del-archivo"}
+	return nil
+}
+
+func TestSubmitVerifiesDocumentsBeforeHashAndCommit(t *testing.T) {
+	s, repo, notifier := serviceFixture(t, true)
+	verifier := &verifyingDocuments{failure: ErrBusinessRule}
+	s.WithDocuments(verifier)
+	if _, err := s.Submit(context.Background(), repo.item.ID, nil); !errors.Is(err, ErrBusinessRule) {
+		t.Fatal(err)
+	}
+	if repo.item.Status == StatusSubmitted || notifier.calls != 0 {
+		t.Fatal("se selló sin respaldo")
+	}
+	verifier.failure = nil
+	sealed, err := s.Submit(context.Background(), repo.item.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := DecodeForm(sealed.Content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Position.Document.SHA256 != "hash-del-archivo" || verifier.calls != 2 {
+		t.Fatal("el hash no incorporó los metadatos verificados")
+	}
+	canonical, err := CanonicalContent(sealed.Content)
+	if err != nil || HashContent(canonical) != sealed.Hash {
+		t.Fatal("sello no reproducible", err)
+	}
 }
 
 func (n *recordingNotifier) Confirm(ctx context.Context, item *Submission) error {

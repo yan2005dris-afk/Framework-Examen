@@ -105,7 +105,8 @@ erDiagram
 |---|---|---|
 | `applicants` | Implementada | Falta `password_hash` (criterio EF-11) |
 | `submissions` | Implementada | Referencia completa |
-| `documents` | Planificada | Requiere el contexto `document` |
+| `documents` | Implementada | Migración `00004_documents.sql`: sección, registro, tamaño, SHA-256 y clave privada |
+| `document_deletions` | Implementada | Cola transaccional de bajas, incluidas cascadas de borradores |
 | `sessions` | Planificada | Requiere el contexto `identity` |
 | `password_resets` | Planificada | Requiere el contexto `identity` |
 | `catalogs` | Planificada | Requiere el contexto `catalog` |
@@ -429,3 +430,19 @@ archivos.
 **Ver también**: [`../trd/TRD.md`](../trd/TRD.md) ·
 [`../architecture/ARQUITECTURA.md`](../architecture/ARQUITECTURA.md) ·
 [`../api-contracts/API_CONTRACT.md`](../api-contracts/API_CONTRACT.md)
+
+### Documentos y cuota (T4)
+
+`00004_documents.sql` crea `documents` con una restricción única por
+`(submission_id, section, record_id)`, límites de bytes por sección, MIME PDF
+y SHA-256 hexadecimal. La clave de almacenamiento también es única.
+La cuota de 50 MiB se comprueba sumando todas las postulaciones de la cuenta
+bajo `SELECT applicants ... FOR UPDATE`; luego se bloquea la postulación.
+La mutación confirma juntos el documento y la referencia JSON del formulario.
+
+El verificador del envío lee documentos con la misma conexión transaccional,
+mediante el contexto compartido por adaptadores. Las bajas activan un trigger
+que inserta la clave en `document_deletions`; el proceso de limpieza elimina
+el objeto de forma idempotente y luego retira la tarea. El rollback no deja
+una tarea de borrado para un documento que siga vigente. Las pruebas reales
+se habilitan con `DOCUMENT_TEST_DATABASE_URL` contra PostgreSQL 18.

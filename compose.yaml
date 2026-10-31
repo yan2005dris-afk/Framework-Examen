@@ -45,6 +45,12 @@ services:
       REDIS_URL: redis://redis:6379/0
       CORS_ALLOWED_ORIGINS: http://localhost:5173
       LOG_LEVEL: info
+      STORAGE_DRIVER: s3
+      S3_ENDPOINT: http://rustfs:9000/biess
+      S3_PUBLIC_ENDPOINT: http://localhost:9000/biess
+      S3_ACCESS_KEY: rustfsadmin
+      S3_SECRET_KEY: rustfsadmin
+      S3_REGION: us-east-1
       # Correo: Mailpit captura todo lo que envía la API.
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
@@ -58,8 +64,26 @@ services:
         condition: service_healthy
       mailpit:
         condition: service_started
+      rustfs:
+        condition: service_started
     volumes:
       - ./apps/backend/data:/app/data
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    restart: unless-stopped
+    environment:
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_ACCESS_KEY: rustfsadmin
+      RUSTFS_SECRET_KEY: rustfsadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - rustfs-data:/data
 
   postgres:
     image: postgres:18-alpine
@@ -112,3 +136,4 @@ volumes:
   postgres-data:
   mailpit-data:
   redis-data:
+  rustfs-data:
