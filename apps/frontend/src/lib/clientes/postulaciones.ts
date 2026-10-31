@@ -3,9 +3,32 @@ import type { Pagina, PaginaCursor } from "@/types/api"
 
 /**
  * Estado en el ciclo de vida de la postulación.
+ * - `draft`: borrador en edición.
+ * - `submitted`: enviada y sellada con hash inmutable.
+ * - `closed`: cerrada automáticamente por no elegibilidad (irreversible).
+ * - `under_review`: en revisión por la Comisión.
+ * - `approved`: aprobada.
+ * - `rejected`: no aprobada.
  */
 export type EstadoPostulacion =
-  "draft" | "submitted" | "under_review" | "approved" | "rejected"
+  "draft" | "submitted" | "closed" | "under_review" | "approved" | "rejected"
+
+/**
+ * Evaluación de elegibilidad proporcionada por el servidor.
+ * Es evidencia del servidor, no declarativa del cliente.
+ */
+export interface ElegibilidadEvidencia {
+  id?: string
+  cuentaId?: string
+  convocatoriaId?: string
+  sector: string
+  elegible: boolean
+  origen: string
+  verificadoEn: string
+  nacionalidadDeclarada?: string
+  codigo?: string
+  mensaje: string
+}
 
 /**
  * Avance individual de una de las 9 secciones.
@@ -39,6 +62,8 @@ export interface PostulacionDto {
   createdAt: string
   updatedAt: string
   progress: ProgresoPostulacion
+  convocatoriaId?: string
+  elegibilidad?: ElegibilidadEvidencia
 }
 
 /**
@@ -48,6 +73,7 @@ export interface CrearPostulacionDto {
   applicantId?: string
   code?: string
   content?: Record<string, unknown>
+  convocatoriaId?: string
 }
 
 /**

@@ -459,13 +459,13 @@ por feature al implementarlas; esta lista define comportamientos y dependencias.
 
 **Origen:** EF-11 adaptado por ADR-008. **Prioridad:** P0-RF; complementa FT3.
 
-- [ ] Consumir request/verify de registro y forgot/reset de recuperación; vincular
+- [x] Consumir request/verify de registro y forgot/reset de recuperación; vincular
       el paso visible al desafío, correo y finalidad de la operación correspondiente.
-- [ ] Mostrar expiración, OTP incorrecto, uso previo, bloqueo y reenvío conforme
+- [x] Mostrar expiración, OTP incorrecto, uso previo, bloqueo y reenvío conforme
       al servidor; no generar códigos ni verificar su validez en el navegador.
-- [ ] Mantener cédula/correo vinculados entre pasos y reiniciar el desafío si cambia
+- [x] Mantener cédula/correo vinculados entre pasos y reiniciar el desafío si cambia
       el correo; no permitir elegir otro destinatario durante recuperación.
-- [ ] Precargar datos disponibles de la cuenta en EF-12 y dejar el resto declarativo,
+- [x] Precargar datos disponibles de la cuenta en EF-12 y dejar el resto declarativo,
       sin pedir fecha de expedición ni código dactilar ni mostrar verificación civil.
 
 **Backend:** T2, T16. **Dependencias:** FT3, FT5.
@@ -474,14 +474,14 @@ por feature al implementarlas; esta lista define comportamientos y dependencias.
 
 **Origen:** EF-12 1.1.6 y 1.4.1–1.4.3. **Prioridad:** P0-RF.
 
-- [ ] Consultar el resultado de afiliación/jubilación/empleador del servidor al
+- [x] Consultar el resultado de afiliación/jubilación/empleador del servidor al
       seleccionar sector y mostrar los mensajes literales correspondientes.
-- [ ] Informar el origen simulado cuando se use el adaptador local; no convertir
+- [x] Informar el origen simulado cuando se use el adaptador local; no convertir
       un checkbox del postulante en una verificación de Historial Laboral.
-- [ ] Mostrar cierre por nacionalidad no admitida o sector no elegible y abandonar
+- [x] Mostrar cierre por nacionalidad no admitida o sector no elegible y abandonar
       el flujo editable; al recargar, conservar el estado de cierre del servidor.
-- [ ] Tratar indisponibilidad técnica como error recuperable, no como descalificación.
-- [ ] Mostrar la pregunta y respaldo de organización/federación propios de cada sector.
+- [x] Tratar indisponibilidad técnica como error recuperable, no como descalificación.
+- [x] Mostrar la pregunta y respaldo de organización/federación propios de cada sector.
 
 **Backend:** T17. **Dependencias:** FT5, FT14, FT18.
 
@@ -650,12 +650,12 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | EF-1, actores | Postulante, Analista TH y Administrador/Comisión | T6 | FT2, FT15 | Tres roles y permisos backend disponibles; integración administrativa de interfaz pendiente |
 | EF-1, privacidad | Política, tratamiento y consentimiento informado | T28, T3 | FT28, FT6 | Consentimientos base; política e integración pendientes |
 | EF-11.1–3 | Fase aprobada, portal institucional, nueva pestaña y acceso | T18 | FT14–FT15 | Planificado |
-| EF-11.4–6, ADR-008 | Registro, login y recuperación con OTP por correo | T1–T2, T16 | FT3, FT16 | Base OTP y vistas disponibles; consolidación T16/FT16 pendiente |
+| EF-11.4–6, ADR-008 | Registro, login y recuperación con OTP por correo | T1–T2, T16 | FT3, FT16 | Implementado: ciclo completo OTP con cooldown, desafío del servidor y bloqueo |
 | EF-12, primer ingreso | Entrada obligatoria al formulario | T2, T18 | FT2–FT3 | Guard base; cerrar flujo funcional |
-| EF-12 1.1 | Datos personales/cónyuge y nacionalidad; precarga de cuenta OTP | T3, T17 | FT5, FT16–FT17 | Tipado base; autocompletado civil sustituido por datos declarados |
+| EF-12 1.1 | Datos personales/cónyuge y nacionalidad; precarga de cuenta OTP | T3, T17 | FT5, FT16–FT17 | Implementado: precarga OTP y cierre por nacionalidad |
 | EF-12 1.2 | Países completos, cascada, correo registrado y dirección | T3, T7 | FT5 | Catálogos backend completos; integración de vistas pendiente |
 | EF-12 1.3 | Familiares y opciones exactas de parentesco/institución | T3, T7 | FT5 | Opciones backend disponibles; integración visual pendiente |
-| EF-12 1.4 | Cargo, elegibilidad, mensajes, cierre y organización | T3–T4, T17–T18 | FT5, FT17–FT18 | Sustituir elegibilidad declarada por fuente del servidor |
+| EF-12 1.4 | Cargo, elegibilidad, mensajes, cierre y organización | T3–T4, T17–T18 | FT5, FT17–FT18 | Implementado: elegibilidad por sector del servidor, cierre automático y persistencia |
 | EF-12 1.5–1.8 | Títulos, experiencia/calculadora, publicaciones y capacitación | T3–T4, T7 | FT5, FT18 | Backend base; vistas y adjuntos integrados pendientes |
 | EF-12 1.9 | Trece respuestas, detalles de remoción y revisión | T3, T20 | FT5, FT19 | Declaraciones base; revisión administrativa pendiente |
 | EF-1, restricciones | PDF 2/4 MiB y total 50 MiB | T4 | FT18 | Backend disponible; consumo frontend pendiente |

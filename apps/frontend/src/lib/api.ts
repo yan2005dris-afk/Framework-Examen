@@ -72,6 +72,7 @@ export function construirUrl(
 
 /**
  * Extrae la información de error desde la respuesta HTTP del backend.
+ * También parsea las cabeceras Retry-After y X-Retry-At para errores 429.
  */
 async function procesarErrorRespuesta(respuesta: Response): Promise<never> {
   let codigo = "error_desconocido"
@@ -118,10 +119,26 @@ async function procesarErrorRespuesta(respuesta: Response): Promise<never> {
     }
   }
 
+  // Parsear cabeceras de control de velocidad (Retry-After y X-Retry-At) del servidor.
+  let retryAfterSeg: number | undefined
+  let retryAt: Date | undefined
+  const retryAfterHeader = respuesta.headers.get("Retry-After")
+  const retryAtHeader = respuesta.headers.get("X-Retry-At")
+  if (retryAfterHeader) {
+    const parsed = parseInt(retryAfterHeader, 10)
+    if (!isNaN(parsed) && parsed > 0) retryAfterSeg = parsed
+  }
+  if (retryAtHeader) {
+    const parsed = new Date(retryAtHeader)
+    if (!isNaN(parsed.getTime())) retryAt = parsed
+  }
+
   throw new ErrorApi(mensaje, {
     codigo,
     estado: respuesta.status,
     detalles,
+    retryAfterSeg,
+    retryAt,
   })
 }
 

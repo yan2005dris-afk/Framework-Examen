@@ -1,4 +1,5 @@
 import {
+  AlertCircleIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
   CheckCircleIcon,
@@ -47,6 +48,7 @@ import {
   useListarPostulaciones,
 } from "@/features/postulaciones/queries"
 import { useConvocatoriaPublica } from "@/features/convocatorias/queries"
+import { esErrorApi } from "@/lib/api-error"
 import { RUTAS, rutaSeccion } from "@/lib/rutas"
 import { validarSeccionEF12 } from "@/utils/validar-formulario"
 
@@ -236,13 +238,23 @@ export function PostulacionView() {
     )
   }
 
-  const yaEnviada = postulacionActiva && postulacionActiva.status !== "draft"
+  const yaEnviada =
+    postulacionActiva && postulacionActiva.status === "submitted"
+  const estaCerrada = postulacionActiva && postulacionActiva.status === "closed"
+  const noModificable = yaEnviada || Boolean(estaCerrada)
 
   // La disponibilidad real del formulario EF-12 la define el servidor mediante ef12Disponible (T18)
   const abiertaConvocatoria = Boolean(convocatoria?.ef12Disponible)
 
   async function guardarSeccionActual(irSiguiente = false): Promise<boolean> {
     if (!postulacionActiva?.id) return false
+
+    if (estaCerrada) {
+      toast.error(
+        "La postulación se encuentra cerrada y no admite modificaciones.",
+      )
+      return false
+    }
 
     if (!abiertaConvocatoria && !yaEnviada) {
       toast.error(
@@ -279,13 +291,37 @@ export function PostulacionView() {
         }
       }
       return true
-    } catch {
+    } catch (err: unknown) {
+      if (esErrorApi(err)) {
+        if (
+          err.codigo === "postulacion_cerrada_elegibilidad" ||
+          (err.esConflicto() &&
+            err.mensaje.toLowerCase().includes("elegibilidad"))
+        ) {
+          toast.error(
+            "La postulación no puede continuar por no cumplir los criterios de elegibilidad del sector.",
+          )
+          void recargarPostulaciones()
+          return false
+        }
+        if (
+          err.codigo === "elegibilidad_no_disponible" ||
+          err.esServicioNoDisponible()
+        ) {
+          toast.warning(
+            "La verificación de elegibilidad no está disponible temporalmente. Puede continuar editando y volver a intentar más tarde.",
+          )
+          return false
+        }
+        toast.error(err.mensaje || "Error al guardar la sección.")
+      }
       return false
     }
   }
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8">
+      {/* Banner de POSTULACIÓN SELLADA */}
       {yaEnviada && (
         <div
           role="alert"
@@ -324,7 +360,76 @@ export function PostulacionView() {
         </div>
       )}
 
-      {!abiertaConvocatoria && !yaEnviada && (
+      {/* Banner de POSTULACIÓN CERRADA POR ELEGIBILIDAD (Mockup 06-04b) */}
+      {estaCerrada && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 space-y-3"
+        >
+          <div className="flex items-start gap-3">
+            <AlertCircleIcon className="size-5 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="font-semibold text-destructive">
+                La postulación no puede continuar
+              </h4>
+              <p className="mt-0.5 text-xs text-destructive/90">
+                {postulacionActiva.elegibilidad?.mensaje ||
+                  "Validación de elegibilidad no cumplida. La postulación se encuentra cerrada automáticamente."}
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded border bg-background/80 p-3 text-xs space-y-1">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Sector:</span>
+              <span className="font-medium capitalize">
+                {postulacionActiva.elegibilidad?.sector ||
+                  formData.seccion4.sector}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Resultado:</span>
+              <span className="font-medium">
+                {postulacionActiva.elegibilidad?.mensaje ||
+                  "No cumple condiciones de elegibilidad"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">
+                Origen de verificación:
+              </span>
+              <span className="font-mono text-muted-foreground">
+                {postulacionActiva.elegibilidad?.origen ===
+                "simulacion_controlada_servidor"
+                  ? "simulación controlada del servidor"
+                  : postulacionActiva.elegibilidad?.origen || "servidor"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">
+                Estado del expediente:
+              </span>
+              <span className="font-semibold text-destructive">
+                Cerrada automáticamente
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <p className="text-xs text-muted-foreground">
+              Si considera que el resultado es incorrecto, puede presentar un
+              reclamo ante la Comisión Especial dentro del plazo de la
+              convocatoria.
+            </p>
+            <Button asChild variant="secondary" size="sm">
+              <Link to={RUTAS.inicio}>Volver a la convocatoria</Link>
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!abiertaConvocatoria && !noModificable && (
         <div
           role="alert"
           className="flex items-center gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive-foreground dark:bg-destructive/20"
@@ -370,7 +475,7 @@ export function PostulacionView() {
               onChange={(s1) =>
                 setFormData((prev) => ({ ...prev, seccion1: s1 }))
               }
-              disabled={yaEnviada}
+              disabled={noModificable}
               onBloqueoNacionalidad={setBloqueadoNacionalidad}
             />
           )}
@@ -381,7 +486,7 @@ export function PostulacionView() {
               onChange={(s2) =>
                 setFormData((prev) => ({ ...prev, seccion2: s2 }))
               }
-              disabled={yaEnviada}
+              disabled={noModificable}
             />
           )}
 
@@ -391,7 +496,7 @@ export function PostulacionView() {
               onChange={(s3) =>
                 setFormData((prev) => ({ ...prev, seccion3: s3 }))
               }
-              disabled={yaEnviada}
+              disabled={noModificable}
             />
           )}
 
@@ -401,7 +506,8 @@ export function PostulacionView() {
               onChange={(s4) =>
                 setFormData((prev) => ({ ...prev, seccion4: s4 }))
               }
-              disabled={yaEnviada}
+              disabled={noModificable}
+              elegibilidad={postulacionActiva?.elegibilidad}
             />
           )}
 
@@ -411,7 +517,7 @@ export function PostulacionView() {
               onChange={(s5) =>
                 setFormData((prev) => ({ ...prev, seccion5: s5 }))
               }
-              disabled={yaEnviada}
+              disabled={noModificable}
             />
           )}
 
@@ -421,7 +527,7 @@ export function PostulacionView() {
               onChange={(s6) =>
                 setFormData((prev) => ({ ...prev, seccion6: s6 }))
               }
-              disabled={yaEnviada}
+              disabled={noModificable}
             />
           )}
 
@@ -431,7 +537,7 @@ export function PostulacionView() {
               onChange={(s7) =>
                 setFormData((prev) => ({ ...prev, seccion7: s7 }))
               }
-              disabled={yaEnviada}
+              disabled={noModificable}
             />
           )}
 
@@ -441,7 +547,7 @@ export function PostulacionView() {
               onChange={(s8) =>
                 setFormData((prev) => ({ ...prev, seccion8: s8 }))
               }
-              disabled={yaEnviada}
+              disabled={noModificable}
             />
           )}
 
@@ -451,7 +557,7 @@ export function PostulacionView() {
               onChange={(s9) =>
                 setFormData((prev) => ({ ...prev, seccion9: s9 }))
               }
-              disabled={yaEnviada}
+              disabled={noModificable}
             />
           )}
         </CardContent>
@@ -474,7 +580,7 @@ export function PostulacionView() {
           </div>
 
           <div className="flex items-center gap-2">
-            {!yaEnviada && (
+            {!noModificable && (
               <>
                 <Button
                   type="button"
@@ -506,7 +612,7 @@ export function PostulacionView() {
                 disabled={
                   guardarSeccionMutation.isPending ||
                   bloqueadoNacionalidad ||
-                  (!abiertaConvocatoria && !yaEnviada)
+                  (!abiertaConvocatoria && !noModificable)
                 }
                 className="flex items-center gap-1.5"
               >
@@ -521,7 +627,7 @@ export function PostulacionView() {
                 disabled={
                   guardarSeccionMutation.isPending ||
                   bloqueadoNacionalidad ||
-                  (!abiertaConvocatoria && !yaEnviada)
+                  (!abiertaConvocatoria && !noModificable)
                 }
                 className="flex items-center gap-1.5 bg-emerald-700 text-white hover:bg-emerald-800"
               >

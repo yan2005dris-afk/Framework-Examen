@@ -41,6 +41,20 @@ export interface RespuestaPostulante {
 }
 
 /**
+ * Desafío OTP emitido por el servidor.
+ * El `desafioId` debe enviarse en el paso de verificación.
+ * El cliente debe mostrar `expiraEn` tal como viene del servidor, sin recalcular.
+ */
+export interface DesafioOtp {
+  /** Identificador opaco del desafío. Enviarlo en la verificación. */
+  desafioId: string
+  /** Instante UTC en que expira el código OTP. */
+  expiraEn: Date
+  /** Mensaje informativo del servidor. */
+  mensaje: string
+}
+
+/**
  * Petición para solicitar código de registro (Paso 1).
  */
 export interface SolicitudRegistroDto {
@@ -87,12 +101,24 @@ export interface RestablecerPasswordDto {
 
 /**
  * Solicita el envío de un código OTP al correo electrónico para iniciar el registro.
+ * Devuelve el desafío OTP emitido por el servidor, incluyendo el `desafioId` que
+ * debe adjuntarse en el paso de verificación y la fecha de expiración del código.
  */
 export async function solicitarRegistro(
   dto: SolicitudRegistroDto,
   signal?: AbortSignal,
-): Promise<RespuestaMensaje> {
-  return apiPost<RespuestaMensaje>("/auth/register/request", dto, { signal })
+): Promise<DesafioOtp> {
+  const respuesta = await apiPost<{
+    mensaje: string
+    desafio_id: string
+    expira_en: string
+  }>("/auth/register/request", dto, { signal })
+
+  return {
+    desafioId: respuesta.desafio_id,
+    expiraEn: new Date(respuesta.expira_en),
+    mensaje: respuesta.mensaje,
+  }
 }
 
 /**
@@ -132,13 +158,26 @@ export async function obtenerSesion(
 }
 
 /**
- * Inicia el proceso de recuperación de contraseña enviando un código OTP.
+ * Inicia el proceso de recuperación de contraseña enviando un código OTP al correo registrado.
+ * Devuelve el desafío OTP, pero el destino del correo es el registrado en el servidor —
+ * el cliente no elige el correo de destino. Por seguridad, el servidor responde igual
+ * si la cédula no existe (protección anti-oráculo).
  */
 export async function solicitarRecuperacionPassword(
   dto: SolicitudRecuperacionDto,
   signal?: AbortSignal,
-): Promise<RespuestaMensaje> {
-  return apiPost<RespuestaMensaje>("/auth/password/forgot", dto, { signal })
+): Promise<DesafioOtp> {
+  const respuesta = await apiPost<{
+    mensaje: string
+    desafio_id: string
+    expira_en: string
+  }>("/auth/password/forgot", dto, { signal })
+
+  return {
+    desafioId: respuesta.desafio_id,
+    expiraEn: new Date(respuesta.expira_en),
+    mensaje: respuesta.mensaje,
+  }
 }
 
 /**
