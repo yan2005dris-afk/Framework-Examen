@@ -633,7 +633,7 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 
 | Fuente del RF | Requisito o adaptación | Backend | Frontend | Situación |
 |---|---|---|---|---|
-| EF-1, actores | Postulante, Analista TH y Administrador/Comisión | T6 | FT2, FT15 | Dos roles disponibles; falta administrador y permisos completos |
+| EF-1, actores | Postulante, Analista TH y Administrador/Comisión | T6 | FT2, FT15 | Tres roles y permisos backend disponibles; integración administrativa de interfaz pendiente |
 | EF-1, privacidad | Política, tratamiento y consentimiento informado | T28, T3 | FT28, FT6 | Consentimientos base; política e integración pendientes |
 | EF-11.1–3 | Fase aprobada, portal institucional, nueva pestaña y acceso | T18 | FT14–FT15 | Planificado |
 | EF-11.4–6, ADR-008 | Registro, login y recuperación con OTP por correo | T1–T2, T16 | FT3, FT16 | Base OTP y vistas disponibles; consolidación T16/FT16 pendiente |

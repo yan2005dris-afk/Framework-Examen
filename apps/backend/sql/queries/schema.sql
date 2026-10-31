@@ -1,12 +1,11 @@
--- Esquema que consume sqlc. Se regenera desde las migraciones con `make db-schema`.
+-- Esquema que consume sqlc. Se regenera desde las migraciones con make db-schema.
+
 CREATE TABLE applicants (
     id                UUID PRIMARY KEY,
     cedula            VARCHAR(10)  NOT NULL UNIQUE,
     nombres           VARCHAR(120) NOT NULL,
     apellidos         VARCHAR(120) NOT NULL,
     correo            VARCHAR(255) NOT NULL UNIQUE,
-    password_hash     VARCHAR(255) NOT NULL DEFAULT '',
-    is_verified       BOOLEAN      NOT NULL DEFAULT true,
     metodo_validacion VARCHAR(32)  NOT NULL DEFAULT 'fecha_expedicion',
     fecha_registro    TIMESTAMPTZ  NOT NULL DEFAULT now(),
     created_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
@@ -26,9 +25,34 @@ CREATE TABLE submissions (
     CONSTRAINT submissions_status_check CHECK (status IN ('draft', 'in_review', 'submitted'))
 );
 
+CREATE INDEX submissions_applicant_idx ON submissions (applicant_id, updated_at DESC);
+
+
+
+-- Identificadores ordenados en el tiempo (RFC 9562, UUIDv7).
+--
+-- La función uuidv7() es nativa de PostgreSQL 18: el motor debe estar
+-- actualizado antes de aplicar esta migración.
+--
+-- El índice incluye el identificador porque, al ser los UUIDv7 ordenados
+-- por fecha de creación, el desempate de la paginación por cursor deja de
+-- ser arbitrario y puede resolverse dentro del índice.
+
+ALTER TABLE applicants ALTER COLUMN id SET DEFAULT uuidv7();
+ALTER TABLE submissions ALTER COLUMN id SET DEFAULT uuidv7();
+
+DROP INDEX IF EXISTS submissions_applicant_idx;
 CREATE INDEX submissions_applicant_idx ON submissions (applicant_id, updated_at DESC, id DESC);
 
-CREATE TABLE sessions (
+
+
+-- Contexto de identidad: contraseñas con Argon2id, sesiones en PostgreSQL
+-- y solicitudes de restablecimiento de contraseña.
+
+ALTER TABLE applicants ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255) NOT NULL DEFAULT '';
+ALTER TABLE applicants ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT true;
+
+CREATE TABLE IF NOT EXISTS sessions (
     id           UUID PRIMARY KEY DEFAULT uuidv7(),
     applicant_id UUID NOT NULL REFERENCES applicants (id) ON DELETE CASCADE,
     token_hash   CHAR(64) NOT NULL UNIQUE,
@@ -38,10 +62,10 @@ CREATE TABLE sessions (
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX sessions_applicant_idx ON sessions (applicant_id);
-CREATE INDEX sessions_expires_at_idx ON sessions (expires_at);
+CREATE INDEX IF NOT EXISTS sessions_applicant_idx ON sessions (applicant_id);
+CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions (expires_at);
 
-CREATE TABLE password_resets (
+CREATE TABLE IF NOT EXISTS password_resets (
     id           UUID PRIMARY KEY DEFAULT uuidv7(),
     applicant_id UUID NOT NULL REFERENCES applicants (id) ON DELETE CASCADE,
     token_hash   CHAR(64) NOT NULL UNIQUE,
@@ -50,10 +74,8 @@ CREATE TABLE password_resets (
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX password_resets_applicant_idx ON password_resets (applicant_id);
+CREATE INDEX IF NOT EXISTS password_resets_applicant_idx ON password_resets (applicant_id);
 
-ALTER TABLE applicants ALTER COLUMN id SET DEFAULT uuidv7();
-ALTER TABLE submissions ALTER COLUMN id SET DEFAULT uuidv7();
 
 
 CREATE TABLE documents (
@@ -88,9 +110,13 @@ $$;
 CREATE TRIGGER document_deletion_queue AFTER DELETE ON documents
 FOR EACH ROW EXECUTE FUNCTION enqueue_document_deletion();
 
+
+
 ALTER TABLE applicants
     ADD COLUMN role VARCHAR(32) NOT NULL DEFAULT 'postulante'
     CONSTRAINT applicants_role_check CHECK (role IN ('postulante', 'analista'));
+
+
 
 CREATE TABLE submission_events (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
@@ -103,3 +129,65 @@ CREATE TABLE submission_events (
 
 CREATE INDEX submission_events_submission_idx
     ON submission_events (submission_id, created_at, id);
+
+
+
+ALTER TABLE applicants DROP CONSTRAINT applicants_role_check;
+ALTER TABLE applicants ADD CONSTRAINT applicants_role_check
+    CHECK (role IN ('postulante', 'analista', 'administrador'));
+
+CREATE TABLE administrative_access_events (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    actor_id UUID NOT NULL,
+    actor_role VARCHAR(32) NOT NULL CHECK (actor_role IN ('analista', 'administrador')),
+    action VARCHAR(64) NOT NULL,
+    resource_id UUID NOT NULL,
+    resource_type VARCHAR(32) NOT NULL,
+    result VARCHAR(16) NOT NULL CHECK (result IN ('permitido', 'rechazado')),
+    created_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX administrative_access_resource_idx
+    ON administrative_access_events (resource_type, resource_id, created_at DESC, id DESC);
+
+CREATE TABLE applicant_role_events (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    applicant_id UUID NOT NULL,
+    actor_id UUID,
+    operator TEXT NOT NULL,
+    previous_role VARCHAR(32) NOT NULL,
+    new_role VARCHAR(32) NOT NULL,
+    reason TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX applicant_role_events_applicant_idx
+    ON applicant_role_events (applicant_id, created_at DESC, id DESC);
+
+-- +goose StatementBegin
+CREATE FUNCTION record_applicant_role_change() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF OLD.role IS DISTINCT FROM NEW.role THEN
+        INSERT INTO applicant_role_events
+            (applicant_id, actor_id, operator, previous_role, new_role, reason)
+        VALUES (NEW.id, NULLIF(current_setting('app.actor_id', true), '')::uuid,
+            COALESCE(NULLIF(current_setting('app.operator', true), ''), current_user),
+            OLD.role, NEW.role,
+            COALESCE(NULLIF(current_setting('app.role_reason', true), ''), 'Actualización SQL por operador de base de datos'));
+    END IF;
+    RETURN NEW;
+END;
+$$;
+-- +goose StatementEnd
+CREATE TRIGGER applicants_role_audit AFTER UPDATE OF role ON applicants
+    FOR EACH ROW EXECUTE FUNCTION record_applicant_role_change();
+
+-- +goose StatementBegin
+CREATE FUNCTION protect_authorization_history() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    RAISE EXCEPTION 'El historial de autorización no admite modificaciones';
+END;
+$$;
+-- +goose StatementEnd
+CREATE TRIGGER administrative_access_immutable BEFORE UPDATE OR DELETE OR TRUNCATE ON administrative_access_events
+    FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();
+CREATE TRIGGER applicant_role_events_immutable BEFORE UPDATE OR DELETE OR TRUNCATE ON applicant_role_events
+    FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();

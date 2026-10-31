@@ -12,7 +12,7 @@ import (
 type RegisterRequestDTO struct {
 	Cedula           string `json:"cedula"`
 	Correo           string `json:"correo"`
-	MetodoValidacion string `json:"metodo_validacion,omitempty"` // "fecha_expedicion" | "codigo_dactilar" | "correo"
+	MetodoValidacion string `json:"metodo_validacion,omitempty"` // El registro vigente utiliza OTP por correo.
 }
 
 /**

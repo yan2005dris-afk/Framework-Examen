@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/audit"
 
 	shareddomain "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/shared/domain"
 )
@@ -42,6 +43,7 @@ type Service struct {
 	notifier   Notifier
 	documents  DocumentVerifier
 	applicants ApplicantReader
+	auditor    audit.Recorder
 }
 
 /** WithDocuments configura la validación obligatoria de respaldos en la composición.

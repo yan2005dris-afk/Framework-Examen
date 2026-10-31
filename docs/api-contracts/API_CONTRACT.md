@@ -717,8 +717,10 @@ incluyen `id`, `cedula`, `nombres`, `apellidos`, `nombre_completo`, `correo`,
 
 El contrato actual no devuelve `mustCompleteApplication`. La interfaz determina
 su ruta inicial desde sesión/rol y completa la integración del primer acceso al
-formulario en FT2/FT3. Los roles hoy persistidos son `postulante` y `analista`;
-`administrador` y sus permisos se incorporarán con T6/FT15.
+formulario en FT2/FT3. Los roles persistidos son `postulante`, `analista` y
+`administrador`. El backend aplica T6; la integración de las pantallas administrativas
+continúa en FT15. La sesión consulta el rol vigente; no lo toma del cuerpo, una
+cabecera del cliente ni una copia guardada al crear la cookie.
 
 | HTTP | `codigo` | Situación |
 |---:|---|---|
@@ -734,6 +736,81 @@ formulario en FT2/FT3. Los roles hoy persistidos son `postulante` y `analista`;
 Los mensajes del RF se mantienen para credenciales y bloqueo; los errores de OTP
 se expresan como tales. La confirmación genérica de recuperación no acredita
 que el mensaje SMTP se haya entregado.
+
+### 5.3 Autorización administrativa (T6)
+
+`RequireSession` resuelve la cookie; `RequireRole` / `RequirePermission` rechazan
+con `401` la ausencia de identidad y con `403 acceso_denegado` un rol sin permiso.
+Roles, permisos y recursos administrativos desconocidos se deniegan por defecto.
+La misma política se comprueba en los servicios de lectura y asignación de roles.
+
+| Operación / prefijo bajo `/api/v1/admin` | Postulante | Analista TH | Administrador/Comisión |
+|---|---|---|---|
+| Consultar formularios enviados (`submissions`) | No | Sí | Sí |
+| Consultar certificados / emitir descarga (`documents`) | No | Sí | Sí |
+| Gestión base de calificaciones (`grades`) | No | Sí | Sí |
+| Gestión base de reconsideraciones (`reconsiderations`) | No | Sí | Sí |
+| Gestionar fases (`phases`) | No | No | Sí |
+| Gestionar banco de preguntas (`question-bank`) | No | No | Sí |
+| Cambiar roles (`applicants`) | No | No | Sí |
+
+Los prefijos de fases/preguntas/calificaciones/reconsideraciones tienen política de
+acceso preparada, pero sus operaciones de negocio siguen en T18/T20–T22/T25. Esta
+matriz expresa el acceso base implementado: no reemplaza los controles de fase,
+plazo, expediente ni la distinción entre atención de Talento Humano y resolución
+de Comisión que debe aplicar T22. La aprobación funcional corresponde a los
+responsables del concurso; no se afirma que ya se haya obtenido.
+
+| Método | Ruta implementada | Respuesta |
+|---|---|---|
+| `GET` | `/api/v1/admin/submissions/{id}` | `Response` EF-12 con contenido y hash almacenados |
+| `GET` | `/api/v1/admin/submissions/{id}/documents` | Lista de metadatos de certificados |
+| `GET` | `/api/v1/admin/documents/{id}/download` | `{ "url": "…", "expiresAt": "…" }`, duración de cinco minutos |
+| `PATCH` | `/api/v1/admin/applicants/{id}/role` | Perfil seguro `ApplicantResponseDTO` actualizado |
+
+Las lecturas requieren `submitted`, hash y fecha de envío. No enriquecen el snapshot
+con datos actuales de la cuenta ni permiten consultar borradores ajenos. La selección
+por convocatoria/histórico se implementa en T9; estas rutas resuelven por UUID.
+Las rutas habituales `/submissions` y `/documents` mantienen su comprobación de
+propietario para todos los roles, sin una excepción administrativa de escritura.
+
+Las respuestas administrativas usan `Cache-Control: no-store`. Cada lectura de
+personal autorizado registra actor, rol, acción, UUID del recurso, fecha y resultado
+(`permitido`/`rechazado`) en `administrative_access_events`, incluidos recursos
+inexistentes y borradores rechazados. Si falla el registro, se responde `500` sin
+entregar datos ni URL. El evento de descarga acredita emisión de enlace, no que el
+archivo haya sido descargado desde RustFS. Los rechazos previos de sesión/rol usan
+el error HTTP habitual. No se almacenan contenido, nombres, cédulas ni URLs firmadas
+en estos eventos. T8 incorpora consulta paginada y política de conservación.
+
+El cambio de rol acepta exclusivamente:
+
+```json
+{ "rol": "analista", "motivo": "Asignación de revisión del concurso" }
+```
+
+El motivo es obligatorio, de hasta 500 caracteres y sin controles. JSON desconocido
+o concatenado produce `400`; rol/motivo inválidos, `422 cambio_rol_invalido`; cuenta
+inexistente, `404 postulante_no_encontrado`. Se bloquean actor y destino en orden
+estable, se vuelve a comprobar que el actor siga siendo administrador y se confirma
+el cambio con su historial en una transacción. Si falla el trigger de auditoría,
+se revierte el rol. El registro OTP carece de campos para asignar roles y crea
+siempre `postulante`.
+
+La migración `00007_authorization.sql` amplía la restricción de roles y crea
+`applicant_role_events`. Un trigger registra cambios de rol, también por SQL directo,
+con valor anterior/nuevo, actor si existe, operador y motivo. Los dos historiales
+rechazan `UPDATE`, `DELETE` y `TRUNCATE`; no dependen de cascadas al borrar cuentas.
+
+Para el alta inicial de un administrador, desde `apps/backend/`, con `DATABASE_URL`
+configurada y migraciones aplicadas:
+
+```powershell
+go run ./cmd/applicant-role -cedula "CEDULA_EXISTENTE" -role administrador -operator "operador-local" -reason "Alta inicial de Comisión"
+```
+
+La CLI es una herramienta operativa con credenciales de base de datos, no una ruta
+pública. Exige operador y motivo; no imprime cédulas ni datos de la cuenta.
 
 ---
 

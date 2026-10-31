@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	auditpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/audit/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/document"
 	documentpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/document/postgres"
 
@@ -126,7 +127,8 @@ func main() {
 		queries := sqlcgen.New(pool)
 
 		// Contexto de identidad (EF-11: registro, login, sesión, OTP)
-		identityRepo := identitypostgres.NewRepository(queries)
+		identityRepo := identitypostgres.NewRepository(queries, db.NewTxManager(pool))
+		auditor := auditpostgres.NewRepository(queries)
 		identityService := identity.NewService(identity.ServiceDependencies{
 			Applicants: identityRepo,
 			Sessions:   identityRepo,
@@ -160,11 +162,13 @@ func main() {
 			log.Error("no se pudo configurar el almacenamiento", "error", err)
 			os.Exit(1)
 		}
-		documentService := document.NewService(documentpostgres.NewRepository(pool, db.NewTxManager(pool)), objects)
+		documentService := document.NewService(documentpostgres.NewRepository(pool, db.NewTxManager(pool)), objects).WithAudit(auditor)
 		submissionService := submission.NewService(submissionRepository, submissionNotifier).
-			WithDocuments(documentService).WithApplicants(identityRepo)
+			WithDocuments(documentService).WithApplicants(identityRepo).WithAudit(auditor)
 		router.Group(func(r chi.Router) {
 			r.Use(identity.RequireSession(identityService))
+			r.Use(identity.ProtectAdministration)
+			identity.RegisterRoleRoutes(r, identity.NewRoleService(identityRepo))
 			submission.NewHandler(submissionService).RegisterRoutes(r)
 			document.NewHandler(documentService).RegisterRoutes(r)
 		})

@@ -11,19 +11,41 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AdministrativeAccessEvent struct {
+	ID           uuid.UUID `json:"id"`
+	ActorID      uuid.UUID `json:"actor_id"`
+	ActorRole    string    `json:"actor_role"`
+	Action       string    `json:"action"`
+	ResourceID   uuid.UUID `json:"resource_id"`
+	ResourceType string    `json:"resource_type"`
+	Result       string    `json:"result"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
 type Applicant struct {
 	ID               uuid.UUID `json:"id"`
 	Cedula           string    `json:"cedula"`
 	Nombres          string    `json:"nombres"`
 	Apellidos        string    `json:"apellidos"`
 	Correo           string    `json:"correo"`
-	PasswordHash     string    `json:"password_hash"`
-	IsVerified       bool      `json:"is_verified"`
 	MetodoValidacion string    `json:"metodo_validacion"`
 	FechaRegistro    time.Time `json:"fecha_registro"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
+	PasswordHash     string    `json:"password_hash"`
+	IsVerified       bool      `json:"is_verified"`
 	Role             string    `json:"role"`
+}
+
+type ApplicantRoleEvent struct {
+	ID           uuid.UUID          `json:"id"`
+	ApplicantID  uuid.UUID          `json:"applicant_id"`
+	ActorID      pgtype.UUID        `json:"actor_id"`
+	Operator     string             `json:"operator"`
+	PreviousRole string             `json:"previous_role"`
+	NewRole      string             `json:"new_role"`
+	Reason       string             `json:"reason"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
 type Document struct {

@@ -320,14 +320,45 @@ T3 ya utiliza `TxManager.WithinTx` y bloqueo de fila para guardar y sellar la po
 
 - [x] `RequireSession` resuelve la cookie y adjunta el postulante al contexto.
 - [x] Persistencia de roles `postulante` y `analista` y campo `rol` en sesión.
-- [ ] Ampliar la restricción de roles con `administrador` (Comisión de Selección)
-      y definir permisos por operación junto con los responsables del concurso.
-- [ ] Implementar `RequireRole` en revisión, documentos administrativos, fases,
-      banco de preguntas, calificaciones y reconsideraciones; no basta el guard SPA.
-- [ ] Permitir al personal autorizado consultar formularios históricos y obtener
+- [x] Restricción ampliada con `administrador` (Comisión de Selección) y política
+      explícita por operación en `identity/permissions.go`, con denegación por defecto.
+- [x] `RequireRole` / `RequirePermission` y protección de `/api/v1/admin/` por
+      recurso: revisión, documentos, fases, preguntas, calificaciones y reconsideraciones.
+      Los handlers disponibles también exigen su permiso específico; el guard SPA
+      no participa en la decisión de autorización del servidor.
+- [x] Permitir al personal autorizado consultar formularios enviados y obtener
       URLs temporales de certificados, manteniendo la restricción de propietario
-      en las rutas del postulante y auditando el acceso (T8/T9).
-- [ ] Mantener la asignación de roles fuera del registro público y registrar sus cambios.
+      en las rutas del postulante y auditando resultado, actor, recurso y fecha.
+- [x] Asignación fuera del registro público: PATCH administrativo con motivo,
+      comprobación del rol vigente bajo bloqueo y auditoría transaccional. La CLI
+      permite el alta inicial con operador/motivo. Un trigger registra también
+      cambios SQL directos; el historial rechaza UPDATE, DELETE y TRUNCATE.
+
+**Implementación T6 completada (2026-10-31)**. Migración `00007_authorization.sql`,
+SQLC regenerado, tres roles en sesión y permisos compartidos entre HTTP y servicios.
+Analista y administrador consultan expedientes/certificados y tienen acceso base a
+calificaciones/reconsideraciones; fases, banco de preguntas y asignación de roles
+exigen administrador. El registro OTP siempre crea `postulante`, incluso si se
+inyecta `rol`/`role` en el JSON. Una cookie existente usa el rol vigente de PostgreSQL.
+
+Rutas implementadas: `GET /api/v1/admin/submissions/{id}`, su lista `/documents`,
+`GET /api/v1/admin/documents/{id}/download` y
+`PATCH /api/v1/admin/applicants/{id}/role`. Solo se entregan snapshots enviados,
+sin alterar su contenido ni abrir borradores ajenos. Las URLs duran cinco minutos;
+si falla la auditoría, no se entrega el formulario, los metadatos ni la URL.
+
+**Alcance pendiente en sus tareas**: T9 incorpora listas y filtrado histórico por
+convocatoria; T18/T20–T22/T25 implementan las operaciones de fases, calificaciones,
+reconsideraciones y preguntas, usando estos permisos y controles específicos de
+estado/plazo. La política implementada no acredita aprobación funcional por los
+responsables: su validación y los detalles de resolución por actor siguen en dichas
+tareas. T8 conserva la consulta paginada, conservación y auditoría del resto del flujo.
+
+**Verificación**: tests Go de identidad, postulación, documentos, auditoría y los
+comandos afectados correctos. Cubren matriz de roles, revocación, escalamiento,
+registro OTP, rutas administrativas/propietario, snapshot y fallo de auditoría.
+El test PostgreSQL de restricciones, historial inmutable y rollback del cambio de
+rol es optativo con `AUTHORIZATION_TEST_DATABASE_URL`; no se ejecutó sin esa variable.
 
 **Dependencias**: T2. **Frontend**: FT2, FT7, FT15, FT24–FT25.
 
@@ -400,7 +431,7 @@ T3 ya utiliza `TxManager.WithinTx` y bloqueo de fila para guardar y sellar la po
 
 ## 6. Orden de ejecución y relación con la rúbrica
 
-1. Sobre T1–T5 disponibles, completar permisos, catálogos y OTP: T6, T7, T16.
+1. Sobre T1–T6 disponibles, completar catálogos y endurecer OTP: T7, T16.
 2. Configurar convocatorias y políticas (T18/T28), cerrar elegibilidad T17 y
    formulario final T19, con la base de notificaciones persistentes T15/T23.
 3. Completar auditoría/revisión e implementar requisitos y méritos: T8–T9, T20.
@@ -661,7 +692,7 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 
 | Fuente del RF | Requisito o adaptación | Backend | Frontend | Situación |
 |---|---|---|---|---|
-| EF-1, actores | Postulante, Analista TH y Administrador/Comisión | T6 | FT2, FT15 | Dos roles disponibles; falta administrador y permisos completos |
+| EF-1, actores | Postulante, Analista TH y Administrador/Comisión | T6 | FT2, FT15 | Tres roles y permisos backend disponibles; integración administrativa de interfaz pendiente |
 | EF-1, privacidad | Política, tratamiento y consentimiento informado | T28, T3 | FT28, FT6 | Consentimientos base; política e integración pendientes |
 | EF-11.1–3 | Fase aprobada, portal institucional, nueva pestaña y acceso | T18 | FT14–FT15 | Planificado |
 | EF-11.4–6, ADR-008 | Registro, login y recuperación con OTP por correo | T1–T2, T16 | FT3, FT16 | Base OTP y vistas disponibles; consolidación T16/FT16 pendiente |
