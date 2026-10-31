@@ -2,7 +2,7 @@
 node_modules/
 .pnpm-store/
 .vite/
-
+.codegraph
 # Lockfiles de otros gestores. Este proyecto usa pnpm, asi que pnpm-lock.yaml
 # SI se versiona (reproducibilidad de instalaciones).
 package-lock.json
@@ -68,3 +68,6 @@ Thumbs.db
 
 # Caché local del registro de skills (la crea el runtime, no es del proyecto)
 .atl/
+
+# Archivos temporales de correcciones
+CORRECCIONES*.md
