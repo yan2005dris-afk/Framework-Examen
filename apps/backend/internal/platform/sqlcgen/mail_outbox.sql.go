@@ -98,9 +98,9 @@ func (q *Queries) ExpireMail(ctx context.Context) error {
 }
 
 const finishMail = `-- name: FinishMail :execrows
-UPDATE mail_outbox SET status=$1,last_error_code=$2,
+UPDATE mail_outbox SET status=$1::varchar,last_error_code=$2,
     next_attempt_at=$3,updated_at=now(),
-    ciphertext=CASE WHEN $1::text='pending' THEN ciphertext ELSE ''::bytea END,
+    ciphertext=CASE WHEN $1::varchar='pending' THEN ciphertext ELSE ''::bytea END,
     lease_id=NULL
 WHERE id=$4 AND lease_id=$5 AND status='processing'
 `

@@ -18,9 +18,9 @@ UPDATE mail_outbox m SET status='processing',attempts=m.attempts+1,
 FROM candidates c WHERE m.id=c.id RETURNING m.*;
 
 -- name: FinishMail :execrows
-UPDATE mail_outbox SET status=sqlc.arg(status),last_error_code=sqlc.arg(error_code),
+UPDATE mail_outbox SET status=sqlc.arg(status)::varchar,last_error_code=sqlc.arg(error_code),
     next_attempt_at=sqlc.arg(next_attempt_at),updated_at=now(),
-    ciphertext=CASE WHEN sqlc.arg(status)::text='pending' THEN ciphertext ELSE ''::bytea END,
+    ciphertext=CASE WHEN sqlc.arg(status)::varchar='pending' THEN ciphertext ELSE ''::bytea END,
     lease_id=NULL
 WHERE id=sqlc.arg(id) AND lease_id=sqlc.arg(lease_id) AND status='processing';
 

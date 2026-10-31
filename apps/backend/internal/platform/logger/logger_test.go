@@ -51,4 +51,3 @@ func TestLogger_SanitizeSensitiveAttributes(t *testing.T) {
 		t.Error("el campo normal debe conservarse")
 	}
 }
-
