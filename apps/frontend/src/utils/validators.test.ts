@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 
+import casosDuracion from "../../../backend/internal/submission/testdata/duration_cases.json"
 import {
   calcularDuracionExperiencia,
   evaluarFortalezaPassword,
@@ -84,6 +85,23 @@ describe("validarEmail", () => {
 })
 
 describe("calcularDuracionExperiencia", () => {
+  it.each(casosDuracion)(
+    "coincide con Go: $start / $end",
+    ({ start, end, anios, meses, dias, texto }) => {
+      expect(calcularDuracionExperiencia(start, end)).toEqual({
+        anios,
+        meses,
+        dias,
+        texto,
+      })
+    },
+  )
+
+  it("rechaza fechas de calendario imposibles", () => {
+    expect(calcularDuracionExperiencia("2024-02-30", "2024-03-02").texto).toBe(
+      "Fecha no válida",
+    )
+  })
   it("calcula años, meses y días entre dos fechas", () => {
     const resultado = calcularDuracionExperiencia("2020-01-01", "2021-03-15")
 

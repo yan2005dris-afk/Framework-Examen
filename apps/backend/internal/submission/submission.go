@@ -3,11 +3,13 @@
 package submission
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -156,29 +158,55 @@ func (s *Submission) IsEditable() bool {
 
 /**
  * CanonicalContent normaliza el contenido del formulario a un JSON estable:
- * con las claves ordenadas, el mismo formulario siempre produce el mismo
- * hash, sin importar el orden en que llegue del cliente.
+ * con las claves ordenadas recursivamente (incluso dentro de listas y objetos anidados),
+ * preservando números grandes sin pérdida de precisión.
  *
  * @param {json.RawMessage} content - Contenido crudo del formulario.
  * @returns {json.RawMessage} Contenido canónico.
  * @throws {Error} ErrInvalidContent si el JSON no es un objeto válido.
  */
 func CanonicalContent(content json.RawMessage) (json.RawMessage, error) {
-	if len(content) == 0 {
-		return nil, fmt.Errorf("%w: el contenido está vacío", ErrInvalidContent)
+	trimmed := bytes.TrimSpace(content)
+	if len(trimmed) == 0 || trimmed[0] != '{' {
+		return nil, fmt.Errorf("%w: el contenido debe ser un objeto JSON", ErrInvalidContent)
 	}
 
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(content, &fields); err != nil {
+	var raw any
+	decoder := json.NewDecoder(bytes.NewReader(trimmed))
+	decoder.UseNumber()
+	if err := decoder.Decode(&raw); err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrInvalidContent, err.Error())
 	}
+	if err := decoder.Decode(new(json.RawMessage)); err != io.EOF {
+		return nil, ErrInvalidContent
+	}
 
-	canonical, err := json.Marshal(fields)
+	canonicalVal := canonicalValue(raw)
+	canonicalBytes, err := json.Marshal(canonicalVal)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrInvalidContent, err.Error())
 	}
 
-	return canonical, nil
+	return canonicalBytes, nil
+}
+
+func canonicalValue(v any) any {
+	switch val := v.(type) {
+	case map[string]any:
+		m := make(map[string]any, len(val))
+		for k, item := range val {
+			m[k] = canonicalValue(item)
+		}
+		return m
+	case []any:
+		l := make([]any, len(val))
+		for i, item := range val {
+			l[i] = canonicalValue(item)
+		}
+		return l
+	default:
+		return val
+	}
 }
 
 /**

@@ -4,12 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
 
 	shareddomain "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/shared/domain"
 )
+
+/** Notifier es el puerto de confirmación; el correo se emite después del commit. */
+type Notifier interface {
+	Confirm(context.Context, *Submission) error
+}
 
 /**
  * CreateInput son los datos necesarios para abrir una postulación.
@@ -24,8 +30,9 @@ type CreateInput struct {
  * Service expone los casos de uso del contexto de postulaciones.
  */
 type Service struct {
-	repo Repository
-	now  func() time.Time
+	repo     Repository
+	now      func() time.Time
+	notifier Notifier
 }
 
 /**
@@ -34,8 +41,12 @@ type Service struct {
  * @param {Repository} repo - Puerto de persistencia de postulaciones.
  * @returns {Service} Servicio listo para usar.
  */
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo, now: time.Now}
+func NewService(repo Repository, notifiers ...Notifier) *Service {
+	s := &Service{repo: repo, now: time.Now}
+	if len(notifiers) > 0 {
+		s.notifier = notifiers[0]
+	}
+	return s
 }
 
 /**
@@ -48,6 +59,10 @@ func NewService(repo Repository) *Service {
  */
 func (s *Service) Create(ctx context.Context, input CreateInput) (*Submission, error) {
 	now := s.now()
+	content, err := validateContent(input.Content, false, now)
+	if err != nil {
+		return nil, err
+	}
 
 	code := input.Code
 	if code == "" {
@@ -63,7 +78,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*Submission, e
 		return nil, err
 	}
 
-	item, err := NewSubmission(id, input.ApplicantID, code, input.Content, now)
+	item, err := NewSubmission(id, input.ApplicantID, code, content, now)
 	if err != nil {
 		return nil, err
 	}
@@ -217,20 +232,17 @@ func (s *Service) ListCursor(ctx context.Context, applicantID uuid.UUID, request
  * @throws {Error} ErrNotFound o ErrNotEditable según el estado del recurso.
  */
 func (s *Service) Update(ctx context.Context, id uuid.UUID, content json.RawMessage) (*Submission, error) {
-	item, err := s.Get(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := item.UpdateContent(content, s.now()); err != nil {
-		return nil, err
-	}
-
-	if err := s.repo.Update(ctx, item); err != nil {
-		return nil, err
-	}
-
-	return item, nil
+	return s.repo.Mutate(ctx, id, func(item *Submission) error {
+		if !item.IsEditable() {
+			return ErrNotEditable
+		}
+		now := s.now()
+		validated, err := validateContent(content, false, now)
+		if err != nil {
+			return err
+		}
+		return item.UpdateContent(validated, now)
+	})
 }
 
 /**
@@ -252,4 +264,150 @@ func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return s.repo.Delete(ctx, id)
+}
+
+/**
+ * SaveSection mezcla los campos recibidos con la sección existente. Las listas
+ * se reemplazan completas y las otras secciones se conservan. El bloqueo de
+ * fila evita perder cambios cuando dos peticiones guardan simultáneamente.
+ * @param {int} number - Sección entre 1 y 9.
+ * @param {json.RawMessage} content - Campos de la sección, sin envoltorio.
+ * @returns {Submission, error} Postulación guardada o error de validación.
+ */
+func (s *Service) SaveSection(ctx context.Context, id uuid.UUID, number int, content json.RawMessage) (*Submission, error) {
+	if number < 1 || number > 9 {
+		return nil, ErrInvalidSection
+	}
+	if _, err := CanonicalContent(content); err != nil {
+		return nil, err
+	}
+	wrapper := fmt.Sprintf(`{"seccion%d":%s}`, number, string(content))
+	if _, err := DecodeForm(json.RawMessage(wrapper)); err != nil {
+		return nil, ErrInvalidContent
+	}
+	return s.repo.Mutate(ctx, id, func(item *Submission) error {
+		if !item.IsEditable() {
+			return ErrNotEditable
+		}
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(item.Content, &fields); err != nil || fields == nil {
+			return ErrInvalidContent
+		}
+		key := fmt.Sprintf("seccion%d", number)
+		merged, err := mergeSection(fields[key], content)
+		if err != nil {
+			return err
+		}
+		fields[key] = merged
+		raw, err := json.Marshal(fields)
+		if err != nil {
+			return ErrInvalidContent
+		}
+		now := s.now()
+		validated, err := validateContent(raw, false, now)
+		if err != nil {
+			return err
+		}
+		return item.UpdateContent(validated, now)
+	})
+}
+
+/**
+ * Submit valida el formulario completo y sella exactamente el contenido que
+ * se confirma bajo bloqueo de fila. Un fallo SMTP no revierte el envío.
+ * @param {Consent} consent - Aceptaciones finales opcionales si ya se guardaron.
+ * @returns {Submission, error} Postulación sellada o regla incumplida.
+ */
+func (s *Service) Submit(ctx context.Context, id uuid.UUID, consent *Consent) (*Submission, error) {
+	item, err := s.repo.Mutate(ctx, id, func(item *Submission) error {
+		if !item.IsEditable() {
+			return ErrNotEditable
+		}
+		form, err := DecodeForm(item.Content)
+		if err != nil {
+			return err
+		}
+		if consent != nil {
+			form.Consent = consent
+		}
+		now := s.now()
+		if err := ValidateForm(form, true, now); err != nil {
+			return err
+		}
+		if form.Consent != nil {
+			form.Consent.Statements = consentStatements
+			form.Consent.Version = "v1.4"
+			form.Consent.AcceptedAt = now.UTC().Format(time.RFC3339)
+		}
+		normalizeDurations(form, now)
+		raw, err := json.Marshal(form)
+		if err != nil {
+			return ErrInvalidContent
+		}
+		if err := item.UpdateContent(raw, now); err != nil {
+			return err
+		}
+		return item.MarkAsSent(now)
+	})
+	if err != nil {
+		return nil, err
+	}
+	if s.notifier != nil {
+		if err := s.notifier.Confirm(ctx, item); err != nil {
+			// No se incluyen destinatario, contenido ni errores SMTP con datos personales.
+			slog.WarnContext(ctx, "la postulación se selló pero no se pudo enviar el correo de confirmación")
+		}
+	}
+	return item, nil
+}
+
+/** validateContent tipa, valida y recalcula los valores derivados del formulario. */
+func validateContent(content json.RawMessage, complete bool, now time.Time) (json.RawMessage, error) {
+	form, err := DecodeForm(content)
+	if err != nil {
+		return nil, err
+	}
+	if err := ValidateForm(form, complete, now); err != nil {
+		return nil, err
+	}
+	normalizeDurations(form, now)
+	raw, err := json.Marshal(form)
+	if err != nil {
+		return nil, ErrInvalidContent
+	}
+	return CanonicalContent(raw)
+}
+
+/** mergeSection mezcla objetos anidados, reemplaza arrays y rechaza nulos. */
+func mergeSection(previous, patch json.RawMessage) (json.RawMessage, error) {
+	fields := map[string]json.RawMessage{}
+	if len(previous) > 0 {
+		if err := json.Unmarshal(previous, &fields); err != nil || fields == nil {
+			return nil, ErrInvalidContent
+		}
+	}
+	var changes map[string]json.RawMessage
+	if err := json.Unmarshal(patch, &changes); err != nil || changes == nil {
+		return nil, ErrInvalidContent
+	}
+	for key, value := range changes {
+		if string(value) == "null" {
+			delete(fields, key)
+			continue
+		}
+		if len(value) > 0 && value[0] == '{' {
+			merged, err := mergeSection(fields[key], value)
+			if err != nil {
+				return nil, err
+			}
+			fields[key] = merged
+		} else {
+			fields[key] = value
+		}
+	}
+	result, err := json.Marshal(fields)
+	if err != nil {
+		return nil, ErrInvalidContent
+	}
+	return result, nil
 }

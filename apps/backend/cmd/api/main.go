@@ -22,6 +22,7 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/mail"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
+	submissionnotification "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/notification"
 	submissionpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/sql/migrations"
 )
@@ -134,8 +135,15 @@ func main() {
 		identity.NewHandler(identityService, cfg.IsProduction()).RegisterRoutes(router)
 
 		// Contexto de postulaciones
-		submissionRepository := submissionpostgres.NewRepository(queries)
-		submissionService := submission.NewService(submissionRepository)
+		submissionRepository := submissionpostgres.NewRepository(queries, db.NewTxManager(pool))
+		var submissionNotifier submission.Notifier
+		if mailer != nil {
+			submissionNotifier = &submissionnotification.Confirmation{
+				Sender:     mailer,
+				Applicants: identityRepo,
+			}
+		}
+		submissionService := submission.NewService(submissionRepository, submissionNotifier)
 		submission.NewHandler(submissionService).RegisterRoutes(router)
 	} else {
 		log.Warn("sin base de datos: no se registran las rutas de autenticación ni postulaciones")

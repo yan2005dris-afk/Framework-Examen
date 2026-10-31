@@ -163,7 +163,7 @@ Implementa el EF-11 completo.
 
 > **Criterio 6 — Reglas del negocio (6 pts)**
 
-El CRUD ya existe; falta el **modelo del formulario** y sus validaciones.
+**Backend implementado (2026-10-31)**: modelo tipado, validación, progreso, guardado parcial, sello y confirmación SMTP. La verificación externa IESS/Registro Civil y los documentos reales aún dependen de sus integraciones.
 
 **Piezas**
 
@@ -191,15 +191,16 @@ El CRUD ya existe; falta el **modelo del formulario** y sus validaciones.
 
 **Criterios de aceptación**
 
-- [ ] `POST /api/v1/submissions/{id}/sections/{n}` guarda una sección y
+- [x] `POST /api/v1/submissions/{id}/sections/{n}` guarda una sección y
       devuelve el progreso (9 secciones, con cuáles están completas).
-- [ ] `POST /api/v1/submissions/{id}/submit` sella: hash, `submittedAt`,
+- [x] `POST /api/v1/submissions/{id}/submit` sella: hash, `submittedAt`,
       estado `submitted` y correo de confirmación.
-- [ ] La validación del servidor es la **misma** que la del frontend (mismo
-      conjunto de reglas, con tests en ambos lados).
-- [ ] Los 5 puntos de consentimiento se guardan y son verificables.
-- [ ] La postulación enviada es inmutable: `PUT` y `DELETE` devuelven `409`.
-- [ ] Tests de cada regla con los casos de borde del RF.
+- [ ] Paridad completa con la validación de las vistas del frontend. El backend ya aplica las reglas; duración y fechas imposibles cuentan con casos compartidos Go/Vitest. Las vistas EF-12 y su validador completo siguen pendientes de migración.
+- [x] Los 5 puntos de consentimiento se guardan y son verificables.
+- [x] La postulación enviada es inmutable: `PUT` y `DELETE` devuelven `409`.
+- [x] Tests de cada regla con los casos de borde del RF.
+
+**Verificación**: pruebas de reglas, guardado concurrente, doble envío, rollback, consentimiento, destinatario registrado y estados HTTP con dobles en memoria. Las pruebas PostgreSQL optativas se ejecutan con `SUBMISSION_TEST_DATABASE_URL` y crean un esquema aislado por ejecución. En este entorno se omiten por falta de URL; SMTP real y `-race` requieren sockets habilitados y CGO, respectivamente.
 
 **Dependencias**: T2 (sesión). **Esfuerzo estimado**: 4 días.
 
@@ -250,7 +251,7 @@ El CRUD ya existe; falta el **modelo del formulario** y sus validaciones.
 
 > **Criterio 2 — Persistencia y transacciones (8 pts)**
 
-`TxManager.WithinTx` ya existe; falta **usarlo** en el camino de guardado.
+T3 ya utiliza `TxManager.WithinTx` y bloqueo de fila para guardar y sellar la postulación. T5 amplía esa transacción al guardado **multi-tabla** de documentos y eventos cuando existan.
 
 - [ ] `SaveSubmission` inserta cabecera, secciones, documentos y eventos de
       auditoría dentro de **una** transacción.

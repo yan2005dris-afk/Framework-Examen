@@ -69,7 +69,11 @@ function parsearFechaLocal(valor: string): Date | null {
       Number(soloFecha[2]) - 1,
       Number(soloFecha[3]),
     )
-    return isNaN(fecha.getTime()) ? null : fecha
+    return fecha.getFullYear() === Number(soloFecha[1]) &&
+      fecha.getMonth() === Number(soloFecha[2]) - 1 &&
+      fecha.getDate() === Number(soloFecha[3])
+      ? fecha
+      : null
   }
 
   const fecha = new Date(valor)
@@ -102,10 +106,10 @@ export function calcularDuracionExperiencia(
   let meses = fin.getMonth() - inicio.getMonth()
   let dias = fin.getDate() - inicio.getDate()
 
-  if (dias < 0) {
+  for (let prestados = 0; dias < 0; prestados++) {
     meses -= 1
     // Días del mes anterior
-    const prevMonth = new Date(fin.getFullYear(), fin.getMonth(), 0)
+    const prevMonth = new Date(fin.getFullYear(), fin.getMonth() - prestados, 0)
     dias += prevMonth.getDate()
   }
 
