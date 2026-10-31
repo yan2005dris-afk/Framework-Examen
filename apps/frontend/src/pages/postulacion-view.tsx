@@ -3,6 +3,7 @@ import {
   ArrowRightIcon,
   CheckCircleIcon,
   FileCheck2Icon,
+  LockIcon,
   SaveIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -45,6 +46,7 @@ import {
   useGuardarSeccion,
   useListarPostulaciones,
 } from "@/features/postulaciones/queries"
+import { useConvocatoriaPublica } from "@/features/convocatorias/queries"
 import { RUTAS, rutaSeccion } from "@/lib/rutas"
 import { validarSeccionEF12 } from "@/utils/validar-formulario"
 
@@ -137,6 +139,8 @@ export function PostulacionView() {
     error: errorPostulaciones,
     refetch: recargarPostulaciones,
   } = useListarPostulaciones({ limit: 1 })
+
+  const { data: convocatoria } = useConvocatoriaPublica()
 
   const crearPostulacionMutation = useCrearPostulacion()
   const guardarSeccionMutation = useGuardarSeccion()
@@ -234,8 +238,18 @@ export function PostulacionView() {
 
   const yaEnviada = postulacionActiva && postulacionActiva.status !== "draft"
 
+  // La disponibilidad real del formulario EF-12 la define el servidor mediante ef12Disponible (T18)
+  const abiertaConvocatoria = Boolean(convocatoria?.ef12Disponible)
+
   async function guardarSeccionActual(irSiguiente = false): Promise<boolean> {
     if (!postulacionActiva?.id) return false
+
+    if (!abiertaConvocatoria && !yaEnviada) {
+      toast.error(
+        "La convocatoria no admite modificaciones porque el plazo concluyó o la postulación está deshabilitada.",
+      )
+      return false
+    }
 
     setErrorValidacion(null)
     const claveSeccion = `seccion${numeroSeccion}` as keyof typeof formData
@@ -306,6 +320,28 @@ export function PostulacionView() {
             <Button asChild size="sm">
               <Link to={RUTAS.postulacionImprimir}>Imprimir (HU-11)</Link>
             </Button>
+          </div>
+        </div>
+      )}
+
+      {!abiertaConvocatoria && !yaEnviada && (
+        <div
+          role="alert"
+          className="flex items-center gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive-foreground dark:bg-destructive/20"
+        >
+          <LockIcon
+            className="size-5 shrink-0 text-destructive"
+            aria-hidden="true"
+          />
+          <div>
+            <h4 className="font-semibold text-destructive">
+              Recepción de postulaciones cerrada
+            </h4>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              El plazo oficial para el envío de formularios EF-12 ha concluido o
+              se encuentra deshabilitado. No es posible guardar modificaciones
+              ni remitir nuevos expedientes.
+            </p>
           </div>
         </div>
       )}
@@ -446,7 +482,9 @@ export function PostulacionView() {
                   size="sm"
                   onClick={() => guardarSeccionActual(false)}
                   disabled={
-                    guardarSeccionMutation.isPending || bloqueadoNacionalidad
+                    guardarSeccionMutation.isPending ||
+                    bloqueadoNacionalidad ||
+                    !abiertaConvocatoria
                   }
                   className="flex items-center gap-1.5"
                 >
@@ -466,7 +504,9 @@ export function PostulacionView() {
                 size="sm"
                 onClick={() => guardarSeccionActual(true)}
                 disabled={
-                  guardarSeccionMutation.isPending || bloqueadoNacionalidad
+                  guardarSeccionMutation.isPending ||
+                  bloqueadoNacionalidad ||
+                  (!abiertaConvocatoria && !yaEnviada)
                 }
                 className="flex items-center gap-1.5"
               >
@@ -479,7 +519,9 @@ export function PostulacionView() {
                 size="sm"
                 onClick={() => guardarSeccionActual(true)}
                 disabled={
-                  guardarSeccionMutation.isPending || bloqueadoNacionalidad
+                  guardarSeccionMutation.isPending ||
+                  bloqueadoNacionalidad ||
+                  (!abiertaConvocatoria && !yaEnviada)
                 }
                 className="flex items-center gap-1.5 bg-emerald-700 text-white hover:bg-emerald-800"
               >

@@ -1,6 +1,8 @@
 import {
   BarChart3Icon,
+  CalendarDaysIcon,
   ClipboardCheckIcon,
+  ClockIcon,
   FileTextIcon,
   LayoutDashboardIcon,
   LifeBuoyIcon,
@@ -33,6 +35,8 @@ export type VistaId =
   | "imprimir"
   | "postulaciones"
   | "reportes"
+  | "convocatorias"
+  | "fases"
 
 type EntradaMenu = {
   id: VistaId
@@ -83,10 +87,26 @@ const grupos: { titulo: string; entradas: EntradaMenu[] }[] = [
       },
     ],
   },
+  {
+    titulo: "Gestión de Convocatorias",
+    entradas: [
+      {
+        id: "convocatorias",
+        titulo: "Convocatorias",
+        icono: CalendarDaysIcon,
+      },
+      {
+        id: "fases",
+        titulo: "Fases y cronograma",
+        icono: ClockIcon,
+      },
+    ],
+  },
 ]
 
 type AppSidebarProps = {
   administrativo?: boolean
+  rol?: string
   vistaActual: VistaId
   onNavigate: (vista: VistaId) => void
   /**
@@ -102,14 +122,23 @@ export function AppSidebar({
   onNavigate,
   rutas,
   administrativo = false,
+  rol,
 }: AppSidebarProps) {
   const gruposVisibles = administrativo
-    ? [
-        {
-          titulo: "Revisión interna",
-          entradas: [grupos[0].entradas[0], ...grupos[1].entradas],
-        },
-      ]
+    ? rol === "administrador"
+      ? [
+          grupos[2], // Gestión de Convocatorias
+          {
+            titulo: "Revisión interna",
+            entradas: [grupos[0].entradas[0], ...grupos[1].entradas],
+          },
+        ]
+      : [
+          {
+            titulo: "Revisión interna",
+            entradas: [grupos[0].entradas[0], ...grupos[1].entradas],
+          },
+        ]
     : grupos.filter((grupo) => grupo.titulo === "Postulación")
   return (
     <Sidebar collapsible="icon">
