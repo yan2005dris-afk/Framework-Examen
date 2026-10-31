@@ -18,6 +18,7 @@ separados en capas con inyección de dependencias.
 | Node.js | 22 LTS | Frontend |
 | pnpm | 12 | Gestor de paquetes del workspace |
 | Docker + Compose v2 | Reciente | PostgreSQL, Redis, Mailpit y el stack completo |
+| PostgreSQL | 18 | Base de datos (la imagen trae `uuidv7()` nativo) |
 
 ---
 

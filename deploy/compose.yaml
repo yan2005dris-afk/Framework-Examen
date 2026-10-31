@@ -64,7 +64,7 @@ services:
       start_period: 20s
 
   postgres:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     container_name: biess-postgres
     restart: unless-stopped
     environment:
@@ -72,7 +72,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en deploy/.env}
       POSTGRES_DB: ${POSTGRES_DB:-biess}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      # PostgreSQL 18 usa un directorio por versión mayor
+      # (/var/lib/postgresql/18/docker). El montaje va en /var/lib/postgresql
+      # y no en .../data, que es lo que exige la imagen desde la 18.
+      - postgres-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d biess"]
       interval: 10s
