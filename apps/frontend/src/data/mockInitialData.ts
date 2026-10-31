@@ -4,7 +4,7 @@ import type {
 } from "../types/concurso"
 
 export const POSTULANTE_DEMO: PostulanteUser = {
-  cedula: "1713849201",
+  cedula: "1713849204",
   nombres: "CARLOS ALBERTO",
   apellidos: "MENDOZA ANDRADE",
   correo: "carlos.mendoza@postulante-biess.ec",
@@ -13,7 +13,7 @@ export const POSTULANTE_DEMO: PostulanteUser = {
 }
 
 export const FORMULARIO_INICIAL_VACIO: FormularioPostulacionData = {
-  codigoPostulacion: "BIESS-CPMO-2026-00428",
+  codigoPostulacion: "EF12-2026-004821",
   estado: "borrador",
   fechaUltimaModificacion: new Date().toISOString(),
   seccion1: {
@@ -91,34 +91,34 @@ export const FORMULARIO_INICIAL_VACIO: FormularioPostulacionData = {
 }
 
 export const FORMULARIO_DEMO_COMPLETO: FormularioPostulacionData = {
-  codigoPostulacion: "BIESS-CPMO-2026-00428",
+  codigoPostulacion: "EF12-2026-004821",
   estado: "borrador",
   fechaUltimaModificacion: "2026-10-30T16:45:00Z",
   seccion1: {
     nombres: "CARLOS ALBERTO",
     apellidos: "MENDOZA ANDRADE",
-    cedula: "1713849201",
+    cedula: "1713849204",
     genero: "Masculino",
-    fechaNacimiento: "1979-05-14",
+    fechaNacimiento: "1985-04-17",
     nacionalidad: "Ecuatoriana",
     estadoCivil: "Casado/a",
-    nombreConyuge: "MARÍA FERNANDA SALGADO PAREDES",
-    cedulaConyuge: "1714589210",
+    nombreConyuge: "MARÍA ELENA VARGAS",
+    cedulaConyuge: "1712345675",
     verificadoRegistroCivil: true,
   },
   seccion2: {
     pais: "Ecuador",
     provincia: "Pichincha",
     canton: "Quito",
-    telefonoCelular: "0998452109",
+    telefonoCelular: "0991234567",
     correo1: "carlos.mendoza@postulante-biess.ec",
-    correo2: "c.mendoza.finanzas@outlook.com",
-    callePrincipal: "Av. República del Salvador",
-    numero: "N36-140",
-    calleSecundaria: "Suecia",
+    correo2: "c.mendoza@correo.com",
+    callePrincipal: "Av. Amazonas",
+    numero: "N34-120",
+    calleSecundaria: "Av. Naciones Unidas",
     sector: "La Carolina",
-    referencia: "Edificio Plaza Real, Piso 8, Of. 804 frente al parque",
-    telefonoDomiciliario: "022445890",
+    referencia: "Junto al parque La Carolina",
+    telefonoDomiciliario: "022345678",
   },
   seccion3: {
     tieneFamiliaresIessBiess: "Sí",
@@ -189,6 +189,7 @@ export const FORMULARIO_DEMO_COMPLETO: FormularioPostulacionData = {
         fechaInicio: "2018-02-01",
         fechaFin: "2023-04-30",
         actualmenteLaborando: false,
+        actividadRelacionada: "Finanzas",
         actividades:
           "Gestión y estructuración de portafolios de crédito, administración de inversiones financieras de liquidez institucional, y mitigación de riesgos de mercado.",
         descripcionFunciones:
@@ -212,6 +213,7 @@ export const FORMULARIO_DEMO_COMPLETO: FormularioPostulacionData = {
         fechaInicio: "2023-05-15",
         fechaFin: "",
         actualmenteLaborando: true,
+        actividadRelacionada: "Economía",
         actividades:
           "Supervisión de patrimonios autónomos, estructuración de títulos valores hipotecarios y análisis de flujos de pago para inversionistas institucionales.",
         descripcionFunciones:

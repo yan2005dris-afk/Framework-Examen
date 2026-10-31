@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockups · Sistema de Postulación Directorio BIESS</title>
+    <link rel="stylesheet" href="assets/tokens.css" />
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <div class="mockbar no-print">
+      <span class="strong">Galería de mockups</span>
+      <span class="mockbar-current">EF-11 · EF-12 · EF-13</span>
+      <span class="mockbar-tag">HTML estático · sin build · sin dependencias</span>
+    </div>
+
+    <header class="govbar">
+      <div class="container">
+        <span>REPÚBLICA DEL ECUADOR <span class="govbar-sep">|</span> Comisión Especial de Selección y Designación</span>
+        <span class="govbar-note">BIESS — IESS</span>
+      </div>
+    </header>
+
+    <header class="siteheader">
+      <div class="container">
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">BIESS</span>
+          <span>
+            <span class="brand-name">Directorio del BIESS</span><br />
+            <span class="brand-sub">Concurso Público de Méritos y Oposición · CPMO 2026</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Navegación de la galería">
+          <a href="README.md">Guía de migración</a>
+          <a href="01-portal.html">Empezar el flujo</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" class="container page stack">
+      <div class="stack stack-sm">
+        <h1 class="title-page">Pantallas del sistema</h1>
+        <p class="muted">
+          Treinta y seis pantallas estáticas que cubren el RF del IESS: registro y acceso
+          (EF-11), formulario de 9 secciones (EF-12) y módulo de administración (EF-13).
+          Cada archivo se abre solo, sin servidor, y cada estado real tiene su propio archivo.
+        </p>
+      </div>
+
+      <div class="alert alert-info">
+        <div>
+          <p class="alert-title">Cómo leer este set</p>
+          <p class="text-sm">
+            Los identificadores de archivo (<span class="mono">06-03</span>) son el prefijo
+            del número de sección del RF. El mapa pantalla → historia de usuario →
+            componente shadcn está en <a href="README.md">README.md</a>.
+          </p>
+        </div>
+      </div>
+
+      <section class="stack">
+        <div class="section-head">
+          <h2>Acceso y registro <span class="tag">EF-11</span></h2>
+          <p>HU-01 a HU-04 · rutas públicas</p>
+        </div>
+        <div class="grid">
+          <a class="card" href="01-portal.html">
+            <div class="card-body">
+              <p class="badge">01</p>
+              <p class="card-title mt-3">Portal de convocatoria</p>
+              <p class="card-sub">Hero, sectores de representación y accesos. Ruta <span class="mono">/</span></p>
+            </div>
+          </a>
+          <a class="card" href="02a-registro-identidad.html">
+            <div class="card-body">
+              <p class="badge">02a</p>
+              <p class="card-title mt-3">Registro · validación de identidad</p>
+              <p class="card-sub">Cédula + fecha de expedición o código dactilar. HU-01</p>
+            </div>
+          </a>
+          <a class="card" href="02b-registro-credenciales.html">
+            <div class="card-body">
+              <p class="badge">02b</p>
+              <p class="card-title mt-3">Registro · credenciales</p>
+              <p class="card-sub">Correo y contraseña con medidor de fortaleza. HU-01</p>
+            </div>
+          </a>
+          <a class="card" href="02c-registro-exito.html">
+            <div class="card-body">
+              <p class="badge">02c</p>
+              <p class="card-title mt-3">Registro · éxito</p>
+              <p class="card-sub">Cuenta creada, redirección obligatoria al formulario. HU-03.5</p>
+            </div>
+          </a>
+          <a class="card" href="02d-registro-bloqueado.html">
+            <div class="card-body">
+              <p class="badge">02d</p>
+              <p class="card-title mt-3">Registro · bloqueo 10 min</p>
+              <p class="card-sub">Tercer intento fallido y cuenta regresiva. HU-02</p>
+            </div>
+          </a>
+          <a class="card" href="03a-login.html">
+            <div class="card-body">
+              <p class="badge">03a</p>
+              <p class="card-title mt-3">Inicio de sesión</p>
+              <p class="card-sub">Cédula y contraseña. HU-03</p>
+            </div>
+          </a>
+          <a class="card" href="03b-login-error.html">
+            <div class="card-body">
+              <p class="badge">03b</p>
+              <p class="card-title mt-3">Inicio de sesión · error</p>
+              <p class="card-sub">«sus credenciales de ingreso son incorrectas». HU-03</p>
+            </div>
+          </a>
+          <a class="card" href="04a-recuperar-identidad.html">
+            <div class="card-body">
+              <p class="badge">04a</p>
+              <p class="card-title mt-3">Recuperación · identidad</p>
+              <p class="card-sub">Paso 1 de 4. HU-04</p>
+            </div>
+          </a>
+          <a class="card" href="04b-recuperar-correo-enviado.html">
+            <div class="card-body">
+              <p class="badge">04b</p>
+              <p class="card-title mt-3">Recuperación · correo enviado</p>
+              <p class="card-sub">Paso 2 de 4, enlace con vencimiento. HU-04</p>
+            </div>
+          </a>
+          <a class="card" href="04c-recuperar-nueva-contrasena.html">
+            <div class="card-body">
+              <p class="badge">04c</p>
+              <p class="card-title mt-3">Recuperación · nueva contraseña</p>
+              <p class="card-sub">Paso 3 de 4, reglas RN-02. HU-04</p>
+            </div>
+          </a>
+          <a class="card" href="04d-recuperar-exito.html">
+            <div class="card-body">
+              <p class="badge">04d</p>
+              <p class="card-title mt-3">Recuperación · confirmación</p>
+              <p class="card-sub">Paso 4 de 4. HU-04</p>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <section class="stack">
+        <div class="section-head">
+          <h2>Postulante · panel y formulario <span class="tag">EF-12</span></h2>
+          <p>HU-05 a HU-11 · rutas con sesión</p>
+        </div>
+        <div class="grid">
+          <a class="card" href="05-panel-postulante.html">
+            <div class="card-body">
+              <p class="badge">05</p>
+              <p class="card-title mt-3">Panel del postulante</p>
+              <p class="card-sub">Avance, plazo, código único y notificaciones. Ruta <span class="mono">/postulacion</span></p>
+            </div>
+          </a>
+          <a class="card" href="06-01-informacion-personal.html">
+            <div class="card-body">
+              <p class="badge">06-01</p>
+              <p class="card-title mt-3">Información personal</p>
+              <p class="card-sub">Datos del Registro Civil, nacionalidad y pareja. HU-05 · HU-06</p>
+            </div>
+          </a>
+          <a class="card" href="06-01b-nacionalidad-no-ecuatoriana.html">
+            <div class="card-body">
+              <p class="badge">06-01b</p>
+              <p class="card-title mt-3">Postulación cerrada por nacionalidad</p>
+              <p class="card-sub">Estado terminal del RF 1.1.6 · la nacionalidad no ecuatoriana cierra la postulación.</p>
+            </div>
+          </a>
+          <a class="card" href="06-02-domicilio-contacto.html">
+            <div class="card-body">
+              <p class="badge">06-02</p>
+              <p class="card-title mt-3">Domicilio y contacto</p>
+              <p class="card-sub">País, cascada provincia/cantón, 2 correos. HU-06</p>
+            </div>
+          </a>
+          <a class="card" href="06-03-informacion-adicional.html">
+            <div class="card-body">
+              <p class="badge">06-03</p>
+              <p class="card-title mt-3">Información adicional</p>
+              <p class="card-sub">Familiares en IESS/BIESS, alta y edición. HU-05</p>
+            </div>
+          </a>
+          <a class="card" href="06-04-seleccion-cargo.html">
+            <div class="card-body">
+              <p class="badge">06-04</p>
+              <p class="card-title mt-3">Selección del cargo</p>
+              <p class="card-sub">Sector, elegibilidad y respaldo de organización. HU-08</p>
+            </div>
+          </a>
+          <a class="card" href="06-04b-cargo-no-elegible.html">
+            <div class="card-body">
+              <p class="badge">06-04b</p>
+              <p class="card-title mt-3">Cargo no elegible</p>
+              <p class="card-sub">Variante: el cargo no cumple los requisitos del RF. HU-08</p>
+            </div>
+          </a>
+          <a class="card" href="06-05-formacion-academica.html">
+            <div class="card-body">
+              <p class="badge">06-05</p>
+              <p class="card-title mt-3">Formación académica</p>
+              <p class="card-sub">Títulos, SENESCYT y PDF de 2 MB. HU-05 · HU-07</p>
+            </div>
+          </a>
+          <a class="card" href="06-06-experiencia-profesional.html">
+            <div class="card-body">
+              <p class="badge">06-06</p>
+              <p class="card-title mt-3">Experiencia profesional</p>
+              <p class="card-sub">Duración calculada en años, meses y días. HU-05</p>
+            </div>
+          </a>
+          <a class="card" href="06-07-publicaciones.html">
+            <div class="card-body">
+              <p class="badge">06-07</p>
+              <p class="card-title mt-3">Publicaciones e investigaciones</p>
+              <p class="card-sub">Condicional Sí/No y relación con el campo. HU-05</p>
+            </div>
+          </a>
+          <a class="card" href="06-08-capacitacion.html">
+            <div class="card-body">
+              <p class="badge">06-08</p>
+              <p class="card-title mt-3">Capacitación</p>
+              <p class="card-sub">Curso, seminario o taller, con horas y PDF. HU-05</p>
+            </div>
+          </a>
+          <a class="card" href="06-09-inhabilidades.html">
+            <div class="card-body">
+              <p class="badge">06-09</p>
+              <p class="card-title mt-3">Inhabilidades</p>
+              <p class="card-sub">13 preguntas y despliegue del 1.9.7. HU-05</p>
+            </div>
+          </a>
+          <a class="card" href="06-anexos-modales.html">
+            <div class="card-body">
+              <p class="badge">06-x</p>
+              <p class="card-title mt-3">Anexos del wizard</p>
+              <p class="card-sub">Diálogos de carga PDF, alta y eliminación. HU-05 · HU-07</p>
+            </div>
+          </a>
+          <a class="card" href="07-revision-consentimiento.html">
+            <div class="card-body">
+              <p class="badge">07</p>
+              <p class="card-title mt-3">Revisión y consentimiento</p>
+              <p class="card-sub">Declaración jurada literal de 5 puntos. HU-09 · HU-10</p>
+            </div>
+          </a>
+          <a class="card" href="07b-revision-documentos-pendientes.html">
+            <div class="card-body">
+              <p class="badge">07b</p>
+              <p class="card-title mt-3">Revisión · envío bloqueado</p>
+              <p class="card-sub">Variante: 2 documentos obligatorios pendientes impiden enviar.</p>
+            </div>
+          </a>
+          <a class="card" href="08-confirmacion-envio.html">
+            <div class="card-body">
+              <p class="badge">08</p>
+              <p class="card-title mt-3">Confirmación de envío</p>
+              <p class="card-sub">Código único, hash SHA-256 y correo. HU-10</p>
+            </div>
+          </a>
+          <a class="card" href="09-imprimir.html">
+            <div class="card-body">
+              <p class="badge">09</p>
+              <p class="card-title mt-3">Vista de impresión A4</p>
+              <p class="card-sub">Formulario completo y firma manuscrita. HU-11</p>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <section class="stack">
+        <div class="section-head">
+          <h2>Administración <span class="tag">EF-13</span></h2>
+          <p>HU-12 · rutas con rol analista TH</p>
+        </div>
+        <div class="grid">
+          <a class="card" href="10a-panel-admin.html">
+            <div class="card-body">
+              <p class="badge">10a</p>
+              <p class="card-title mt-3">Dashboard de Talento Humano</p>
+              <p class="card-sub">Postulantes por cargo y publicación de fases. Ruta <span class="mono">/dashboard</span></p>
+            </div>
+          </a>
+          <a class="card" href="10b-postulaciones.html">
+            <div class="card-body">
+              <p class="badge">10b</p>
+              <p class="card-title mt-3">Listado de postulaciones</p>
+              <p class="card-sub">Paginación por cursor y filtros. Ruta <span class="mono">/dashboard/postulaciones</span></p>
+            </div>
+          </a>
+          <a class="card" href="10b-postulaciones-vacia.html">
+            <div class="card-body">
+              <p class="badge">10b-v</p>
+              <p class="card-title mt-3">Listado sin resultados</p>
+              <p class="card-sub">Estado vacío del listado cuando el filtro no coincide.</p>
+            </div>
+          </a>
+          <a class="card" href="10c-detalle-postulacion.html">
+            <div class="card-body">
+              <p class="badge">10c</p>
+              <p class="card-title mt-3">Detalle íntegro del EF-12</p>
+              <p class="card-sub">Expediente cerrado, adjuntos y calculadora. Ruta <span class="mono">/dashboard/postulaciones/:id</span></p>
+            </div>
+          </a>
+          <a class="card" href="10d-matriz.html">
+            <div class="card-body">
+              <p class="badge">10d</p>
+              <p class="card-title mt-3">Matriz comparativa</p>
+              <p class="card-sub">Exportación a .xlsx y PDF. HU-12</p>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <section class="stack">
+        <div class="section-head">
+          <h2>Estados del sistema</h2>
+          <p>Rutas de error y sesión</p>
+        </div>
+        <div class="grid-3">
+          <a class="card" href="11a-403.html">
+            <div class="card-body">
+              <p class="badge">11a</p>
+              <p class="card-title mt-3">403 · sin permisos</p>
+              <p class="card-sub">Postulante en ruta de administración</p>
+            </div>
+          </a>
+          <a class="card" href="11b-404.html">
+            <div class="card-body">
+              <p class="badge">11b</p>
+              <p class="card-title mt-3">404 · no encontrado</p>
+              <p class="card-sub">Ruta inexistente</p>
+            </div>
+          </a>
+          <a class="card" href="11c-sesion-expirada.html">
+            <div class="card-body">
+              <p class="badge">11c</p>
+              <p class="card-title mt-3">Sesión expirada</p>
+              <p class="card-sub">Cookie HttpOnly vencida, retorno al destino</p>
+            </div>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="sitefooter">
+      <div class="container">
+        <span>Sistema de Registro y Postulación al Directorio del BIESS · mockups estáticos</span>
+        <span>Sin lógica de negocio · sin dependencias · sin build</span>
+      </div>
+    </footer>
+  </body>
+</html>

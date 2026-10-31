@@ -1,0 +1,183 @@
+{
+  "$comentario": "Fuente de verdad del set de mockups. Todo valor de negocio que aparece en mas de una pantalla vive aqui. El script scripts/check-consistencia.mjs verifica que cada pantalla renderice exactamente estos valores.",
+  "codigoUnico": "EF12-2026-004821",
+  "hash": {
+    "completo": "9f2c41b7d8e05a63c1b904f7ae2d58c3b6f10e7d94a2c85531ef0b7d6c48a91e",
+    "truncado": "9f2c41b7…a91e"
+  },
+  "envio": {
+    "fecha": "31/10/2026 21:04",
+    "fechaCorta": "31/10/2026",
+    "hora": "21:04"
+  },
+  "postulante": {
+    "nombres": "CARLOS ALBERTO",
+    "apellidos": "MENDOZA ANDRADE",
+    "nombreCompleto": "CARLOS ALBERTO MENDOZA ANDRADE",
+    "cedula": "1713849204",
+    "nacimiento": "17/04/1985",
+    "nacionalidad": "Ecuatoriana",
+    "estadoCivil": "Casado/a",
+    "pareja": "MARÍA ELENA VARGAS",
+    "parejaCedula": "1712345675"
+  },
+  "contacto": {
+    "correo1": "carlos.mendoza@postulante-biess.ec",
+    "correo2": "c.mendoza@correo.com",
+    "celular": "0991234567",
+    "telefonoDomicilio": "022345678"
+  },
+  "domicilio": {
+    "pais": "Ecuador",
+    "provincia": "Pichincha",
+    "canton": "Quito",
+    "callePrincipal": "Av. Amazonas",
+    "numero": "N34-120",
+    "calleSecundaria": "Av. Naciones Unidas",
+    "sector": "La Carolina",
+    "referencia": "Junto al parque La Carolina"
+  },
+  "secciones": {
+    "total": 9,
+    "registrosPorSeccion": {
+      "1": "1",
+      "2": "1",
+      "3": "2",
+      "4": "1",
+      "5": "2 títulos",
+      "6": "2 registros",
+      "7": "2 registros",
+      "8": "4 eventos",
+      "9": "13 preguntas"
+    },
+    "totalRegistros": 10,
+    "titulos": 2,
+    "experiencias": 2,
+    "publicaciones": 2,
+    "eventosCapacitacion": 4,
+    "horasCapacitacion": 176,
+    "familiares": 2,
+    "preguntasInhabilidades": 13
+  },
+  "documentos": {
+    "cantidad": 8,
+    "tamano": "18,4 MB",
+    "limite": "50 MB",
+    "borradorCantidad": 6,
+    "borradorTamano": "14,2 MB",
+    "pendientes": 2
+  },
+  "experiencia": {
+    "total": "12 años, 3 meses y 43 días",
+    "totalCorto": "12 a 3 m",
+    "direccion": "7 a 7 m",
+    "certificadosLaborales": 2
+  },
+  "inhabilidades": {
+    "afirmativas": [
+      "1.9.1"
+    ],
+    "declaradas": [
+      {
+        "numeral": "1.9.7",
+        "pregunta": "¿En los últimos 5 años, ha sido removido por algún Organismo de Control?",
+        "respuesta": "Sí",
+        "detalle": {
+          "institucion": "Contraloría General del Estado",
+          "cargo": "Director de auditoría interna",
+          "fecha": "28/02/2023",
+          "motivo": "Destitución por resolución del organismo de control"
+        }
+      },
+      {
+        "numeral": "1.9.12",
+        "pregunta": "¿Mantiene en firme algún tipo de responsabilidades por la Contraloría General del Estado?",
+        "respuesta": "Sí"
+      }
+    ],
+    "totalDeclaradas": 2,
+    "resumenDeclaradas": "2 declaradas · 1.9.7, 1.9.12",
+    "dictamen": "Observado",
+    "nota": "El RF no declara descalificacion automatica: las respuestas SI se revisan en la calificacion de meritos."
+  },
+  "pantallas": {
+    "05-panel-postulante.html": [
+      "1713849204",
+      "EF12-2026-004821",
+      "14,2 MB de 50 MB permitidos",
+      "4 de 9 secciones"
+    ],
+    "07-revision-consentimiento.html": [
+      "1713849204",
+      "EF12-2026-004821",
+      "18,4 MB de 50 MB",
+      "2 declaradas · 1.9.7, 1.9.12"
+    ],
+    "07b-revision-documentos-pendientes.html": [
+      "1713849204",
+      "EF12-2026-004821",
+      "2 secciones tienen documentos pendientes"
+    ],
+    "08-confirmacion-envio.html": [
+      "1713849204",
+      "EF12-2026-004821",
+      "9f2c41b7d8e05a63c1b904f7ae2d58c3b6f10e7d94a2c85531ef0b7d6c48a91e",
+      "31/10/2026 21:04",
+      "18,4 MB",
+      "8 de 8 documentos"
+    ],
+    "09-imprimir.html": [
+      "1713849204",
+      "EF12-2026-004821",
+      "9f2c41b7d8e05a63c1b904f7ae2d58c3b6f10e7d94a2c85531ef0b7d6c48a91e",
+      "31/10/2026 21:04",
+      "12 años, 3 meses y 43 días"
+    ],
+    "10a-panel-admin.html": [
+      "EF12-2026-004821",
+      "1713849204"
+    ],
+    "10b-postulaciones.html": [
+      "EF12-2026-004821",
+      "1713849204",
+      "9f2c41b7…a91e",
+      "31/10/2026 21:04"
+    ],
+    "10c-detalle-postulacion.html": [
+      "EF12-2026-004821",
+      "1713849204",
+      "9f2c41b7…a91e",
+      "31/10/2026 21:04",
+      "2 declaradas · 1.9.7, 1.9.12"
+    ],
+    "10d-matriz.html": [
+      "EF12-2026-004821",
+      "1713849204",
+      "2 declaradas · 1.9.7, 1.9.12"
+    ]
+  },
+  "estados": {
+    "borrador": {
+      "descripcion": "Panel del postulante: 4 de 9 secciones guardadas, sin envio. Adjuntos cargados hasta ahora.",
+      "seccionesCompletadas": 4,
+      "documentos": 6,
+      "tamano": "14,2 MB"
+    },
+    "revision": {
+      "descripcion": "Las 9 secciones completas y los 8 documentos obligatorios recibidos: el envio queda habilitado.",
+      "seccionesCompletadas": 9,
+      "documentos": 8,
+      "tamano": "18,4 MB"
+    },
+    "revisionBloqueada": {
+      "descripcion": "Variante: 2 documentos obligatorios pendientes bloquean el envio (RF 1.6.8 y 1.7.1.6).",
+      "documentosPendientes": 2
+    },
+    "enviado": {
+      "descripcion": "Expediente enviado y sellado. Es el estado que ven el postulante (08, 09) y el BIESS (10b, 10c, 10d).",
+      "seccionesCompletadas": 9,
+      "documentos": 8,
+      "tamano": "18,4 MB"
+    }
+  }
+}

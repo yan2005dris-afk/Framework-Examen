@@ -25,6 +25,18 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-brand-100: var(--brand-100);
+  --color-brand-900: var(--brand-900);
+  --color-primary-hover: var(--primary-hover);
+  --font-mono: ui-monospace, "JetBrains Mono", Consolas, monospace;
+  --shadow-sm: 0 1px 2px oklch(0.21 0.02 253 / 8%);
+  --shadow-md: 0 4px 12px oklch(0.21 0.02 253 / 10%);
+  --shadow-lg: 0 12px 32px oklch(0.21 0.02 253 / 14%);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -72,6 +84,31 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  /* Tokens del set de mockups (docs/mockups/assets/tokens.css). La paleta
+     institucional del BIESS es una decisión de marca pendiente: aquí solo se
+     incorporan las variables que el set usa y el frontend todavia no tenia. */
+  --primary-hover: oklch(0.3 0.09 267);
+  --brand-900: oklch(0.27 0.078 264);
+  --brand-100: oklch(0.95 0.02 250);
+  --success: oklch(0.6 0.13 163);
+  --success-soft: oklch(0.96 0.03 163);
+  --warning: oklch(0.68 0.14 75);
+  --warning-soft: oklch(0.97 0.04 85);
+  --destructive-soft: oklch(0.96 0.02 27);
+  --font-mono: ui-monospace, "JetBrains Mono", Consolas, monospace;
+  --shadow-sm: 0 1px 2px oklch(0.21 0.02 253 / 8%);
+  --shadow-md: 0 4px 12px oklch(0.21 0.02 253 / 10%);
+  --shadow-lg: 0 12px 32px oklch(0.21 0.02 253 / 14%);
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -107,6 +144,18 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  /* Variantes oscuras de los tokens del set de mockups. */
+  --primary-hover: oklch(0.78 0.11 267);
+  --brand-900: oklch(0.92 0.03 250);
+  --brand-100: oklch(0.3 0.05 260);
+  --success: oklch(0.75 0.14 163);
+  --success-soft: oklch(0.3 0.05 163);
+  --warning: oklch(0.8 0.14 75);
+  --warning-soft: oklch(0.32 0.05 80);
+  --destructive-soft: oklch(0.3 0.05 27);
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 30%);
+  --shadow-md: 0 4px 12px oklch(0 0 0 / 35%);
+  --shadow-lg: 0 12px 32px oklch(0 0 0 / 45%);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
