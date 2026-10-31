@@ -1,0 +1,1520 @@
+/*
+ * app.css — Sistema de componentes de los mockups
+ *
+ * Cada clase corresponde a un componente de shadcn/ui. El mapa completo está en
+ * ../README.md; el nombre de la clase es el contrato de migración:
+ *
+ *   .btn.btn-primary  -> <Button>            .field/.input -> <Label>/<Input>
+ *   .card             -> <Card>              .table        -> <Table>
+ *   .badge            -> <Badge>             .alert        -> <Alert>
+ *   .stepper/.step    -> navegación del wizard
+ *
+ * Reglas: cero colores literales (solo var()), cero estilos en línea, cero
+ * utilidades al estilo Tailwind. Si algo no está acá, no existe.
+ */
+
+/* ---------------------------------------------------------------- Reset -- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--foreground);
+  background: var(--background);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+dl,
+dd,
+figure {
+  margin: 0;
+}
+
+ul[class],
+ol[class] {
+  padding: 0;
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+:where(a) {
+  color: var(--primary);
+  text-underline-offset: 0.2em;
+}
+
+:where(a:hover) {
+  color: var(--primary-hover);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: -3rem;
+  z-index: 100;
+  padding: var(--space-2) var(--space-4);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+
+.skip-link:focus-visible {
+  top: var(--space-2);
+}
+
+/* ------------------------------------------------------------- Layout ---- */
+
+.container {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: var(--space-5);
+}
+
+.container-narrow {
+  max-width: 46rem;
+}
+
+.page {
+  padding-block: var(--space-8) var(--space-16);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.stack-sm {
+  gap: var(--space-3);
+}
+
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.between {
+  justify-content: space-between;
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.grid-2 {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-3 {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-4 {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.sidebar-layout {
+  display: grid;
+  gap: var(--space-8);
+  grid-template-columns: 17rem minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .sidebar-layout,
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --------------------------------------------------- Barra de mockup ----- */
+
+.mockbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--foreground);
+  color: var(--on-foreground);
+  font-size: 0.75rem;
+}
+
+.mockbar a {
+  color: var(--on-foreground);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.mockbar a:hover {
+  color: var(--on-foreground-muted);
+}
+
+.mockbar-current {
+  font-family: var(--font-mono);
+  opacity: 0.75;
+}
+
+.mockbar-tag {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  opacity: 0.6;
+}
+
+/* ----------------------------------------------------- Cabecera pública -- */
+
+.govbar {
+  background: var(--brand-900);
+  color: var(--on-brand-900);
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+}
+
+.govbar .container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+}
+
+.govbar-sep {
+  opacity: 0.45;
+}
+
+.govbar-note {
+  color: var(--success-on-dark);
+  font-weight: 600;
+}
+
+.siteheader {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.siteheader .container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 4.25rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.brand-name {
+  font-weight: 800;
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+  color: var(--primary);
+  line-height: 1.2;
+}
+
+.brand-sub {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  line-height: 1.2;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.nav a {
+  white-space: nowrap;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--secondary-foreground);
+  text-decoration: none;
+}
+
+.nav a:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.nav a[aria-current="page"] {
+  background: var(--brand-100);
+  color: var(--primary);
+}
+
+/* El CTA de la barra debe ganar al color generico de .nav a (P0-1). */
+.nav a.btn-primary,
+.nav a.btn-secondary,
+.nav a.btn-ghost {
+  color: inherit;
+}
+
+.nav a.btn-primary {
+  color: var(--primary-foreground);
+}
+
+.user-chip {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--border);
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.user-avatar {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  color: var(--primary);
+}
+
+.user-name {
+  font-weight: 600;
+}
+
+.user-doc {
+  font-family: var(--font-mono);
+  color: var(--muted-foreground);
+}
+
+.sitefooter {
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  padding-block: var(--space-6);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.sitefooter .container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* --------------------------------------------------------------- Hero ---- */
+
+.hero {
+  background: var(--brand-900);
+  color: var(--on-primary);
+  padding-block: var(--space-12);
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--success-on-dark);
+}
+
+.hero h1 {
+  margin-top: var(--space-3);
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  max-width: 30ch;
+}
+
+.hero-lead {
+  margin-top: var(--space-4);
+  max-width: 58ch;
+  font-size: 1.0625rem;
+  color: var(--brand-200);
+}
+
+.hero-actions {
+  margin-top: var(--space-6);
+}
+
+.hero-meta {
+  margin-top: var(--space-5);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--brand-300);
+}
+
+/* --------------------------------------------------------------- Card ---- */
+
+.card {
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-head {
+  padding: var(--space-5) var(--space-5) 0;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.card-sub {
+  margin-top: var(--space-1);
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.card-body {
+  padding: var(--space-5);
+}
+
+.card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border);
+  background: var(--on-primary);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.section-head h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.title-page {
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.section-head p {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+/* -------------------------------------------------------------- Botones -- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0.5625rem var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: var(--card);
+  color: var(--secondary-foreground);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--muted);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--secondary-foreground);
+}
+
+.btn-ghost:hover {
+  background: var(--muted);
+}
+
+.btn-danger {
+  background: var(--destructive);
+  color: var(--on-primary);
+}
+
+.btn-danger:hover {
+  background: var(--destructive-hover);
+}
+
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.btn-sm {
+  padding: 0.375rem var(--space-3);
+  font-size: 0.75rem;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------- Form ---- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.req {
+  color: var(--destructive);
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+/* El control nativo mide 24 px (1.5 rem) para cumplir el objetivo mínimo de
+   24 × 24 px de WCAG 2.2 (SC 2.5.8) sin depender del área del <label>. */
+input[type="radio"],
+input[type="checkbox"] {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  accent-color: var(--primary);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.5rem var(--space-3);
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  background: var(--card);
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+}
+
+.input:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+  border-color: var(--ring);
+}
+
+.input[readonly] {
+  background: var(--muted);
+  color: var(--secondary-foreground);
+}
+
+.textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position: calc(100% - 1.1rem) 55%, calc(100% - 0.8rem) 55%;
+  background-size: 0.3rem 0.3rem, 0.3rem 0.3rem;
+  background-repeat: no-repeat;
+  padding-right: var(--space-8);
+}
+
+.field-error {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--destructive);
+}
+
+.input[aria-invalid="true"],
+.select[aria-invalid="true"],
+.textarea[aria-invalid="true"] {
+  border-color: var(--destructive);
+}
+
+.radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.radio,
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.radio input,
+.check input {
+  accent-color: var(--primary);
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+}
+
+.input:disabled,
+.select:disabled,
+.textarea:disabled {
+  color: var(--muted-foreground);
+  background: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin: 0;
+  min-inline-size: 0;
+}
+
+.fieldset legend {
+  padding-inline: var(--space-2);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.conditional {
+  display: none;
+}
+
+.has-si:has(input[type="radio"][value="si"]:checked) .conditional[data-when="si"],
+.has-no:has(input[type="radio"][value="no"]:checked) .conditional[data-when="no"] {
+  display: block;
+}
+
+/* Método de validación de identidad (HU-01) */
+.has-metodo:has(input[value="expedicion"]:checked) .conditional[data-when="expedicion"],
+.has-metodo:has(input[value="dactilar"]:checked) .conditional[data-when="dactilar"] {
+  display: block;
+}
+
+/* Estado civil casado o unión de hecho: despliega datos de la pareja (EF-12 1.1.7.1) */
+.has-estado:has(option:checked[value="casado"]) .conditional[data-when="pareja"],
+.has-estado:has(option:checked[value="union"]) .conditional[data-when="pareja"] {
+  display: block;
+}
+
+.conditional > * + * {
+  margin-top: var(--space-4);
+}
+
+/* -------------------------------------------------------------- Badges --- */
+
+.badge {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  color: var(--secondary-foreground);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.badge-success {
+  background: var(--success-soft);
+  border-color: color-mix(in oklch, var(--success) 35%, var(--card));
+  color: var(--success-strong);
+}
+
+.badge-warning {
+  background: var(--warning-soft);
+  border-color: color-mix(in oklch, var(--warning) 40%, var(--card));
+  color: var(--warning-strong);
+}
+
+.badge-danger {
+  background: var(--destructive-soft);
+  border-color: color-mix(in oklch, var(--destructive) 35%, var(--card));
+  color: var(--destructive-strong);
+}
+
+.badge-info {
+  background: var(--brand-100);
+  border-color: color-mix(in oklch, var(--primary) 25%, var(--card));
+  color: var(--primary);
+}
+
+/* -------------------------------------------------------------- Alerts --- */
+
+.alert {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  font-size: 0.875rem;
+}
+
+.alert-title {
+  font-weight: 700;
+}
+
+.alert-success {
+  background: var(--success-soft);
+  border-color: color-mix(in oklch, var(--success) 30%, var(--card));
+}
+
+.alert-warning {
+  background: var(--warning-soft);
+  border-color: color-mix(in oklch, var(--warning) 35%, var(--card));
+}
+
+.alert-danger {
+  background: var(--destructive-soft);
+  border-color: color-mix(in oklch, var(--destructive) 30%, var(--card));
+}
+
+.alert-info {
+  background: var(--brand-100);
+  border-color: color-mix(in oklch, var(--primary) 22%, var(--card));
+}
+
+/* --------------------------------------------------------------- Table --- */
+
+.table-wrap {
+  position: relative;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.table caption {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  border-bottom: 1px solid var(--border);
+}
+
+.table th,
+.table td {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.table th {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  background: var(--on-primary);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table tbody tr:hover {
+  background: var(--on-primary);
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------- Métricas -- */
+
+.stat {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.stat-value {
+  margin-top: var(--space-1);
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.stat-note {
+  margin-top: var(--space-1);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.progress {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--muted);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 999px;
+}
+
+/*
+ * data-level = número de secciones del EF-12 completadas (0 a 9).
+ * El ancho se deriva de ese valor sobre el total de 9 secciones, de modo que
+ * la barra y el texto "Avance: N de 9 secciones" nunca se contradicen.
+ */
+.progress-bar[data-level="0"] { width: 0%; }
+.progress-bar[data-level="1"] { width: 11.111%; }
+.progress-bar[data-level="2"] { width: 22.222%; }
+.progress-bar[data-level="3"] { width: 33.333%; }
+.progress-bar[data-level="4"] { width: 44.444%; }
+.progress-bar[data-level="5"] { width: 55.556%; }
+.progress-bar[data-level="6"] { width: 66.667%; }
+.progress-bar[data-level="7"] { width: 77.778%; }
+.progress-bar[data-level="8"] { width: 88.889%; }
+.progress-bar[data-level="9"] { width: 100%; }
+.progress-bar-warning { background: var(--warning); }
+
+.countdown {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.meta {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  margin: 0;
+}
+
+.meta dt {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.meta dd {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------- Stepper --- */
+
+.stepper {
+  position: sticky;
+  top: 5.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.stepper-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+}
+
+.stepper ol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  color: var(--secondary-foreground);
+  text-decoration: none;
+}
+
+.step:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.step-num {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  background: var(--card);
+}
+
+.step-state {
+  margin-left: auto;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.step[aria-current="step"] {
+  background: var(--brand-100);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.step[aria-current="step"] .step-num {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.step.is-done .step-num {
+  background: var(--success-soft);
+  border-color: color-mix(in oklch, var(--success) 40%, var(--card));
+  color: var(--success-strong);
+}
+
+.stepper-progress {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.stepper-progress .progress {
+  margin-top: var(--space-2);
+}
+
+/* Pasos horizontales de los flujos de acceso (registro y recuperación) */
+.steps-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.steps-inline li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.steps-inline li:not(:last-child)::after {
+  content: "";
+  width: var(--space-5);
+  height: 1px;
+  background: var(--border);
+  margin-left: var(--space-2);
+}
+
+.steps-inline li[aria-current="step"] {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.steps-inline li[aria-current="step"] .step-num {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.steps-inline li.is-done .step-num {
+  background: var(--success-soft);
+  border-color: color-mix(in oklch, var(--success) 40%, var(--card));
+  color: var(--success-strong);
+}
+
+/* --------------------------------------------------------------- Dialog -- */
+
+.dialog-backdrop {
+  padding: var(--space-8) var(--space-4);
+  background: var(--overlay);
+  border-radius: var(--radius-lg);
+}
+
+.dialog {
+  width: min(34rem, 100%);
+  margin-inline: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.dialog-head {
+  padding: var(--space-5) var(--space-5) 0;
+}
+
+.dialog-title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.dialog-desc {
+  margin-top: var(--space-1);
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.dialog-body {
+  padding: var(--space-5);
+}
+
+.dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border);
+  background: var(--on-primary);
+}
+
+/* ------------------------------------------------------- Declaración ----- */
+
+.proof {
+  padding: var(--space-4) var(--space-5);
+  background: var(--brand-100);
+  border: 1px solid color-mix(in oklch, var(--primary) 22%, var(--card));
+  border-radius: var(--radius-lg);
+}
+
+.proof-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground-strong);
+}
+
+.proof .hint {
+  color: var(--muted-foreground-strong);
+}
+
+.proof-value {
+  margin-top: var(--space-1);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--primary);
+}
+
+.proof-hash {
+  margin-top: var(--space-2);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  word-break: break-all;
+  color: var(--foreground);
+}
+
+.declaration {
+  padding: var(--space-5);
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.declaration-list {
+  list-style: decimal;
+  padding-left: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  text-align: justify;
+}
+
+/* ------------------------------------------------- Estados de carga ------ */
+.spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 999px;
+  animation: spinner-spin 0.7s linear infinite;
+}
+
+@keyframes spinner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+.btn[aria-busy="true"] {
+  cursor: progress;
+}
+
+/* --------------------------------------------------- Estado vacio --------- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-10) var(--space-6);
+  text-align: center;
+  color: var(--muted-foreground);
+  background: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.empty-state-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+/* ------------------------------------------------- Identificadores -------- */
+.tag {
+  display: inline-flex;
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
+}
+
+/* ------------------------------------------------------- Utilidades ------ */
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mt-4 { margin-top: var(--space-4); }
+.mt-6 { margin-top: var(--space-6); }
+.mt-8 { margin-top: var(--space-8); }
+.text-sm { font-size: 0.8125rem; }
+.text-xs { font-size: 0.75rem; }
+.self-end { align-self: flex-end; }
+.muted { color: var(--muted-foreground); }
+.mono {
+  font-family: var(--font-mono);
+  /* Los hashes SHA-256 y los códigos largos no deben romper el ancho de la
+     página: se parten en cualquier punto si no cabe. */
+  overflow-wrap: anywhere;
+}
+.strong { font-weight: 700; }
+.center { text-align: center; }
+.full { width: 100%; }
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  border: 0;
+  margin-block: var(--space-5);
+}
+
+/* ------------------------------------------------------------- Impresión -- */
+
+.print-sheet {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-10);
+  color: var(--print-ink);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.print-sheet h1,
+.print-sheet h2,
+.print-sheet h3 {
+  color: var(--print-heading);
+  letter-spacing: -0.01em;
+}
+
+.print-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 2px solid var(--brand-ink);
+}
+
+.print-seal {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-align: right;
+}
+
+.print-block {
+  margin-top: var(--space-5);
+}
+
+.print-block > h2 {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--print-rule);
+}
+
+.print-rows {
+  display: grid;
+  gap: var(--space-1);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: var(--space-2);
+}
+
+.print-row dd {
+  overflow-wrap: anywhere;
+}
+
+.print-row {
+  display: flex;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+}
+
+.print-row dt {
+  font-weight: 700;
+  min-width: 9rem;
+}
+
+.signature-box {
+  margin-top: var(--space-8);
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  text-align: center;
+}
+
+.signature-line {
+  width: min(22rem, 100%);
+  border-top: 1px solid var(--brand-ink);
+  padding-top: var(--space-2);
+  font-size: 0.6875rem;
+}
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-2);
+  font-size: 0.6875rem;
+}
+
+.print-table th,
+.print-table td {
+  padding: var(--space-2) var(--space-2);
+  border: 1px solid var(--print-rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.print-table thead th {
+  background: var(--print-table-head);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.print-table tfoot th,
+.print-table tfoot td {
+  background: var(--print-table-foot);
+}
+
+.print-declaration {
+  margin-top: var(--space-2);
+  padding-left: var(--space-5);
+  list-style: decimal;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 0.6875rem;
+  line-height: 1.55;
+  text-align: justify;
+}
+
+@page {
+  size: A4;
+  margin: 18mm 16mm;
+
+  /* El folio se resuelve dentro del margin box: es el único contexto donde
+     los contadores `page` y `pages` devuelven el número real de página. */
+  @bottom-center {
+    content: "Página " counter(page) " de " counter(pages);
+    font-size: 0.6875rem;
+    color: var(--print-folio);
+  }
+}
+
+.print-page-number {
+  display: none;
+}
+
+@media print {
+  body {
+    background: var(--print-paper);
+    color: var(--print-ink-strong);
+    font-size: 10pt;
+  }
+
+  .no-print,
+  .mockbar,
+  .siteheader,
+  .govbar,
+  .sitefooter,
+  .stepper {
+    display: none !important;
+  }
+
+  .page {
+    padding: 0;
+  }
+
+  .print-sheet {
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .avoid-break,
+  .table tr {
+    break-inside: avoid;
+  }
+
+  .page-break {
+    break-before: page;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+/* ------------------------------------------------- Ajustes responsive ---- */
+
+/* Estas reglas van al final a propósito: sustituyen a las reglas base de
+   cada componente, que están declaradas más arriba en la hoja. */
+@media (max-width: 60rem) {
+  /* El stepper deja de flotar sobre el formulario: se convierte en una tira
+     horizontal desplazable y deja de tapar los campos de la sección. */
+  .stepper {
+    position: static;
+    padding: var(--space-3);
+  }
+
+  .stepper ol {
+    flex-direction: row;
+    gap: var(--space-2);
+    overflow-x: auto;
+    padding-bottom: var(--space-2);
+    scroll-snap-type: x proximity;
+  }
+
+  .stepper li {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .stepper .step {
+    white-space: nowrap;
+  }
+
+  /* En la tira horizontal el estado no puede empujarse al borde de la fila:
+     se pegaría al paso siguiente y lo taparía. */
+  .stepper .step-state {
+    margin-left: var(--space-2);
+  }
+
+  .stepper-progress {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+  }
+
+  /* La hoja imprimible no cabe en un móvil: se desplaza dentro de su caja.
+     En papel vuelve a imprimirse completa (ver @media print). */
+  .print-sheet {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+}

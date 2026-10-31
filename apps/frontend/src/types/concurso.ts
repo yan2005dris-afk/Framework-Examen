@@ -60,6 +60,8 @@ export interface ExperienciaLaboral {
   fechaFin: string
   actualmenteLaborando?: boolean
   actividades: string
+  /** RF 1.6.6: actividades relacionadas a (catálogo cerrado). */
+  actividadRelacionada: AreaEstudio | ""
   descripcionFunciones: string
   duracionCalculada?: {
     anios: number

@@ -55,8 +55,10 @@ cumplimiento del RF. Su criterio 6 es compartido con backend.
 | **Vistas de las 9 secciones** | `src/pages/postulacion-view.tsx` | Estructura inicial; FT5 pendiente |
 | **Vista de impresión** | `src/pages/imprimir-view.tsx` | Estructura inicial; FT6 pendiente |
 
-> El `mockups/` original es la referencia de flujo, copy y lógica de las 9
-> vistas. Está en `.gitignore` y se elimina cuando termine la migración.
+> El set de mockups versionado en `docs/mockups/` es la referencia de flujo, copy
+> y lógica de las 9 vistas. Las clases de `docs/mockups/assets/app.css` son el
+> contrato de migración a shadcn/ui (mapa pantalla → HU → componente en
+> `docs/mockups/README.md`). El `mockups/` original de React ya fue reemplazado.
 
 ---
 
@@ -245,8 +247,8 @@ export async function obtenerPostulaciones(
 
 > **Criterio 6 — Reglas del negocio (6 pts) · Criterio 4 — Componentes**
 
-El mayor bloque del frontend. El `mockups/` original es la referencia de flujo
-y copy.
+El mayor bloque del frontend. El set de mockups en `docs/mockups/` es la
+referencia de flujo y copy.
 
 | Sección | Contenido | Elementos clave |
 |---|---|---|
