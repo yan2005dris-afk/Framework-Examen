@@ -87,3 +87,7 @@ $$;
 -- +goose StatementEnd
 CREATE TRIGGER document_deletion_queue AFTER DELETE ON documents
 FOR EACH ROW EXECUTE FUNCTION enqueue_document_deletion();
+
+ALTER TABLE applicants
+    ADD COLUMN role VARCHAR(32) NOT NULL DEFAULT 'postulante'
+    CONSTRAINT applicants_role_check CHECK (role IN ('postulante', 'analista'));

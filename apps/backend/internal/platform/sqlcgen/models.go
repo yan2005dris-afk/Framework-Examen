@@ -23,6 +23,7 @@ type Applicant struct {
 	FechaRegistro    time.Time `json:"fecha_registro"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
+	Role             string    `json:"role"`
 }
 
 type Document struct {

@@ -1,8 +1,8 @@
 -- name: CreateApplicant :one
 INSERT INTO applicants (
-    id, cedula, nombres, apellidos, correo, password_hash, metodo_validacion, is_verified, fecha_registro
+    id, cedula, nombres, apellidos, correo, password_hash, metodo_validacion, is_verified, role, fecha_registro
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, now()
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, now()
 ) RETURNING *;
 
 -- name: GetApplicantByID :one
@@ -21,6 +21,11 @@ WHERE correo = $1 LIMIT 1;
 UPDATE applicants
 SET password_hash = $2, updated_at = now()
 WHERE id = $1;
+
+-- name: UpdateApplicantRoleByCedula :execrows
+UPDATE applicants
+SET role = $2, updated_at = now()
+WHERE cedula = $1;
 
 -- name: CreateSession :one
 INSERT INTO sessions (
@@ -42,6 +47,7 @@ SELECT
     a.nombres,
     a.apellidos,
     a.correo,
+    a.role,
     a.metodo_validacion,
     a.is_verified,
     a.fecha_registro

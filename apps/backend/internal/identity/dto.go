@@ -61,6 +61,7 @@ type ApplicantResponseDTO struct {
 	Apellidos        string    `json:"apellidos"`
 	NombreCompleto   string    `json:"nombre_completo"`
 	Correo           string    `json:"correo"`
+	Rol              string    `json:"rol"`
 	MetodoValidacion string    `json:"metodo_validacion"`
 	FechaRegistro    time.Time `json:"fecha_registro"`
 }
@@ -79,6 +80,7 @@ func ToResponse(a *Applicant) ApplicantResponseDTO {
 		Apellidos:        a.LastName,
 		NombreCompleto:   a.FullName(),
 		Correo:           a.Email,
+		Rol:              a.Role,
 		MetodoValidacion: a.ValidationMethod,
 		FechaRegistro:    a.RegisteredAt,
 	}
