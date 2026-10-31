@@ -1,0 +1,7 @@
+packages:
+  - 'apps/*'
+
+# pnpm 10+ exige declarar de forma explicita los scripts de postinstall
+# que se pueden ejecutar. Sin esto, esbuild no genera su binario y Vite falla.
+onlyBuiltDependencies:
+  - esbuild
