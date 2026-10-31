@@ -5,6 +5,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -182,7 +183,15 @@ func (r *Repository) ListByApplicantCursor(ctx context.Context, applicantID uuid
  * @returns {void}
  */
 func (r *Repository) Update(ctx context.Context, item *submission.Submission) error {
+	evidence, err := json.Marshal(item.Eligibility)
+	if err != nil {
+		return err
+	}
+	if item.Eligibility == nil {
+		evidence = nil
+	}
 	params := sqlcgen.UpdateSubmissionParams{
+		Eligibility: evidence,
 		ID:          item.ID,
 		Content:     item.Content,
 		Status:      string(item.Status),
@@ -245,6 +254,16 @@ func (r *Repository) Mutate(ctx context.Context, id uuid.UUID, change func(conte
 	err := r.transactions.WithinTx(ctx, func(tx pgx.Tx) error {
 		ctx := db.WithTransaction(ctx, tx)
 		queries := r.queries.WithTx(tx)
+		previous, err := queries.GetSubmissionByID(ctx, id)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return submission.ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if _, err = queries.LockDocumentApplicant(ctx, previous.ApplicantID); err != nil {
+			return err
+		}
 		row, err := queries.GetSubmissionForUpdate(ctx, id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return submission.ErrNotFound
@@ -262,6 +281,9 @@ func (r *Repository) Mutate(ctx context.Context, id uuid.UUID, change func(conte
 			return err
 		}
 		eventType := submission.EventSaved
+		if item.Status == submission.StatusClosed {
+			eventType = "postulacion.cerrada_elegibilidad"
+		}
 		if item.Status == submission.StatusSubmitted {
 			eventType = submission.EventSubmitted
 		}
@@ -290,6 +312,13 @@ func applyRow(item *submission.Submission, row sqlcgen.Submission) {
 	item.Code = row.Code
 	item.Status = submission.Status(row.Status)
 	item.Content = row.Content
+	item.Eligibility = nil
+	if len(row.Eligibility) > 0 {
+		var e submission.EligibilityAssessment
+		if json.Unmarshal(row.Eligibility, &e) == nil {
+			item.Eligibility = &e
+		}
+	}
 	item.CreatedAt = row.CreatedAt
 	item.UpdatedAt = row.UpdatedAt
 
@@ -345,6 +374,9 @@ func mapError(err error) error {
 
 	switch pgErr.Code {
 	case "23514":
+		if pgErr.ConstraintName == "submission_closed" {
+			return submission.ErrEligibilityClosed
+		}
 		if pgErr.ConstraintName == "competition_open" {
 			return submission.ErrInvalidCompetition
 		}
@@ -367,4 +399,18 @@ func nullableUUID(id *uuid.UUID) pgtype.UUID {
 		return pgtype.UUID{}
 	}
 	return pgtype.UUID{Bytes: *id, Valid: true}
+}
+
+/** WriteWindowError traduce únicamente restricciones de ventana y cierre, sin confundir duplicados de documentos. */
+func WriteWindowError(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23514" {
+		switch pgErr.ConstraintName {
+		case "competition_open":
+			return submission.ErrInvalidCompetition
+		case "submission_closed":
+			return submission.ErrEligibilityClosed
+		}
+	}
+	return err
 }

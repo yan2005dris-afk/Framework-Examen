@@ -192,6 +192,12 @@ func (h *Handler) download(w http.ResponseWriter, r *http.Request) {
 func writeError(w http.ResponseWriter, r *http.Request, err error) {
 	var maxErr *http.MaxBytesError
 	switch {
+	case errors.Is(err, submission.ErrInvalidCompetition):
+		httpx.RespondError(w, r, 409, "convocatoria_no_disponible", err.Error())
+	case errors.Is(err, submission.ErrEligibilityClosed):
+		httpx.RespondError(w, r, 409, "postulacion_cerrada_elegibilidad", err.Error())
+	case errors.Is(err, submission.ErrEligibilityUnavailable):
+		httpx.RespondError(w, r, 503, "elegibilidad_no_disponible", err.Error())
 	case errors.Is(err, submission.ErrNotFound):
 		httpx.RespondError(w, r, 404, "postulacion_no_encontrada", submission.ErrNotFound.Error())
 	case errors.Is(err, submission.ErrForbidden):

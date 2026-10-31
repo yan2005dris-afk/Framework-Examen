@@ -21,7 +21,7 @@ func TestPostgresHistorySurvivesDeletionIsImmutableAndWorkflowRollsBack(t *testi
 	if _, err := pool.Exec(ctx, `INSERT INTO applicants(id,cedula,nombres,apellidos,correo) VALUES($1,'1710034008','Persona','Prueba','audit@example.test')`, owner); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO submissions(id,applicant_id,code) VALUES($1,$2,'AUDIT-TEST')`, id, owner); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO submissions(id,applicant_id,code,competition_id) VALUES($1,$2,'AUDIT-TEST',$3)`, id, owner, testutil.OpenCompetition(t, pool)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO submission_events(submission_id,applicant_id,event_type) VALUES($1,$2,'guardada')`, id, owner); err != nil {

@@ -46,6 +46,7 @@ type Service struct {
 	applicants    ApplicantReader
 	auditor       audit.Recorder
 	confirmations ConfirmationQueue
+	eligibility   EligibilityAssessor
 }
 
 /** WithDocuments configura la validación obligatoria de respaldos en la composición.
@@ -92,7 +93,13 @@ func (s *Service) SaveSubmission(ctx context.Context, input CreateInput) (*Submi
 	if len(raw) == 0 {
 		raw = json.RawMessage(`{}`)
 	}
-	content, err := s.prepareContent(ctx, input.ApplicantID, raw, now)
+	var content json.RawMessage
+	var err error
+	if s.eligibility == nil {
+		content, err = s.prepareContent(ctx, input.ApplicantID, raw, now)
+	} else {
+		content, err = CanonicalContent(raw)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -124,6 +131,14 @@ func (s *Service) SaveSubmission(ctx context.Context, input CreateInput) (*Submi
 	}
 
 	related := func(txctx context.Context, current *Submission) error {
+		checked, closed, err := PrepareEligibility(txctx, s.eligibility, current, current.Content, s.now())
+		if err != nil {
+			return err
+		}
+		if closed {
+			return nil
+		}
+		current.Content = checked
 		if input.SaveRelated != nil {
 			if err := input.SaveRelated(txctx, current); err != nil {
 				return err
@@ -139,7 +154,7 @@ func (s *Service) SaveSubmission(ctx context.Context, input CreateInput) (*Submi
 		return nil, err
 	}
 
-	return item, nil
+	return closureResult(item, nil)
 }
 
 /**
@@ -185,7 +200,7 @@ func (s *Service) Get(ctx context.Context, id uuid.UUID) (*Submission, error) {
 		return nil, ErrNotFound
 	}
 	if item.IsEditable() {
-		content, err := s.prepareContent(ctx, item.ApplicantID, item.Content, s.now())
+		content, err := s.prepareContent(ctx, item.ApplicantID, contentForRead(item), s.now())
 		if err != nil {
 			return nil, err
 		}
@@ -194,7 +209,7 @@ func (s *Service) Get(ctx context.Context, id uuid.UUID) (*Submission, error) {
 		item = &copy
 	}
 
-	if !item.IsEditable() && s.confirmations != nil {
+	if item.Status == StatusSubmitted && s.confirmations != nil {
 		state, err := s.confirmations.State(ctx, item.ID)
 		if err != nil {
 			item.Notification = &DeliveryStatus{Status: "unavailable", ErrorCode: "status_unavailable"}
@@ -301,17 +316,25 @@ func (s *Service) ListCursor(ctx context.Context, applicantID uuid.UUID, request
  * @throws {Error} ErrNotFound o ErrNotEditable según el estado del recurso.
  */
 func (s *Service) Update(ctx context.Context, id uuid.UUID, content json.RawMessage) (*Submission, error) {
-	return s.repo.Mutate(ctx, id, func(ctx context.Context, item *Submission) error {
+	result, err := s.repo.Mutate(ctx, id, func(ctx context.Context, item *Submission) error {
 		if !item.IsEditable() {
-			return ErrNotEditable
+			return editableError(item)
 		}
 		now := s.now()
-		validated, err := s.prepareContent(ctx, item.ApplicantID, content, now)
+		checked, closed, err := PrepareEligibility(ctx, s.eligibility, item, content, now)
+		if err != nil {
+			return err
+		}
+		if closed {
+			return nil
+		}
+		validated, err := s.prepareContent(ctx, item.ApplicantID, checked, now)
 		if err != nil {
 			return err
 		}
 		return item.UpdateContent(validated, now)
 	})
+	return closureResult(result, err)
 }
 
 /**
@@ -328,6 +351,9 @@ func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
+	if item.Status == StatusClosed {
+		return &ClosureError{item.Eligibility}
+	}
 	if !item.IsEditable() {
 		return fmt.Errorf("%w: la postulación enviada no se puede eliminar", ErrNotEditable)
 	}
@@ -354,9 +380,9 @@ func (s *Service) SaveSection(ctx context.Context, id uuid.UUID, number int, con
 	if _, err := DecodeForm(json.RawMessage(wrapper)); err != nil {
 		return nil, ErrInvalidContent
 	}
-	return s.repo.Mutate(ctx, id, func(ctx context.Context, item *Submission) error {
+	result, err := s.repo.Mutate(ctx, id, func(ctx context.Context, item *Submission) error {
 		if !item.IsEditable() {
-			return ErrNotEditable
+			return editableError(item)
 		}
 		var fields map[string]json.RawMessage
 		if err := json.Unmarshal(item.Content, &fields); err != nil || fields == nil {
@@ -373,12 +399,20 @@ func (s *Service) SaveSection(ctx context.Context, id uuid.UUID, number int, con
 			return ErrInvalidContent
 		}
 		now := s.now()
-		validated, err := s.prepareContent(ctx, item.ApplicantID, raw, now)
+		checked, closed, err := PrepareEligibility(ctx, s.eligibility, item, raw, now)
+		if err != nil {
+			return err
+		}
+		if closed {
+			return nil
+		}
+		validated, err := s.prepareContent(ctx, item.ApplicantID, checked, now)
 		if err != nil {
 			return err
 		}
 		return item.UpdateContent(validated, now)
 	})
+	return closureResult(result, err)
 }
 
 /**
@@ -390,9 +424,16 @@ func (s *Service) SaveSection(ctx context.Context, id uuid.UUID, number int, con
 func (s *Service) Submit(ctx context.Context, id uuid.UUID, consent *Consent) (*Submission, error) {
 	item, err := s.repo.Mutate(ctx, id, func(ctx context.Context, item *Submission) error {
 		if !item.IsEditable() {
-			return ErrNotEditable
+			return editableError(item)
 		}
-		prepared, err := s.prepareContent(ctx, item.ApplicantID, item.Content, s.now())
+		checked, closed, err := PrepareEligibility(ctx, s.eligibility, item, item.Content, s.now())
+		if err != nil {
+			return err
+		}
+		if closed {
+			return nil
+		}
+		prepared, err := s.prepareContent(ctx, item.ApplicantID, checked, s.now())
 		if err != nil {
 			return err
 		}
@@ -437,6 +478,9 @@ func (s *Service) Submit(ctx context.Context, id uuid.UUID, consent *Consent) (*
 	})
 	if err != nil {
 		return nil, err
+	}
+	if item.Status == StatusClosed {
+		return closureResult(item, nil)
 	}
 	if s.confirmations != nil {
 		item.Notification = &DeliveryStatus{Status: "pending", UpdatedAt: s.now().UTC()}

@@ -91,7 +91,7 @@ func (s *AttemptsStore) RecordFailure(ctx context.Context, cedula string) (int64
 	if !ok {
 		return 0, ErrUnavailable
 	}
-	count, err := a.RunScript(ctx, `local n=redis.call('INCR',KEYS[1]);if n==1 then redis.call('PEXPIRE',KEYS[1],ARGV[1]) end;if n>=tonumber(ARGV[2]) then redis.call('SET',KEYS[2],'1','PX',ARGV[1]) end;return n`, []string{attemptsKey(cedula), lockoutKey(cedula)}, LockoutDuration.Milliseconds(), MaxLoginAttempts)
+	count, err := a.RunScript(ctx, `if redis.call('EXISTS',KEYS[2])==1 then return tonumber(ARGV[2]) end;local n=redis.call('INCR',KEYS[1]);if n==1 then redis.call('PEXPIRE',KEYS[1],ARGV[1]) end;if n>=tonumber(ARGV[2]) then redis.call('SET',KEYS[2],'1','PX',ARGV[1],'NX') end;return n`, []string{attemptsKey(cedula), lockoutKey(cedula)}, LockoutDuration.Milliseconds(), MaxLoginAttempts)
 	if err != nil {
 		return 0, ErrUnavailable
 	}

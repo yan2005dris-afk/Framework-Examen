@@ -16,8 +16,13 @@ import (
 	auditpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/audit/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/catalog"
 	catalogpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/catalog/postgres"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/competition"
+	competitionpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/competition/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/document"
 	documentpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/document/postgres"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/eligibility"
+	eligibilitypostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/eligibility/postgres"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/eligibility/simulated"
 
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
 	identitypostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity/postgres"
@@ -106,7 +111,11 @@ func main() {
 	}
 
 	attemptsStore := cache.NewAttemptsStore(securityCache)
-	otpStore := cache.NewOTPStore(securityCache)
+	otpStore, err := cache.NewConfiguredOTPStore(securityCache, cfg.OTPResendDelay, cfg.OTPMaxSends)
+	if err != nil {
+		log.Error("configuración OTP no válida")
+		os.Exit(1)
+	}
 
 	// ── Correo (SMTP / Mailpit) ──────────────────────────────────────────────
 	var smtpSender mail.Sender
@@ -156,6 +165,14 @@ func main() {
 			SessionTTL: cfg.SessionTTL,
 		})
 		identity.NewHandler(identityService, cfg.IsProduction()).RegisterRoutes(router)
+		competitionHandler := competition.NewHandler(competition.NewService(competitionpostgres.NewRepository(queries, db.NewTxManager(pool), auditor)))
+		competitionHandler.RegisterPublic(router)
+		conditions, err := simulated.Load(cfg.EligibilitySimulationFile)
+		if err != nil {
+			log.Error("no se pudo cargar la simulación controlada de elegibilidad")
+			os.Exit(1)
+		}
+		eligibilityService := eligibility.NewService(conditions, eligibilitypostgres.NewRepository(queries))
 
 		// Contexto de postulaciones
 		submissionRepository := submissionpostgres.NewRepository(queries, db.NewTxManager(pool))
@@ -173,12 +190,13 @@ func main() {
 			log.Error("no se pudo configurar el almacenamiento", "error", err)
 			os.Exit(1)
 		}
-		documentService := document.NewService(documentpostgres.NewRepository(pool, db.NewTxManager(pool)), objects).WithAudit(auditor)
+		documentService := document.NewService(documentpostgres.NewRepository(pool, db.NewTxManager(pool)), objects).WithAudit(auditor).WithEligibility(eligibilityService)
 		submissionService := submission.NewService(submissionRepository).WithConfirmationQueue(confirmations).
-			WithDocuments(documentService).WithApplicants(identityRepo).WithAudit(auditor)
+			WithDocuments(documentService).WithApplicants(identityRepo).WithAudit(auditor).WithEligibility(eligibilityService)
 		router.Group(func(r chi.Router) {
 			r.Use(identity.RequireSession(identityService))
 			r.Use(identity.ProtectAdministration)
+			competitionHandler.RegisterAdministration(r)
 			catalog.NewHandler(catalog.NewService(catalogpostgres.NewRepository(queries), cache.NewCatalogStore(cacheClient))).RegisterRoutes(r)
 			identity.RegisterRoleRoutes(r, identity.NewRoleService(identityRepo))
 			submission.NewHandler(submissionService).RegisterRoutes(r)

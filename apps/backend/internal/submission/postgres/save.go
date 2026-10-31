@@ -46,7 +46,11 @@ func (r *Repository) SaveSubmission(ctx context.Context, item *submission.Submis
 		if err := adapter.Update(txctx, &working); err != nil {
 			return err
 		}
-		return adapter.RecordEvent(txctx, &working, submission.EventSaved)
+		event := submission.EventSaved
+		if working.Status == submission.StatusClosed {
+			event = "postulacion.cerrada_elegibilidad"
+		}
+		return adapter.RecordEvent(txctx, &working, event)
 	})
 	if err != nil {
 		return err

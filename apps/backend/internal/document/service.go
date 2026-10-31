@@ -34,10 +34,11 @@ type UploadInput struct {
 
 /** Service aplica límites, titularidad y consistencia de archivos y metadatos. */
 type Service struct {
-	repo    Repository
-	storage Storage
-	now     func() time.Time
-	auditor audit.Recorder
+	repo        Repository
+	storage     Storage
+	now         func() time.Time
+	auditor     audit.Recorder
+	eligibility submission.EligibilityAssessor
 }
 
 /** NewService inyecta los puertos de documentos.
@@ -45,6 +46,11 @@ type Service struct {
  */
 func NewService(repo Repository, storage Storage) *Service {
 	return &Service{repo: repo, storage: storage, now: time.Now}
+}
+
+func (s *Service) WithEligibility(a submission.EligibilityAssessor) *Service {
+	s.eligibility = a
+	return s
 }
 
 /** Authorize comprueba la titularidad antes de leer o escribir un archivo.
@@ -60,6 +66,9 @@ func (s *Service) Authorize(ctx context.Context, actor, id uuid.UUID, editable b
 	}
 	if actor == uuid.Nil || item.ApplicantID != actor {
 		return nil, submission.ErrForbidden
+	}
+	if editable && item.Status == submission.StatusClosed {
+		return nil, submission.ErrEligibilityClosed
 	}
 	if editable && !item.IsEditable() {
 		return nil, submission.ErrNotEditable
@@ -118,7 +127,17 @@ func (s *Service) Upload(ctx context.Context, input UploadInput) (*Document, err
 		s.removeObject(d.StorageKey)
 		return nil, err
 	}
+	var closure *submission.EligibilityAssessment
 	err = s.repo.WithinSubmission(ctx, input.ApplicantID, input.SubmissionID, func(txctx context.Context, item *submission.Submission, repo Repository) error {
+		checked, closed, err := submission.PrepareEligibility(txctx, s.eligibility, item, item.Content, s.now())
+		if err != nil {
+			return err
+		}
+		if closed {
+			closure = item.Eligibility
+			return nil
+		}
+		item.Content = checked
 		total, err := repo.TotalByApplicant(txctx, input.ApplicantID)
 		if err != nil {
 			return err
@@ -144,6 +163,10 @@ func (s *Service) Upload(ctx context.Context, input UploadInput) (*Document, err
 		}
 		return item.UpdateContent(raw, s.now())
 	})
+	if err == nil && closure != nil {
+		s.removeObject(d.StorageKey)
+		return nil, &submission.ClosureError{Assessment: closure}
+	}
 	if err != nil {
 		// Un fallo de COMMIT puede ser ambiguo. No borrar un objeto ya referenciado.
 		checkCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -199,7 +222,17 @@ func (s *Service) Delete(ctx context.Context, actor, id uuid.UUID) error {
 	if d == nil {
 		return ErrNotFound
 	}
-	return s.repo.WithinSubmission(ctx, actor, d.SubmissionID, func(txctx context.Context, item *submission.Submission, repo Repository) error {
+	var closure *submission.EligibilityAssessment
+	err = s.repo.WithinSubmission(ctx, actor, d.SubmissionID, func(txctx context.Context, item *submission.Submission, repo Repository) error {
+		checked, closed, err := submission.PrepareEligibility(txctx, s.eligibility, item, item.Content, s.now())
+		if err != nil {
+			return err
+		}
+		if closed {
+			closure = item.Eligibility
+			return nil
+		}
+		item.Content = checked
 		current, err := repo.Find(txctx, id)
 		if err != nil {
 			return err
@@ -224,6 +257,10 @@ func (s *Service) Delete(ctx context.Context, actor, id uuid.UUID) error {
 		}
 		return repo.Delete(txctx, id)
 	})
+	if err == nil && closure != nil {
+		return &submission.ClosureError{Assessment: closure}
+	}
+	return err
 }
 
 /** Cleanup reintenta bajas persistidas, incluidas las cascadas al borrar borradores.

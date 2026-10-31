@@ -34,27 +34,29 @@ func TestPostgresReviewKeepsClosedPeriodRosterSnapshotAndCertificate(t *testing.
 	ids := []uuid.UUID{uuid.New(), uuid.New(), uuid.New(), uuid.New(), uuid.New()}
 	certificate := uuid.New()
 	createdAt := time.Now().Add(-time.Hour)
-	for i, id := range ids {
-		var competition *uuid.UUID
-		if i < 2 || i == 4 {
-			competition = &period
-		} else if i == 2 {
-			competition = &otherPeriod
-		}
-		if _, err := pool.Exec(ctx, `INSERT INTO submissions(id,applicant_id,competition_id,code,content,created_at) VALUES($1,$2,$3,$4,$5,$6)`, id, owner, competition, fmt.Sprintf("REV-%d", i), canonical, createdAt); err != nil {
-			t.Fatal(err)
-		}
-		if i == 0 {
-			if _, err := pool.Exec(ctx, `INSERT INTO documents(id,submission_id,section,record_id,name,mime,size_bytes,sha256,storage_key) VALUES($1,$2,5,'titulo-1','respaldo.pdf','application/pdf',100,repeat('a',64),'objeto-prueba')`, certificate, id); err != nil {
+	testutil.SeedLegacy(t, pool, func() {
+		for i, id := range ids {
+			var competition *uuid.UUID
+			if i < 2 || i == 4 {
+				competition = &period
+			} else if i == 2 {
+				competition = &otherPeriod
+			}
+			if _, err := pool.Exec(ctx, `INSERT INTO submissions(id,applicant_id,competition_id,code,content,created_at) VALUES($1,$2,$3,$4,$5,$6)`, id, owner, competition, fmt.Sprintf("REV-%d", i), canonical, createdAt); err != nil {
 				t.Fatal(err)
 			}
-		}
-		if i != 1 {
-			if _, err := pool.Exec(ctx, `UPDATE submissions SET status='submitted',hash=$2,submitted_at=now() WHERE id=$1`, id, submission.HashContent(canonical)); err != nil {
-				t.Fatal(err)
+			if i == 0 {
+				if _, err := pool.Exec(ctx, `INSERT INTO documents(id,submission_id,section,record_id,name,mime,size_bytes,sha256,storage_key) VALUES($1,$2,5,'titulo-1','respaldo.pdf','application/pdf',100,repeat('a',64),'objeto-prueba')`, certificate, id); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if i != 1 {
+				if _, err := pool.Exec(ctx, `UPDATE submissions SET status='submitted',hash=$2,submitted_at=now() WHERE id=$1`, id, submission.HashContent(canonical)); err != nil {
+					t.Fatal(err)
+				}
 			}
 		}
-	}
+	})
 	// El período se vuelve cerrado por transcurso del tiempo, sin reescribir su identidad.
 	// Adelantar fechas sólo en la sesión de pruebas con el trigger deshabilitado permite reproducirlo sin dormir un día.
 	tx, err := pool.Begin(ctx)

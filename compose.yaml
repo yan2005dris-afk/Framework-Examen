@@ -55,6 +55,9 @@ services:
       S3_REGION: us-east-1
       # Correo: Mailpit captura todo lo que envía la API.
       MAIL_OUTBOX_KEY: ${MAIL_OUTBOX_KEY:-}
+      OTP_RESEND_DELAY: ${OTP_RESEND_DELAY:-1m}
+      OTP_MAX_SENDS: ${OTP_MAX_SENDS:-3}
+      ELIGIBILITY_SIMULATION_FILE: ${ELIGIBILITY_SIMULATION_FILE:-}
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_FROM: no-reply@biess.local

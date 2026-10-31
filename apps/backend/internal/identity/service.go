@@ -139,7 +139,7 @@ func (s *Service) checkSecurity(ctx context.Context, identifier string) error {
 		return cache.ErrUnavailable
 	}
 	if locked {
-		return ErrAccountLocked
+		return s.accountLockError(ctx, identifier)
 	}
 	return nil
 }
@@ -166,7 +166,7 @@ func (s *Service) VerifyAndRegister(ctx context.Context, req RegisterVerifyDTO, 
 		return nil, "", err
 	}
 	if locked {
-		return nil, "", ErrAccountLocked
+		return nil, "", s.accountLockError(ctx, idCard.String())
 	}
 
 	// Validar fortaleza de contraseña antes de consumir el código OTP
@@ -177,6 +177,12 @@ func (s *Service) VerifyAndRegister(ctx context.Context, req RegisterVerifyDTO, 
 	// Verificar código OTP
 	validOTP, err := s.otpStore.Verify(ctx, cache.PurposeRegistration, idCard.String(), req.Correo, req.ChallengeID, req.CodigoOTP)
 	if err != nil {
+		if errors.Is(err, cache.ErrOTPLocked) {
+			if _, e := s.attempts.RecordFailure(ctx, idCard.String()); e != nil {
+				return nil, "", cache.ErrUnavailable
+			}
+			return nil, "", s.accountLockError(ctx, idCard.String())
+		}
 		return nil, "", err
 	}
 	if !validOTP {
@@ -186,7 +192,7 @@ func (s *Service) VerifyAndRegister(ctx context.Context, req RegisterVerifyDTO, 
 			return nil, "", cache.ErrUnavailable
 		}
 		if count >= cache.MaxLoginAttempts {
-			return nil, "", ErrAccountLocked
+			return nil, "", s.accountLockError(ctx, idCard.String())
 		}
 		return nil, "", ErrInvalidOTP
 	}
@@ -257,7 +263,7 @@ func (s *Service) Login(ctx context.Context, cedula, plainPassword, ip, userAgen
 		return nil, "", err
 	}
 	if locked {
-		return nil, "", ErrAccountLocked
+		return nil, "", s.accountLockError(ctx, idCard.String())
 	}
 
 	// Buscar postulante
@@ -269,7 +275,7 @@ func (s *Service) Login(ctx context.Context, cedula, plainPassword, ip, userAgen
 				return nil, "", cache.ErrUnavailable
 			}
 			if count >= cache.MaxLoginAttempts {
-				return nil, "", ErrAccountLocked
+				return nil, "", s.accountLockError(ctx, idCard.String())
 			}
 			return nil, "", ErrInvalidCredentials
 		}
@@ -284,7 +290,7 @@ func (s *Service) Login(ctx context.Context, cedula, plainPassword, ip, userAgen
 			return nil, "", cache.ErrUnavailable
 		}
 		if count >= cache.MaxLoginAttempts {
-			return nil, "", ErrAccountLocked
+			return nil, "", s.accountLockError(ctx, idCard.String())
 		}
 		return nil, "", ErrInvalidCredentials
 	}
@@ -425,17 +431,27 @@ func (s *Service) ResetPassword(ctx context.Context, req ResetPasswordDTO) error
 		return cache.ErrUnavailable
 	}
 	applicant, err := s.applicants.GetByIDCard(ctx, idCard)
-	if errors.Is(err, ErrApplicantNotFound) {
-		return ErrInvalidOTP
-	}
-	if err != nil {
+	if err != nil && !errors.Is(err, ErrApplicantNotFound) {
 		return err
 	}
-	valid, err := s.otpStore.Verify(ctx, cache.PurposeRecovery, idCard.String(), applicant.Email, req.ChallengeID, req.CodigoOTP)
+	email := ""
+	if applicant != nil {
+		email = applicant.Email
+	}
+	valid, err := s.otpStore.Verify(ctx, cache.PurposeRecovery, idCard.String(), email, req.ChallengeID, req.CodigoOTP)
 	if err != nil {
+		if errors.Is(err, cache.ErrOTPLocked) {
+			if _, e := s.attempts.RecordFailure(ctx, idCard.String()); e != nil {
+				return cache.ErrUnavailable
+			}
+			return s.accountLockError(ctx, idCard.String())
+		}
 		return err
 	}
-	if !valid {
+	if !valid || applicant == nil {
+		if _, err := s.attempts.RecordFailure(ctx, idCard.String()); err != nil {
+			return cache.ErrUnavailable
+		}
 		return ErrInvalidOTP
 	}
 	hash, err := password.Hash(req.NewPassword)
@@ -477,4 +493,13 @@ func (s *Service) createSession(ctx context.Context, applicantID uuid.UUID, ip, 
 	}
 
 	return rawToken, nil
+}
+
+/** accountLockError comunica el tiempo restante, sin reiniciar el TTL. */
+func (s *Service) accountLockError(ctx context.Context, identifier string) error {
+	ttl, err := s.attempts.LockRemaining(ctx, identifier)
+	if err != nil {
+		return ErrAccountLocked
+	}
+	return &cache.RetryError{Cause: ErrAccountLocked, RetryAfter: max(ttl, time.Second)}
 }

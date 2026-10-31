@@ -157,6 +157,20 @@ func serviceFixture(t *testing.T, full bool) (*Service, *memoryRepository, *reco
 	if err != nil {
 		t.Fatal(err)
 	}
+	if full {
+		period := uuid.New()
+		item.CompetitionID = &period
+		item.Eligibility = &EligibilityAssessment{
+			ID:            uuid.New(),
+			ApplicantID:   item.ApplicantID,
+			CompetitionID: period,
+			Sector:        "afiliados",
+			Eligible:      true,
+			Source:        "simulacion_controlada_servidor",
+			CheckedAt:     referenceTime,
+			Message:       "Verificación aprobada",
+		}
+	}
 	repo := &memoryRepository{item: item}
 	notifier := &recordingNotifier{repo: repo}
 	service := NewService(repo, notifier)

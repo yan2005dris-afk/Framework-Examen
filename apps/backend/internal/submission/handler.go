@@ -316,6 +316,10 @@ func decodeJSON(request *http.Request, target any) error {
  */
 func writeError(writer http.ResponseWriter, request *http.Request, err error) {
 	switch {
+	case errors.Is(err, ErrEligibilityClosed):
+		httpx.RespondError(writer, request, 409, "postulacion_cerrada_elegibilidad", err.Error())
+	case errors.Is(err, ErrEligibilityUnavailable):
+		httpx.RespondError(writer, request, 503, "elegibilidad_no_disponible", err.Error())
 	case errors.Is(err, ErrNotificationUnavailable):
 		httpx.RespondError(writer, request, 503, "notificacion_no_disponible", ErrNotificationUnavailable.Error())
 	case errors.Is(err, ErrInvalidCompetition):

@@ -125,6 +125,7 @@ jobs:
           AUTHORIZATION_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
           SUBMISSION_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
           REDIS_URL: redis://localhost:6379
+          REDIS_TEST_URL: redis://localhost:6379
         run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
 
       - name: Código generado (sqlc) al día

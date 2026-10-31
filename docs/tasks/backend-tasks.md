@@ -529,26 +529,30 @@ criterios 4–6 requieren integración con las tareas del frontend.
 Todas las casillas de esta sección están pendientes. Los nombres de capacidades
 son propuestas de organización; no indican que ya existan endpoints o tablas.
 
-### T15 · Entrega fiable del correo (integrada en T23)
+### T15 · Entrega fiable del correo (base compartida con T23)
 
-**Prioridad:** P1-RF; trasladada desde deseables. Mantiene su ID para trazabilidad.
-Sus criterios de reintento persistente, idempotencia y seguimiento de entrega se
-implementan junto con T23; no es un requisito cerrado por disponer de un cliente SMTP.
+**Prioridad:** P1-RF. Implementación técnica disponible; no equivale a completar
+notificaciones de fases/resultados de T23.
+
+- [x] Cola persistente cifrada, alta dentro del commit del sello, leases y reintentos
+      acotados; retirar cargas vencidas y conservar metadatos de seguimiento.
+- [x] Deduplicación por operación/recurso o desafío, incluso si cambia el vencimiento;
+      `Message-ID` estable en los reintentos y prevención de reenvío tras un QUIT roto.
+- [x] Distinguir pendiente, aceptación SMTP, fallo, expiración y desafío reemplazado.
+      La aceptación SMTP no certifica llegada al buzón ni garantiza exactamente una entrega.
 
 ### T16 · Consolidar registro y recuperación con OTP
 
 **Origen:** EF-11.4–6 adaptado por ADR-008. **Prioridad:** P0-RF.
 
-- [ ] Vincular cada desafío a cédula, correo y finalidad; no permitir usar un OTP
-      enviado a un correo para registrar otro ni usar el de registro para recuperación.
-- [ ] Hacer el consumo de uso único atómico, con TTL, invalidación del anterior
-      al reenviar y límites de reenvío definidos por configuración.
-- [ ] Respetar tres intentos fallidos y diez minutos de bloqueo; informar al cliente
-      un vencimiento/tiempo restante fiable y mantener los contadores en el servidor.
-- [ ] Recuperar únicamente al correo ya registrado, no revelar existencia de cuentas
-      y revocar sesiones tras restablecer la contraseña.
-- [ ] Registrar método `otp_correo` y separar correo verificado de identidad civil;
-      la falta de acceso a Registro Civil no bloquea este flujo aprobado.
+- [x] Vincular desafío a cédula, correo y finalidad y consumirlo atómicamente una vez.
+- [x] Invalidar el anterior al reenviar; configurar cooldown y cuota de emisiones
+      mediante `OTP_RESEND_DELAY` y `OTP_MAX_SENDS`, manteniendo TTL de diez minutos.
+- [x] Tres fallos y diez minutos de bloqueo desde su activación; no renovar la ventana
+      por fallos concurrentes. Informar TTL efectivo con `Retry-After` / `X-Retry-At`.
+- [x] Recuperar solo al correo registrado, conservar respuesta no enumerativa también
+      para desafíos ausentes y revocar sesiones al confirmar la nueva contraseña.
+- [x] Registrar `otp_correo`, sin certificar identidad civil ni exigir acceso a Registro Civil.
 
 **Dependencias:** T1–T2. **Frontend:** FT3, FT16.
 
@@ -556,36 +560,41 @@ implementan junto con T23; no es un requisito cerrado por disponer de un cliente
 
 **Origen:** EF-12 1.1.6 y 1.4.1–1.4.3. **Prioridad:** P0-RF.
 
-- [ ] Resolver condición de afiliado/jubilado/empleador desde un puerto del servidor.
-      Para el entorno sin acceso al IESS, usar un adaptador de situación laboral
-      simulada y controlada en servidor, identificado como tal; no una bandera del cliente.
-- [ ] Asociar la verificación a cuenta, sector y convocatoria y conservar resultado,
-      fecha y origen. No confundir un error técnico del proveedor con no elegible.
-- [ ] Persistir el cierre por nacionalidad no admitida o por sector no elegible,
-      impedir continuar/guardar/enviar y devolver los mensajes literales de cada caso.
-- [ ] Modelar ese cierre separadamente de `submitted` y de la fase del concurso;
-      definir su eventual revisión administrativa y mantener trazabilidad.
-- [ ] Exigir nombre y respaldo PDF cuando se declara organización/federación,
-      con el texto correspondiente a cada sector. El OTP no acredita elegibilidad.
+- [x] Puerto de situación laboral y adaptador de simulación controlada en servidor,
+      mediante archivo operacional por UUID/sector; sin aceptación por defecto ni bandera del cliente.
+- [x] Evidencia persistida por cuenta, convocatoria y sector, con resultado, fecha y origen.
+      La ausencia de dato o un fallo técnico devuelve 503 y no produce inelegibilidad.
+- [x] Confirmar cierre por nacionalidad extranjera o condición no elegible; impedir
+      guardar, adjuntar, enviar, eliminar o evadirlo creando otro borrador del mismo período.
+- [x] Estado `closed` separado del envío y de las fases, con evidencia e historial
+      inmutables. Esta versión no reabre cierres automáticamente.
+- [x] Conservar nombre y PDF real obligatorios al completar/enviar si se declara
+      respaldo de organización/federación; OTP no acredita elegibilidad.
+- [ ] Aprobar la política institucional de eventual revisión administrativa e integrar
+      proveedor real IESS cuando exista autorización/acceso. La simulación no lo sustituye.
 
 **Dependencias:** T3–T4, T18. **Frontend:** FT5, FT17.
 
 ### T18 · Convocatorias, fases y calendario de apertura/cierre
 
-**Origen:** EF-1 restricciones temporales, EF-11.1 y EF-13.1–2. **Prioridad:** P0-RF.
+**Origen:** EF-1, EF-11.1 y EF-13.1–2. **Prioridad:** P0-RF.
 
-- [ ] Persistir convocatoria, cargos/sectores, fases, aprobación de inicio,
-      publicación, habilitación del EF-12, fecha de apertura y fecha de cierre.
-- [ ] Asociar postulaciones al concurso y período correctos sin perder los registros
-      existentes; separar estado del formulario, fase y resultado de evaluación.
-- [ ] Publicar estado y fases visibles para el portal y proteger su administración
-      según T6; un cambio de fase debe quedar auditado.
-- [ ] Aplicar aprobación, habilitación y ventana temporal en el servidor para altas,
-      guardados, adjuntos y envíos; cerrar fuera de plazo aunque una pestaña siga abierta.
-- [ ] Definir zona horaria y límites inclusivos/exclusivos del calendario, validarlos
-      con el responsable y conservar el histórico de convocatorias cerradas.
+- [x] Persistir convocatoria, sectores, fases, aprobación, publicación y habilitación
+      del EF-12; crear deshabilitada y conservar cada versión de configuración.
+- [x] Exigir convocatoria explícita para nuevas postulaciones; preservar el legado
+      solo para lectura, sin reasignaciones ni habilitación automática.
+- [x] Portal público solo de períodos aprobados/publicados y fases publicadas;
+      administración exclusiva de administrador, con versión optimista, auditoría y rol vigente bloqueado.
+- [x] Aplicar ventana, aprobación, fase y sector en PostgreSQL para altas, guardados,
+      bajas, adjuntos y envíos, incluso cuando la pestaña quedó abierta.
+- [x] Implementar zona `America/Guayaquil`, instantes con offset, precisión de
+      microsegundos y límites `[apertura,cierre)`; conservar históricos de períodos cerrados.
+- [x] Aceptación del frontend contra el contrato T18 completada (FT14–FT15 sin respuestas ficticias);
+      validación de límites con el responsable institucional al fijar fechas oficiales.
 
 **Dependencias:** T6, T8. **Frontend:** FT14–FT15, FT25.
+**Contrato compartido:** [COMPETITION_LIFECYCLE.md](../api-contracts/COMPETITION_LIFECYCLE.md).
+**Verificación y operación:** [T15-T18-IMPLEMENTACION.md](T15-T18-IMPLEMENTACION.md).
 
 ### T19 · Formulario final legible, impresión y correo completo
 
