@@ -1,0 +1,14 @@
+{
+  "name": "framework-examen",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Portal de postulación al concurso BIESS/IESS (Ecuador)",
+  "license": "MIT",
+  "packageManager": "pnpm@12.16.1",
+  "scripts": {
+    "dev": "pnpm --filter frontend dev",
+    "build": "pnpm --filter frontend build",
+    "lint": "pnpm --filter frontend lint",
+    "preview": "pnpm --filter frontend preview"
+  }
+}
