@@ -5,6 +5,8 @@ CREATE TABLE applicants (
     nombres           VARCHAR(120) NOT NULL,
     apellidos         VARCHAR(120) NOT NULL,
     correo            VARCHAR(255) NOT NULL UNIQUE,
+    password_hash     VARCHAR(255) NOT NULL DEFAULT '',
+    is_verified       BOOLEAN      NOT NULL DEFAULT true,
     metodo_validacion VARCHAR(32)  NOT NULL DEFAULT 'fecha_expedicion',
     fecha_registro    TIMESTAMPTZ  NOT NULL DEFAULT now(),
     created_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
@@ -24,22 +26,31 @@ CREATE TABLE submissions (
     CONSTRAINT submissions_status_check CHECK (status IN ('draft', 'in_review', 'submitted'))
 );
 
-CREATE INDEX submissions_applicant_idx ON submissions (applicant_id, updated_at DESC);
+CREATE INDEX submissions_applicant_idx ON submissions (applicant_id, updated_at DESC, id DESC);
 
+CREATE TABLE sessions (
+    id           UUID PRIMARY KEY DEFAULT uuidv7(),
+    applicant_id UUID NOT NULL REFERENCES applicants (id) ON DELETE CASCADE,
+    token_hash   CHAR(64) NOT NULL UNIQUE,
+    expires_at   TIMESTAMPTZ NOT NULL,
+    ip           VARCHAR(45),
+    user_agent   VARCHAR(512),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
--- Identificadores ordenados en el tiempo (RFC 9562, UUIDv7).
---
--- La función uuidv7() es nativa de PostgreSQL 18: el motor debe estar
--- actualizado antes de aplicar esta migración.
---
--- El índice incluye el identificador porque, al ser los UUIDv7 ordenados
--- por fecha de creación, el desempate de la paginación por cursor deja de
--- ser arbitrario y puede resolverse dentro del índice.
+CREATE INDEX sessions_applicant_idx ON sessions (applicant_id);
+CREATE INDEX sessions_expires_at_idx ON sessions (expires_at);
+
+CREATE TABLE password_resets (
+    id           UUID PRIMARY KEY DEFAULT uuidv7(),
+    applicant_id UUID NOT NULL REFERENCES applicants (id) ON DELETE CASCADE,
+    token_hash   CHAR(64) NOT NULL UNIQUE,
+    expires_at   TIMESTAMPTZ NOT NULL,
+    used         BOOLEAN NOT NULL DEFAULT false,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX password_resets_applicant_idx ON password_resets (applicant_id);
 
 ALTER TABLE applicants ALTER COLUMN id SET DEFAULT uuidv7();
 ALTER TABLE submissions ALTER COLUMN id SET DEFAULT uuidv7();
-
-DROP INDEX IF EXISTS submissions_applicant_idx;
-CREATE INDEX submissions_applicant_idx ON submissions (applicant_id, updated_at DESC, id DESC);
-
-

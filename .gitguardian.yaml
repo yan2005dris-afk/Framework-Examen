@@ -4,13 +4,14 @@
 # cédulas, tokens) y disparan falsos positivos. No son secretos: se excluyen
 # del escaneo de secretos, pero siguen cubiertos por el lint y los tests.
 
-version: 1
+version: 2
 
-paths-ignore:
-  - "**/*.test.ts"
-  - "**/*.test.tsx"
-  - "**/*.spec.ts"
-  - "**/*.spec.tsx"
-  - "**/*_test.go"
-  - "**/testdata/**"
-  - "**/migrations/**"
+secret:
+  ignored_paths:
+    - "**/*.test.ts"
+    - "**/*.test.tsx"
+    - "**/*.spec.ts"
+    - "**/*.spec.tsx"
+    - "**/*_test.go"
+    - "**/testdata/**"
+    - "**/migrations/**"

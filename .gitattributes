@@ -1,0 +1,5 @@
+# Go files must always have LF line endings for gofmt consistency
+*.go text eol=lf
+*.sql text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
