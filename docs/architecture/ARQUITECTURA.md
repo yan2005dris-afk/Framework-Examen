@@ -49,12 +49,14 @@ flowchart TB
     Portal --> Sistema
 ```
 
-El portal es el único sistema en el alcance del parcial. Se integra con
-sistemas del IESS (Registro Civil, Historial Laboral) y con el correo
-electrónico, pero **no se dispone de acceso a esos sistemas**, por lo que la
-interoperabilidad se **simula** detrás de una interfaz (ver
-[ADR-002](../decisions/ADR-002-bounded-contexts-y-hexagonal.md) y el riesgo R-01
-del PRD).
+El registro y la recuperación usan **OTP por correo** y validación de cédula por
+módulo 10. No hay consulta al Registro Civil ni se solicitan fecha de expedición
+o código dactilar; los datos personales no disponibles en la cuenta se declaran
+en EF-12. [ADR-008](../decisions/ADR-008-registro-y-recuperacion-con-otp.md) registra
+la adaptación aprobada del RF. La situación laboral es una capacidad separada,
+con un puerto para el proveedor y un adaptador simulado de servidor mientras no
+haya acceso al Historial Laboral (T17); una bandera enviada por el cliente no
+constituye esa verificación.
 
 ---
 

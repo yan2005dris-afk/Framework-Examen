@@ -446,3 +446,11 @@ que inserta la clave en `document_deletions`; el proceso de limpieza elimina
 el objeto de forma idempotente y luego retira la tarea. El rollback no deja
 una tarea de borrado para un documento que siga vigente. Las pruebas reales
 se habilitan con `DOCUMENT_TEST_DATABASE_URL` contra PostgreSQL 18.
+
+### Método de validación de identidad vigente
+
+Las cuentas nuevas creadas por el servicio usan `metodo_validacion = otp_correo`.
+El `DEFAULT fecha_expedicion` visible en el DDL histórico no implica que exista
+una validación con Registro Civil: el servicio asigna el método explícitamente.
+No se almacenan fecha de expedición ni código dactilar como requisitos del flujo
+vigente. Ver ADR-008 y la consolidación del desafío OTP en T16.
