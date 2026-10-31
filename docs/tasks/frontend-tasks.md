@@ -318,19 +318,19 @@ y copy.
 
 **Criterios de aceptación**
 
-- [ ] **Guardar Postulación** muestra los cinco puntos literales de EF-12 1.10.1;
+- [x] **Guardar Postulación** muestra los cinco puntos literales de EF-12 1.10.1;
       también están visibles en revisión/envío y constan en el formulario final.
-- [ ] Sin marcar todos los puntos, el envío está deshabilitado.
-- [ ] Tras enviar, la postulación queda **bloqueada**: no se edita y se
+- [x] Sin marcar todos los puntos, el envío está deshabilitado.
+- [x] Tras enviar, la postulación queda **bloqueada**: no se edita y se
       muestra el hash.
-- [ ] La vista de impresión incluye el espacio de **firma manuscrita**, los
+- [x] La vista de impresión incluye el espacio de **firma manuscrita**, los
       nombres, los apellidos y la cédula (HU-11).
-- [ ] La vista de impresión tiene estilos de impresión (`@media print`) que
+- [x] La vista de impresión tiene estilos de impresión (`@media print`) que
       ocultan la navegación.
-- [ ] Imprimir el formulario íntegro sellado: nueve secciones, código único,
+- [x] Imprimir el formulario íntegro sellado: nueve secciones, código único,
       consentimientos, nombres/apellidos/cédula y espacio para firma en papel.
       No exigir una firma dibujada digitalmente como sustituto del requisito manuscrito.
-- [ ] Informar el envío del formulario completo al correo registrado y mostrar el
+- [x] Informar el envío del formulario completo al correo registrado y mostrar el
       estado de notificación que entregue la API; no prometer entrega por confirmar el sello (T19/T23).
 
 

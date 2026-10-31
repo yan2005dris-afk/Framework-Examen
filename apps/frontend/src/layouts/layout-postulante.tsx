@@ -34,7 +34,7 @@ export function LayoutPostulante() {
 
   return (
     <div className="flex min-h-svh flex-col bg-background">
-      <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur print:hidden">
         <div className="mx-auto flex h-16 w-full max-w-5xl items-center gap-3 px-4">
           <Link
             to={RUTAS.postulacion}
@@ -86,7 +86,7 @@ export function LayoutPostulante() {
         <Outlet />
       </main>
 
-      <footer className="border-t">
+      <footer className="border-t print:hidden">
         <p className="mx-auto w-full max-w-5xl px-4 py-4 text-xs text-muted-foreground">
           Formulario EF-12 · Los datos personales se tratan conforme al
           requerimiento del concurso.

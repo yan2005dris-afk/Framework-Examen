@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest"
 
-import { PREGUNTAS_INHABILIDADES, SECCIONES_EF12_INFO } from "./constantes"
+import {
+  CONSENTIMIENTO_DEFAULT,
+  PREGUNTAS_INHABILIDADES,
+  PUNTOS_CONSENTIMIENTO_EF12,
+  SECCIONES_EF12_INFO,
+} from "./constantes"
 import { calcularDuracionExperiencia } from "@/utils/validators"
 
-describe("Formulario EF-12 (FT5)", () => {
+describe("Formulario EF-12 (FT5 / FT6)", () => {
   describe("BarraProgresoSecciones", () => {
     it("declara exactamente las 9 secciones oficiales del EF-12", () => {
       expect(SECCIONES_EF12_INFO).toHaveLength(9)
@@ -36,6 +41,34 @@ describe("Formulario EF-12 (FT5)", () => {
       const duracion = calcularDuracionExperiencia("2020-01-01", "", true)
       expect(duracion.anios).toBeGreaterThanOrEqual(4)
       expect(duracion.texto).toBeDefined()
+    })
+  })
+
+  describe("Consentimiento y Declaración Jurada (FT6 - EF-12 1.10.1)", () => {
+    it("contiene exactamente los 5 puntos literales exigidos por el RF", () => {
+      expect(PUNTOS_CONSENTIMIENTO_EF12).toHaveLength(5)
+      expect(PUNTOS_CONSENTIMIENTO_EF12.map((p) => p.numero)).toEqual([
+        1, 2, 3, 4, 5,
+      ])
+    })
+
+    it("inicia con todos los consentimientos desmarcados por defecto", () => {
+      expect(CONSENTIMIENTO_DEFAULT.aceptacionTratamientoDatos).toBe(false)
+      expect(CONSENTIMIENTO_DEFAULT.declaracionVeracidad).toBe(false)
+      expect(CONSENTIMIENTO_DEFAULT.aceptacionNormasConcurso).toBe(false)
+      expect(CONSENTIMIENTO_DEFAULT.autorizacionPublicacionNombre).toBe(false)
+      expect(CONSENTIMIENTO_DEFAULT.constanciaEntregaFisica).toBe(false)
+    })
+
+    it("incluye los textos literales clave en cada punto legal", () => {
+      const [p1, p2, p3, p4, p5] = PUNTOS_CONSENTIMIENTO_EF12
+      expect(p1.texto).toContain(
+        "Ley Orgánica de Protección de Datos Personales",
+      )
+      expect(p2.texto).toContain("corresponde a la verdad")
+      expect(p3.texto).toContain("descalificación del proceso")
+      expect(p4.texto).toContain("página web del IESS - BIESS")
+      expect(p5.texto).toContain("firma manuscrita")
     })
   })
 })

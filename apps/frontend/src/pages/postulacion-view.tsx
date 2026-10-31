@@ -4,6 +4,7 @@ import {
   CheckCircleIcon,
   FileCheck2Icon,
   SaveIcon,
+  ShieldCheckIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router"
@@ -20,7 +21,16 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   BarraProgresoSecciones,
+  PUNTOS_CONSENTIMIENTO_EF12,
   Seccion1Personal,
   Seccion2Contacto,
   Seccion3Adicional,
@@ -162,6 +172,7 @@ export function PostulacionView() {
   )
   const [bloqueadoNacionalidad, setBloqueadoNacionalidad] = useState(false)
   const [errorValidacion, setErrorValidacion] = useState<string | null>(null)
+  const [dialogoGuardarAbierto, setDialogoGuardarAbierto] = useState(false)
 
   // Ajuste seguro de estado en fase de render para evitar efecto en cascada
   const [prevId, setPrevId] = useState<string | null>(null)
@@ -274,19 +285,38 @@ export function PostulacionView() {
       {yaEnviada && (
         <div
           role="alert"
-          className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-primary"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/10 p-4 text-sm text-primary"
         >
-          <FileCheck2Icon className="size-5 shrink-0" aria-hidden="true" />
-          <div className="flex-1">
-            <h4 className="font-semibold">Postulación enviada y sellada</h4>
-            <p className="mt-0.5 text-xs">
-              Código: <strong>{postulacionActiva.code}</strong> · Este
-              formulario ya no admite modificaciones adicionales.
-            </p>
+          <div className="flex items-center gap-3">
+            <FileCheck2Icon className="size-5 shrink-0" aria-hidden="true" />
+            <div>
+              <h4 className="font-semibold">Postulación enviada y sellada</h4>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Código:{" "}
+                <strong className="text-foreground">
+                  {postulacionActiva.code}
+                </strong>
+                {postulacionActiva.hash && (
+                  <>
+                    {" "}
+                    · Hash:{" "}
+                    <code className="font-mono text-2xs text-foreground">
+                      {postulacionActiva.hash.slice(0, 16)}…
+                    </code>
+                  </>
+                )}{" "}
+                · Este formulario ya no admite modificaciones adicionales.
+              </p>
+            </div>
           </div>
-          <Button asChild size="sm">
-            <Link to={RUTAS.postulacionRevision}>Ver revisión</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to={RUTAS.postulacionRevision}>Ver revisión</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link to={RUTAS.postulacionImprimir}>Imprimir (HU-11)</Link>
+            </Button>
+          </div>
         </div>
       )}
 
@@ -419,23 +449,39 @@ export function PostulacionView() {
 
           <div className="flex items-center gap-2">
             {!yaEnviada && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => guardarSeccionActual(false)}
-                disabled={
-                  guardarSeccionMutation.isPending || bloqueadoNacionalidad
-                }
-                className="flex items-center gap-1.5"
-              >
-                <SaveIcon className="size-4" aria-hidden="true" />
-                <span>
-                  {guardarSeccionMutation.isPending
-                    ? "Guardando…"
-                    : "Guardar información"}
-                </span>
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => guardarSeccionActual(false)}
+                  disabled={
+                    guardarSeccionMutation.isPending || bloqueadoNacionalidad
+                  }
+                  className="flex items-center gap-1.5"
+                >
+                  <SaveIcon className="size-4" aria-hidden="true" />
+                  <span>
+                    {guardarSeccionMutation.isPending
+                      ? "Guardando…"
+                      : "Guardar información"}
+                  </span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setDialogoGuardarAbierto(true)}
+                  disabled={
+                    guardarSeccionMutation.isPending || bloqueadoNacionalidad
+                  }
+                  className="flex items-center gap-1.5"
+                >
+                  <ShieldCheckIcon className="size-4" aria-hidden="true" />
+                  <span>Guardar Postulación</span>
+                </Button>
+              </>
             )}
 
             {numeroSeccion < 9 ? (
@@ -468,6 +514,61 @@ export function PostulacionView() {
           </div>
         </CardFooter>
       </Card>
+
+      {/* Diálogo de consentimiento obligatorio al Guardar Postulación (EF-12 1.10.1) */}
+      <Dialog
+        open={dialogoGuardarAbierto}
+        onOpenChange={setDialogoGuardarAbierto}
+      >
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <ShieldCheckIcon className="size-5 text-primary" />
+              <span>
+                Guardar Postulación — Declaración Legal (EF-12 1.10.1)
+              </span>
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Al guardar la postulación, se le informa el siguiente texto
+              obligatorio y debe aceptar los términos de participación del
+              concurso:
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3 py-3 text-xs leading-relaxed text-foreground">
+            {PUNTOS_CONSENTIMIENTO_EF12.map((p) => (
+              <div key={p.id} className="rounded-md border bg-muted/20 p-3">
+                <span className="font-semibold text-primary block mb-0.5">
+                  Punto {p.numero}: {p.titulo}
+                </span>
+                <p className="text-muted-foreground">{p.texto}</p>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter className="flex-row items-center justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setDialogoGuardarAbierto(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={async () => {
+                setDialogoGuardarAbierto(false)
+                await guardarSeccionActual(false)
+              }}
+              disabled={guardarSeccionMutation.isPending}
+            >
+              Aceptar y guardar postulación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
