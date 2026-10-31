@@ -42,7 +42,8 @@ cumplimiento del RF. Su criterio 6 es compartido con backend.
 | Estructura de Vite + Tailwind v4 | `apps/frontend/` | ✅ |
 | Componentes shadcn/ui | `src/components/ui/` | ✅ (45 componentes) |
 | Shell: sidebar, header, tema | `src/components/` | ✅ |
-| Dashboard (mockup migrado) | `src/pages/dashboard-view.tsx` | 🟡 con datos mock |
+| Panel de revisión FT7 | `src/features/revision/` | Datos del backend; selección por período y conteos cada 30 s |
+| Matriz interna FT8 | `/dashboard/reportes` | XLSX/PDF del backend; aprobación institucional pendiente |
 | Tipos del dominio EF-12 | `src/types/concurso.ts` | ✅ |
 | Validadores puros | `src/utils/validators.ts` | ✅ con tests |
 | Catálogo geográfico | `src/data/ecuadorGeo.ts` | ✅ con tests (24 provincias, 221 cantones) |
@@ -143,6 +144,7 @@ export async function obtenerPostulaciones(
 | `/evaluacion/examen` | Examen interactivo EF-14 (FT26) | Con sesión |
 | `/evaluacion/resultado` | Resultados evaluación EF-14 (FT27) | Con sesión |
 | `/dashboard` | Panel del analista | Con rol analista |
+| `/dashboard/reportes` | Matriz comparativa interna (FT8) | Con rol analista |
 | `/dashboard/postulaciones` | Listado de revisión | Con rol analista |
 | `/dashboard/postulaciones/:id` | Detalle | Con rol analista |
 | `/admin/convocatorias` | Gestión de convocatorias (FT15) | Con rol admin |
@@ -340,29 +342,39 @@ y copy.
 
 ### FT7 · Dashboard e históricos reales del personal autorizado
 
-**Origen:** EF-13.3. **Prioridad:** P1-RF; trasladada desde la tabla de deseables.
+**Origen:** EF-13.3. **Prioridad:** P1-RF.
 
-- [ ] Mostrar número real de postulantes por cargo y mantenerlo actualizado mediante
-      el mecanismo acordado con T9, sin exigir recarga manual de la página.
-- [ ] Filtrar por convocatoria, cargo y estado y recorrer la nómina completa con paginación.
-- [ ] Abrir convocatorias cerradas y el EF-12 íntegro de cada postulante, con sus
-      certificados descargables y duración de cada experiencia en años, meses y días.
-- [ ] Distinguir histórico, borrador, envío y resultado de fase, sin reconstruir una
-      postulación anterior a partir de datos actuales de otra convocatoria.
+- [x] Consumir conteos reales por cargo/sector; consulta automática cada 30 s con el
+      panel visible y conectado, además de actualización manual y al reconectar.
+- [x] Selección explícita de convocatoria (incluidas cerradas) o legado sin convocatoria,
+      filtros de cargo/sector y estado enviado, y paginación por cursor hasta el final.
+- [x] Consultar EF-12 sellado íntegro, sus nueve secciones y consentimiento original,
+      certificados con enlaces temporales y duración por experiencia en años, meses y días.
+- [x] Excluir borradores, identificar envío/histórico y explicar que no constituye
+      resultado de fase. No mezclar perfiles o formularios de otra convocatoria.
+- [ ] Integrar resultados reales de fases cuando T18/T20 los expongan; no hay estados
+      ficticios ni operaciones de calificación en esta entrega.
+- [ ] Validación integrada en navegador con servicios reales y aceptación institucional
+      de la latencia propuesta. Las comprobaciones locales no sustituyen esa evidencia.
 
-**Backend:** T6, T8–T9, T18. **Dependencias:** FT2, FT4, FT15.
+**Backend consumido:** T6, T8–T9. **Alcance pendiente:** T18 y resultados posteriores.
+**Evidencia y uso:** [Contrato de revisión y auditoría](../api-contracts/REVIEW_AUDIT.md).
 
 ### FT8 · Matriz comparativa en Excel y PDF
 
-**Origen:** EF-13.3. **Prioridad:** P1-RF; trasladada desde la tabla de deseables.
+**Origen:** EF-13.3. **Prioridad:** P1-RF.
 
-- [ ] Exportar `.xlsx` y PDF desde la misma convocatoria, cargo y filtros de FT7.
-- [ ] Acordar las columnas con Talento Humano y mostrar estados de generación,
-      descarga y error; usar la exportación autorizada del backend.
-- [ ] Mantener coherencia entre ambas versiones y evitar exponer datos internos
-      como si fueran una lista pública de elegibles.
+- [x] Solicitar `.xlsx` y PDF autorizados al backend con la misma convocatoria,
+      cargo/sector y estado de FT7; exportar toda la selección, no la página cargada.
+- [x] Mostrar generación, descarga iniciada, cancelación, errores y reintento; evitar
+      doble solicitud, cancelar al cambiar filtros y revocar las URLs binarias locales.
+- [x] Respetar los errores 401/403/413; no convertir JSON de error en archivo.
+- [x] Rotular EF13-TECNICA-v1 como propuesta técnica interna sin puntajes ni lista pública
+      de elegibles. Ambos formatos son generados por el mismo contrato backend.
+- [ ] Acordar columnas con Talento Humano y completar la validación integrada en navegador.
+      T24/publicación de listas no se presume implementado.
 
-**Backend:** T9, T24. **Dependencias:** FT7.
+**Backend consumido:** T9. **Dependencias:** FT7; T24 queda para publicación posterior.
 
 ---
 
@@ -648,8 +660,8 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | EF-12, notas | Guardado parcial, CRUD de registros y código único | T3–T5 | FT5 | Backend base; interfaz funcional pendiente |
 | EF-12 1.10 | Literales al guardar, firma manuscrita, impresión y correo completo | T3, T19, T23 | FT6, FT28 | Sello y correo con JSON disponibles; presentación final pendiente |
 | EF-13.1–2 | Publicar fases y habilitar EF-12 | T6, T18 | FT15 | Planificado |
-| EF-13.3 | Conteos por cargo en tiempo real e históricos íntegros/certificados | T8–T9, T18 | FT7 | Parcial: shell/mock; falta administración real |
-| EF-13.3 | Matriz comparativa Excel/PDF | T9 | FT8 | Planificado, obligatorio para RF completo |
+| EF-13.3 | Conteos por cargo en tiempo real e históricos íntegros/certificados | T8–T9, T18 | FT7 | Integración FT7 disponible; pendientes T18/fases y validación integrada |
+| EF-13.3 | Matriz comparativa Excel/PDF | T9 | FT8 | Integración XLSX/PDF disponible; aprobación institucional y validación integrada pendientes |
 | EF-1 | Verificar requisitos y calcular méritos | T20 | FT19 | Planificado; falta matriz de calificación aprobada |
 | EF-1 | Registrar oposición psicotécnica y consolidar expediente | T21 | FT20 | Planificado; falta instrumento/reglas |
 | EF-1 | Reconsideraciones y plazos exactos por actor | T22 | FT21 | Planificado; faltan términos y calendario aprobados |

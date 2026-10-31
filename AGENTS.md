@@ -304,3 +304,5 @@ decisión que afecte cómo se trabaja en el repo.
 
 | 2026-10-31 | Identidad falla cerrada sin Redis; OTP por finalidad/desafío/cuenta/correo con scripts atómicos | La corrección de INFORME-BACKEND-T1-T9 sustituye el consumo Get/Delete y el pipeline de intentos. Catálogos sí conservan fallback a PostgreSQL. Reenvío 60 s, tres emisiones/10 min y tres intentos por desafío; el TTL de la ventana no se renueva. |
 | 2026-10-31 | Cola de correo cifrada y confirmación durable dentro del sello | `MAIL_OUTBOX_KEY` es base64 de 32 bytes aleatorios estables, inyectada fuera del repo. `mail_outbox` usa AES-GCM, leases, reintentos y vencimiento; SMTP ocurre después del commit. `smtp_accepted` no significa llegada al buzón. No aceptar sellos que no puedan registrar su confirmación. Contrato: `docs/api-contracts/IDENTITY_SECURITY.md`. |
+
+| 2026-10-31 | FT7/FT8 comparten filtros administrativos en la URL y solo consumen snapshots sellados | Período o legado explícito; conteos cada 30 s visibles/en línea. Caché privada por cuenta/rol con `gcTime: 0`; blobs y enlaces temporales no se persisten. La matriz proviene del backend y no es una lista oficial de elegibles. |
