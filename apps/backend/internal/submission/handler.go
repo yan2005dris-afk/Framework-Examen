@@ -42,6 +42,7 @@ func NewHandler(service *Service) *Handler {
  */
 func (h *Handler) RegisterRoutes(router chi.Router) {
 	router.Route("/api/v1/submissions", func(r chi.Router) {
+		r.Get("/form-definition", h.definition)
 		r.Post("/", h.create)
 		r.Get("/", h.list)
 		r.Route("/{id}", func(r chi.Router) {
@@ -53,6 +54,22 @@ func (h *Handler) RegisterRoutes(router chi.Router) {
 			r.Post("/submit", h.submit)
 		})
 	})
+}
+
+/** definition entrega los mismos catálogos y literales usados en la validación.
+ * @param {http.Request} request - Petición con sesión; no incluye datos personales.
+ */
+func (h *Handler) definition(writer http.ResponseWriter, request *http.Request) {
+	if _, ok := identity.ApplicantFromContext(request.Context()); !ok {
+		httpx.RespondError(writer, request, 401, "no_autenticado", "Debe iniciar sesión.")
+		return
+	}
+	definition, err := FormDefinition()
+	if err != nil {
+		writeError(writer, request, err)
+		return
+	}
+	httpx.Respond(writer, request, http.StatusOK, definition)
 }
 
 /**

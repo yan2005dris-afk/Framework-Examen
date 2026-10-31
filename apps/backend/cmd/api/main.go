@@ -161,7 +161,8 @@ func main() {
 			os.Exit(1)
 		}
 		documentService := document.NewService(documentpostgres.NewRepository(pool, db.NewTxManager(pool)), objects)
-		submissionService := submission.NewService(submissionRepository, submissionNotifier).WithDocuments(documentService)
+		submissionService := submission.NewService(submissionRepository, submissionNotifier).
+			WithDocuments(documentService).WithApplicants(identityRepo)
 		router.Group(func(r chi.Router) {
 			r.Use(identity.RequireSession(identityService))
 			submission.NewHandler(submissionService).RegisterRoutes(r)

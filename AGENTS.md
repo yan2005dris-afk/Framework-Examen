@@ -289,3 +289,5 @@ decisión que afecte cómo se trabaja en el repo.
 | 2026-10-31 | Descargas temporales desde servidor local separado o S3; cola persistente de bajas | La API no hace proxy de PDFs. El modo local firma URLs HMAC de cinco minutos; S3 usa SigV4. Los borrados y las cascadas generan tareas reintentables dentro de PostgreSQL. |
 
 | 2026-10-31 | Registro y recuperación con OTP por correo, sin validación dactilar ni fecha de expedición | No existe acceso a Registro Civil. Se valida módulo 10 y acceso al correo; los demás datos personales son declarados. El RF original se conserva y la adaptación se documenta en ADR-008. |
+
+| 2026-10-31 | Definición EF-12 embebida y casos de validación compartidos Go/TypeScript | `internal/submission/definition.json` es la fuente de opciones/tipos de captura; los cambios deben conservar paridad con `src/utils/validar-formulario.ts` mediante `form_cases.json`. Los contenedores frontend y CI incluyen estos recursos. La cuenta OTP aporta la precarga sin certificar identidad civil. |

@@ -29,6 +29,8 @@ services:
       - ./apps/frontend/tsconfig.json:/app/apps/frontend/tsconfig.json
       - ./apps/frontend/tsconfig.app.json:/app/apps/frontend/tsconfig.app.json
       - ./apps/frontend/tsconfig.node.json:/app/apps/frontend/tsconfig.node.json
+      - ./apps/backend/internal/submission/definition.json:/app/apps/backend/internal/submission/definition.json:ro
+      - ./apps/backend/internal/submission/testdata:/app/apps/backend/internal/submission/testdata:ro
       - /app/node_modules
       - /app/apps/frontend/node_modules
 

@@ -75,6 +75,28 @@ func TestSubmissionHTTPAuthorization(t *testing.T) {
 	}
 }
 
+func TestSubmissionFormDefinitionRequiresSessionAndDoesNotCaptureIDRoute(t *testing.T) {
+	handler, _ := httpFixture(t, false)
+	for _, tc := range []struct {
+		token  string
+		status int
+	}{{"", 401}, {"sesion-prueba", 200}} {
+		response := performRequest(handler, "GET", "/api/v1/submissions/form-definition", "", tc.token)
+		if response.Code != tc.status {
+			t.Fatalf("definición: %d %s", response.Code, response.Body)
+		}
+		if tc.status == 200 {
+			var definition Definition
+			if err := json.Unmarshal(response.Body.Bytes(), &definition); err != nil {
+				t.Fatal(err)
+			}
+			if len(definition.Sections) != 9 || len(definition.Questions) != 13 {
+				t.Fatal("respuesta sin definición EF-12")
+			}
+		}
+	}
+}
+
 func TestSubmissionHTTPSaveAndSubmit(t *testing.T) {
 	handler, repo := httpFixture(t, true)
 	base := "/api/v1/submissions/" + repo.item.ID.String()

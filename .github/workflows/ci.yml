@@ -56,7 +56,7 @@ jobs:
           fi
 
           # El frontend depende del lockfile y de los scripts de la raíz.
-          if grep -qE '^apps/frontend/|^package[.]json$|^pnpm-lock[.]yaml$|^pnpm-workspace[.]yaml$|^[.]github/workflows/ci[.]yml$' cambios.txt; then
+          if grep -qE '^apps/frontend/|^apps/backend/internal/submission/(definition[.]json|testdata/)|^package[.]json$|^pnpm-lock[.]yaml$|^pnpm-workspace[.]yaml$|^[.]github/workflows/ci[.]yml$' cambios.txt; then
             frontend=true
           fi
 

@@ -180,15 +180,20 @@ controles corresponde a T16; no depende de acceso al Registro Civil.
 
 > **Criterio 6 — Reglas del negocio (6 pts)**
 
-**Backend implementado (2026-10-31)**: modelo tipado, validación, progreso, guardado parcial, sello y confirmación SMTP. Los documentos reales ya se vinculan mediante T4. La identidad usa OTP (ADR-008);
-la elegibilidad laboral debe resolverse en el servidor con T17.
+**Backend T3 completado (2026-10-31)**: nueve secciones tipadas, precarga desde
+la cuenta OTP, definición compartida de catálogos/campos, validación Go/TypeScript,
+progreso, guardado parcial, consentimientos al guardar y sello transaccional.
+La validación de elegibilidad y el cierre persistente pertenecen a T17; las vistas
+que consumen estas capacidades se implementan en FT5/FT6.
 
 **Piezas**
 
 | Pieza | Ubicación | Contenido |
 |---|---|---|
 | Secciones | `internal/submission/sections.go` | Tipos de las 9 secciones del EF-12 |
-| Reglas | `internal/submission/rules.go` | Validaciones del RF |
+| Reglas | `internal/submission/rules.go`, `records.go` | Validación parcial/final e IDs estables |
+| Contrato de captura | `internal/submission/definition.json`, `definition.go` | Países, opciones, nueve secciones y trece preguntas |
+| Cuenta OTP | `internal/submission/account.go` | Precarga y vínculo de cédula/correo con la cuenta |
 | Servicio | `internal/submission/service.go` | `SaveSection`, `Submit` |
 | Hash y envío | `internal/submission/submission.go` | `MarkAsSent` ya existe |
 
@@ -213,22 +218,36 @@ la elegibilidad laboral debe resolverse en el servidor con T17.
       devuelve el progreso (9 secciones, con cuáles están completas).
 - [x] `POST /api/v1/submissions/{id}/submit` sella: hash, `submittedAt`,
       estado `submitted` y correo de confirmación.
-- [ ] Paridad completa con la validación de las vistas del frontend. El backend ya aplica las reglas; duración y fechas imposibles cuentan con casos compartidos Go/Vitest. Las vistas EF-12 y su validador completo siguen pendientes de migración.
+- [x] Validador puro del frontend en `src/utils/validar-formulario.ts` y reglas Go
+      contrastados con 67 casos de negocio compartidos de las nueve secciones.
+      La conexión de ese validador a las vistas corresponde a FT5.
 - [x] Los 5 puntos de consentimiento se guardan y son verificables.
 - [x] La postulación enviada es inmutable: `PUT` y `DELETE` devuelven `409`.
 - [x] Tests de cada regla con los casos de borde del RF.
-- [ ] Precargar nombres, apellidos y cédula desde la cuenta y correo principal
-      desde el registro; validar los datos restantes declarados sin atribuirles
-      verificación de Registro Civil (ADR-008).
-- [ ] Mantener catálogos exactos de parentescos, instituciones, niveles, áreas,
-      tipos de experiencia/publicación/evento y las 13 preguntas del RF (T7).
-- [ ] Distinguir datos opcionales y obligatorios conforme al RF; resolver las
-      inconsistencias registradas en la sección 9 antes de endurecer validaciones.
-- [ ] Mostrar los cinco literales también al guardar la postulación y conservarlos
-      en el formulario final; no limitar su presentación al envío (T19/FT6).
+- [x] Precargar nombres/apellidos/cédula y correo principal desde la cuenta OTP.
+      Cédula y correo principal no se sustituyen por los de otra cuenta mediante
+      Create/PUT/SaveSection/Submit. Los nombres siguen siendo declarativos.
+      No se inventan nacimiento/nacionalidad ni se acepta certificación civil del cliente.
+- [x] Mantener países del RF, parentescos, instituciones, niveles, áreas, tipos y
+      trece preguntas literales en `definition.json`; usarlos en Go y TypeScript.
+      `GET /api/v1/submissions/form-definition` los entrega con sesión. La
+      persistencia/caché del contexto global de catálogos sigue en T7.
+- [x] Publicar el contrato vigente de campos obligatorios, opcionales y condicionales:
+      borradores incompletos, correo secundario opcional, pareja/remoción condicionales,
+      lista de capacitación vacía declarada y firma digital no exigida. No se añadieron
+      edades, puntajes ni una décima sección para resolver vacíos del RF por suposición.
+- [x] Entregar y persistir los cinco literales/versiones también al guardar. El servidor
+      descarta textos/versiones/fechas de aceptación inventados y solo fecha la
+      aceptación al sellar. La representación visual e impresión siguen en T19/FT6.
 
 
-**Verificación**: pruebas de reglas, guardado concurrente, doble envío, rollback, consentimiento, destinatario registrado y estados HTTP con dobles en memoria. Las pruebas PostgreSQL optativas se ejecutan con `SUBMISSION_TEST_DATABASE_URL` y crean un esquema aislado por ejecución. En este entorno se omiten por falta de URL; SMTP real y `-race` requieren sockets habilitados y CGO, respectivamente.
+**Verificación de este cierre**: tests de los módulos Go submission/document/identity
+correctos y 68 tests Vitest del validador EF-12 correctos, incluidos los mismos 67
+casos de negocio que usa Go. Cubren campos pendientes, condicionales, catálogos,
+fechas, IDs duplicados, límites Unicode, declaraciones y formas JSON inválidas.
+Las pruebas de cuenta/HTTP cubren precarga, sustitución de identidad/correo,
+certificación civil falsa y conservación del snapshot. No se ejecutaron servicios
+externos ni pruebas PostgreSQL sin sus variables de integración.
 
 **Dependencias**: T2 (sesión). **Esfuerzo estimado**: 4 días.
 
