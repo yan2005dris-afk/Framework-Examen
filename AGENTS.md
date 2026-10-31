@@ -117,6 +117,10 @@ Raíz del repo:
 - `deploy/nginx.conf` — reverse proxy de producción: sirve la SPA y reenvía `/api`
 - `apps/frontend/Dockerfile` — etapas `dev` (Vite) y `prod` (nginx)
 - `.github/workflows/ci.yml` — CI: formato, lint y tests de frontend y backend
+- `docs/` — documentación del proyecto: `prd/`, `trd/`, `architecture/`,
+  `database/`, `api-contracts/`, `decisions/`, `deployment/` y `tasks/`.
+  El índice es `docs/README.md`; la fuente funcional del RF está en
+  `docs/requerimiento.txt`
 
 ## Code style
 
