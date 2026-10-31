@@ -12,7 +12,8 @@ tocar código y actualízalo cuando cambie una convención.
 - `apps/frontend/` — SPA: React 19 + Vite 8 + Tailwind v4 + shadcn/ui
 - `apps/backend/` — API: Go 1.27 (chi + pgx/Postgres)
 - `mockups/` — mockup original. Referencia de flujo, copy y lógica de las 9 vistas.
-  **Temporal**: se elimina cuando termine la migración de vistas a shadcn/ui.
+  **Temporal y local**: está en `.gitignore` (no se versiona) y se elimina cuando
+  termine la migración de vistas a shadcn/ui.
 
 ## Stack
 
@@ -163,6 +164,18 @@ git flow hotfix finish <version>   # fusiona a main + tag, y a develop
 - La app maneja **datos personales sensibles** (cédula, nombres, documentos PDF de
   postulantes). No loguearlos, no mandarlos a servicios externos sin necesidad, y no
   los subas a archivos versionados.
+
+### Qué nunca se versiona
+
+Definido en `.gitignore`:
+
+- `node_modules/`, `dist/`, `coverage/`, `*.tsbuildinfo`
+- Lockfiles de otros gestores (`package-lock.json`, `yarn.lock`, `bun.lock`).
+  **Sí** se versiona `pnpm-lock.yaml`, que es el lockfile de este proyecto.
+- Secretos: `.env*` (salvo `.env.example`), `*.pem`, `*.key`, `*.p12`
+- Documentos y adjuntos de postulantes: `*.pdf`, `*.doc(x)`, `*.xls(x)`, `*.ppt(x)`,
+  `apps/backend/data/`, `uploads/`, `storage/`
+- `mockups/` — referencia local del mockup original
 
 ## Decisiones
 
