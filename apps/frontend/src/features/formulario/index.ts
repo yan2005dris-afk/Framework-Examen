@@ -1,5 +1,7 @@
 export * from "./barra-progreso-secciones"
 export * from "./adjunto-uploader"
+export * from "./constantes"
+export * from "../postulacion/consentimiento"
 export * from "./seccion-1-personal"
 export * from "./seccion-2-contacto"
 export * from "./seccion-3-adicional"
