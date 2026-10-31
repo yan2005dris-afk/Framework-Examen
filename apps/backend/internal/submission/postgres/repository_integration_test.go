@@ -57,13 +57,15 @@ func integrationRepository(t *testing.T) (*Repository, *submission.Submission) {
 		t.Fatal("no se pudo abrir el pool aislado")
 	}
 	t.Cleanup(pool.Close)
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "sql", "migrations", "00001_init.sql"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	up := strings.Split(strings.Split(string(raw), "-- +goose Up")[1], "-- +goose Down")[0]
-	if _, err := pool.Exec(ctx, up); err != nil {
-		t.Fatal(err)
+	for _, name := range []string{"00001_init.sql", "00004_documents.sql", "00006_submission_events.sql"} {
+		raw, err := os.ReadFile(filepath.Join("..", "..", "..", "sql", "migrations", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		up := strings.Split(strings.Split(string(raw), "-- +goose Up")[1], "-- +goose Down")[0]
+		if _, err := pool.Exec(ctx, up); err != nil {
+			t.Fatal(err)
+		}
 	}
 	applicantID, err := uuid.NewV7()
 	if err != nil {

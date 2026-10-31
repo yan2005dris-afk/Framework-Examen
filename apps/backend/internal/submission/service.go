@@ -29,6 +29,8 @@ type CreateInput struct {
 	ApplicantID uuid.UUID
 	Code        string
 	Content     json.RawMessage
+	// Solo para composición interna: no forma parte del DTO HTTP público.
+	SaveRelated RelatedChanges
 }
 
 /**
@@ -72,6 +74,14 @@ func NewService(repo Repository, notifiers ...Notifier) *Service {
  * @throws {Error} Errores de dominio si los datos no son válidos.
  */
 func (s *Service) Create(ctx context.Context, input CreateInput) (*Submission, error) {
+	return s.SaveSubmission(ctx, input)
+}
+
+/** SaveSubmission guarda cabecera, secciones, documentos asociados y evento como una unidad.
+ * @param {CreateInput} input - Datos validados y escritura opcional de documentos del servidor.
+ * @returns {Submission, error} Postulación confirmada; no devuelve una entidad sin commit.
+ */
+func (s *Service) SaveSubmission(ctx context.Context, input CreateInput) (*Submission, error) {
 	now := s.now()
 	content, err := validateContent(input.Content, false, now)
 	if err != nil {
@@ -97,7 +107,19 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*Submission, e
 		return nil, err
 	}
 
-	if err := s.repo.Create(ctx, item); err != nil {
+	related := func(txctx context.Context, current *Submission) error {
+		if input.SaveRelated != nil {
+			if err := input.SaveRelated(txctx, current); err != nil {
+				return err
+			}
+		}
+		validated, err := validateContent(current.Content, false, now)
+		if err != nil {
+			return err
+		}
+		return current.UpdateContent(validated, now)
+	}
+	if err := s.repo.SaveSubmission(ctx, item, related); err != nil {
 		return nil, err
 	}
 

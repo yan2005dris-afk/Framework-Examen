@@ -110,7 +110,9 @@ func (m *TxManager) WithinTx(ctx context.Context, fn func(tx pgx.Tx) error) erro
 	}
 
 	defer func() {
-		_ = tx.Rollback(ctx)
+		rollbackCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = tx.Rollback(rollbackCtx)
 	}()
 
 	if err := fn(tx); err != nil {

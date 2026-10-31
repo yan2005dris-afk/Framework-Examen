@@ -257,7 +257,14 @@ func (r *Repository) Mutate(ctx context.Context, id uuid.UUID, change func(conte
 			return err
 		}
 		adapter := &Repository{queries: queries}
-		return adapter.Update(ctx, item)
+		if err := adapter.Update(ctx, item); err != nil {
+			return err
+		}
+		eventType := submission.EventSaved
+		if item.Status == submission.StatusSubmitted {
+			eventType = submission.EventSubmitted
+		}
+		return adapter.RecordEvent(ctx, item, eventType)
 	})
 	if err != nil {
 		return nil, err

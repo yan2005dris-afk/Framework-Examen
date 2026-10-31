@@ -79,3 +79,21 @@ sql:
 
           - column: "document_deletions.created_at"
             go_type: "time.Time"
+
+          - column: "submission_events.id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+
+          - column: "submission_events.submission_id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+
+          - column: "submission_events.applicant_id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+
+          - column: "submission_events.created_at"
+            go_type: "time.Time"
