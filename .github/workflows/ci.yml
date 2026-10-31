@@ -12,8 +12,61 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Cambios detectados
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.detect.outputs.backend }}
+      frontend: ${{ steps.detect.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detectar qué stacks cambió
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            base="$BASE_SHA"
+          elif [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            base="$HEAD_SHA~1"
+          else
+            base="$BEFORE_SHA"
+          fi
+
+          git diff --name-only "$base" "$HEAD_SHA" > cambios.txt || \
+            git diff --name-only "$base~1" "$HEAD_SHA" > cambios.txt
+
+          echo "Archivos modificados:"
+          cat cambios.txt
+
+          backend=false
+          frontend=false
+
+          # El workflow mismo es transversal: si cambia, se valida todo.
+          if grep -qE '^apps/backend/|^[.]github/workflows/ci[.]yml$' cambios.txt; then
+            backend=true
+          fi
+
+          # El frontend depende del lockfile y de los scripts de la raíz.
+          if grep -qE '^apps/frontend/|^package[.]json$|^pnpm-lock[.]yaml$|^pnpm-workspace[.]yaml$|^[.]github/workflows/ci[.]yml$' cambios.txt; then
+            frontend=true
+          fi
+
+          echo "backend=$backend" >> "$GITHUB_OUTPUT"
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
+
   backend:
     name: Backend (Go)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -58,6 +111,8 @@ jobs:
 
   frontend:
     name: Frontend (React)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -69,7 +124,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-        cache: pnpm
+          cache: pnpm
 
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
