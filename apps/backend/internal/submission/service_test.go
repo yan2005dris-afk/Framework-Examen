@@ -42,6 +42,23 @@ func (r *memoryRepository) Create(_ context.Context, item *Submission) error {
 	r.item = copySubmission(item)
 	return nil
 }
+
+func (r *memoryRepository) SaveSubmission(ctx context.Context, item *Submission, related RelatedChanges) error {
+	working := copySubmission(item)
+	if related != nil {
+		if err := related(ctx, working); err != nil {
+			return err
+		}
+	}
+	if r.fail {
+		return errors.New("fallo de persistencia de prueba")
+	}
+	if err := r.Create(ctx, working); err != nil {
+		return err
+	}
+	*item = *working
+	return nil
+}
 func (r *memoryRepository) Delete(_ context.Context, id uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

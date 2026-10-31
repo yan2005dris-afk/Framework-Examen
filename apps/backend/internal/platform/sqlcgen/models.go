@@ -74,3 +74,12 @@ type Submission struct {
 	CreatedAt   time.Time          `json:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at"`
 }
+
+type SubmissionEvent struct {
+	ID           uuid.UUID `json:"id"`
+	SubmissionID uuid.UUID `json:"submission_id"`
+	ApplicantID  uuid.UUID `json:"applicant_id"`
+	EventType    string    `json:"event_type"`
+	Payload      []byte    `json:"payload"`
+	CreatedAt    time.Time `json:"created_at"`
+}

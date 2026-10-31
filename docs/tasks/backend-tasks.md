@@ -34,12 +34,12 @@ recomendado es: **T1 (Redis) → T2 (identidad) → T3 (formulario) → T4
 | # | Criterio | Puntos | Estado | Tareas |
 |---|---|---:|---|---|
 | 1 | Arquitectura backend e inyección de dependencias | 8 | ✅ **8/8** | T6, T7 |
-| 2 | Persistencia relacional y transacciones | 8 | 🟡 **5/8** | T5, T8 |
+| 2 | Persistencia relacional y transacciones | 8 | 🟡 **7/8** | T5, T8 |
 | 3 | Caché, expiración y rate limiting (Redis) | 6 | ✅ **6/6** | T1 |
 | 4 | Frontend SPA (ver [frontend-tasks.md](frontend-tasks.md)) | 6 | — | — |
 | 5 | Consumo de API y manejo asíncrono (ver [frontend-tasks.md](frontend-tasks.md)) | 6 | — | — |
 | 6 | Cumplimiento de las reglas del negocio (RF IESS) | 6 | ✅ **6/6** | T2, T3, T4 |
-| | **Total backend** | **28** | **25/28** | |
+| | **Total backend** | **28** | **27/28** | |
 
 ---
 
@@ -257,11 +257,13 @@ Implementa el EF-11 completo.
 
 T3 ya utiliza `TxManager.WithinTx` y bloqueo de fila para guardar y sellar la postulación. T5 amplía esa transacción al guardado **multi-tabla** de documentos y eventos cuando existan.
 
-- [ ] `SaveSubmission` inserta cabecera, secciones, documentos y eventos de
+- [x] `SaveSubmission` inserta cabecera, secciones, documentos y eventos de
       auditoría dentro de **una** transacción.
-- [ ] Un fallo intermedio provoca `ROLLBACK` y **no** deja datos huérfanos.
-- [ ] Test de integración: se fuerza un error al insertar documentos y se
+- [x] Un fallo intermedio provoca `ROLLBACK` y **no** deja datos huérfanos.
+- [x] Test de integración: se fuerza un error al insertar documentos y se
       comprueba que la cabecera tampoco queda.
+
+**Verificación**: prueba de integración multi-tabla en `apps/backend/internal/document/postgres/submission_integration_test.go` (`TestSaveSubmissionCommitsAllTablesOrRollsBackOnDocumentFailure`) validada contra PostgreSQL en Docker: comprueba la inserción atómica de cabecera, 2 documentos y 1 evento de auditoría en `submission_events`, y verifica que un fallo en la inserción de documentos revierte cabecera, documentos y eventos sin dejar datos huérfanos.
 
 **Esfuerzo estimado**: 1 día.
 

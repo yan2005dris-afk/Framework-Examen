@@ -59,7 +59,7 @@ func postgresFixture(t *testing.T) (*Repository, *pgxpool.Pool, *submission.Subm
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
-	for _, name := range []string{"00001_init.sql", "00004_documents.sql"} {
+	for _, name := range []string{"00001_init.sql", "00004_documents.sql", "00006_submission_events.sql"} {
 		raw, err := os.ReadFile(filepath.Join("..", "..", "..", "sql", "migrations", name))
 		if err != nil {
 			t.Fatal(err)

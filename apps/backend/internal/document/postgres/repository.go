@@ -68,7 +68,11 @@ func (r *Repository) WithinSubmission(ctx context.Context, actor, id uuid.UUID, 
 		if err := change(txctx, item, r); err != nil {
 			return err
 		}
-		return submissionpostgres.NewRepository(queries).Update(txctx, item)
+		submissions := submissionpostgres.NewRepository(queries)
+		if err := submissions.Update(txctx, item); err != nil {
+			return err
+		}
+		return submissions.RecordEvent(txctx, item, submission.EventSaved)
 	})
 }
 
@@ -113,7 +117,22 @@ func (r *Repository) TotalByApplicant(ctx context.Context, id uuid.UUID) (int64,
  * @returns {error} Duplicado o fallo de persistencia.
  */
 func (r *Repository) Create(ctx context.Context, d *document.Document) error {
-	err := r.queries(ctx).CreateDocument(ctx, sqlcgen.CreateDocumentParams{ID: d.ID, SubmissionID: d.SubmissionID, Section: int32(d.Section), RecordID: d.RecordID, Name: d.Name, Mime: d.MIME, SizeBytes: d.SizeBytes, Sha256: d.SHA256, StorageKey: d.StorageKey, CreatedAt: d.CreatedAt})
+	// También se usa desde SaveSubmission, bajo el bloqueo previo del postulante.
+	item, err := r.FindSubmission(ctx, d.SubmissionID)
+	if err != nil {
+		return err
+	}
+	if item == nil {
+		return submission.ErrNotFound
+	}
+	total, err := r.TotalByApplicant(ctx, item.ApplicantID)
+	if err != nil {
+		return err
+	}
+	if d.SizeBytes > document.MaxApplicantBytes-total {
+		return document.ErrQuotaExceeded
+	}
+	err = r.queries(ctx).CreateDocument(ctx, sqlcgen.CreateDocumentParams{ID: d.ID, SubmissionID: d.SubmissionID, Section: int32(d.Section), RecordID: d.RecordID, Name: d.Name, Mime: d.MIME, SizeBytes: d.SizeBytes, Sha256: d.SHA256, StorageKey: d.StorageKey, CreatedAt: d.CreatedAt})
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 		return document.ErrDuplicate
