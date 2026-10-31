@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Listado sin resultados · EF-13</title>
+    <link rel="stylesheet" href="assets/tokens.css" />
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <div class="mockbar no-print">
+      <a href="index.html">← Galería</a>
+      <span class="mockbar-current">10b-postulaciones-vacia · variante sin resultados</span>
+      <span class="mockbar-tag">Mockup estático · sin lógica</span>
+    </div>
+
+    <header class="govbar">
+      <div class="container">
+        <span>REPÚBLICA DEL ECUADOR <span class="govbar-sep">|</span> Comisión Especial de Selección y Designación</span>
+        <span class="govbar-note">BIESS — IESS</span>
+      </div>
+    </header>
+
+    <header class="siteheader">
+      <div class="container">
+        <a class="brand" href="10a-panel-admin.html">
+          <span class="brand-mark" aria-hidden="true">BIESS</span>
+          <span>
+            <span class="brand-name">Directorio del BIESS</span><br />
+            <span class="brand-sub">Módulo de administración · Talento Humano</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Navegación de administración">
+          <a href="10a-panel-admin.html">Dashboard</a>
+          <a href="10b-postulaciones.html" aria-current="page">Postulaciones</a>
+          <a href="10d-matriz.html">Matriz</a>
+        </nav>
+        <div class="user-chip">
+          <span class="user-avatar" aria-hidden="true">AT</span>
+          <span>
+            <span class="user-name">Ana Torres</span><br />
+            <span class="user-doc">Analista TH · rol admin</span>
+          </span>
+          <a class="btn btn-ghost btn-sm" href="11c-sesion-expirada.html">Salir</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="container page stack">
+      <div class="cluster between">
+        <div>
+          <h1 class="title-page">Listado de postulaciones · sin resultados</h1>
+          <p class="muted">El filtro no coincide con ningún expediente. Estado vacío del listado.</p>
+        </div>
+        <div class="cluster">
+          <a class="btn btn-secondary" href="10d-matriz.html">Exportar matriz</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <form class="grid-4" role="search" action="#" method="post">
+            <div class="field">
+              <label class="label" for="buscar-cedula">Buscar por Cédula o Código</label>
+              <input class="input" id="buscar-cedula" type="search" placeholder="Ej. 1713849204 o EF12-" />
+            </div>
+            <div class="field">
+              <label class="label" for="filtro-sector">Sector convocado</label>
+              <select class="select" id="filtro-sector">
+                <option value="">Todos los sectores</option>
+                <option value="afiliados">Afiliados (Representante y Alterno)</option>
+                <option value="jubilados">Jubilados (Representante y Alterno)</option>
+                <option value="empleadores">Empleadores (Representante y Alterno)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="label" for="filtro-estado">Estado</label>
+              <select class="select" id="filtro-estado">
+                <option value="">Todos los estados</option>
+                <option value="enviada" selected>Enviada (Cerrada)</option>
+                <option value="borrador">Borrador</option>
+                <option value="no-elegible">No elegible</option>
+              </select>
+            </div>
+            <div class="field self-end">
+              <button class="btn btn-primary btn-block" type="submit">Filtrar registros</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <div class="empty-state">
+            <p class="empty-state-title">No hay postulaciones que coincidan con el filtro</p>
+            <p class="text-sm">
+              Ajuste el sector o el estado, o revise el rango de fechas. El listado se pagina por
+              cursor: si filtró por un expediente anterior, regrese al primer resultado.
+            </p>
+            <div class="cluster">
+              <button class="btn btn-secondary" type="button">Limpiar filtros</button>
+              <a class="btn btn-primary" href="10b-postulaciones.html">Volver al listado</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-foot cluster between">
+          <span class="text-sm muted">Cursor keyset: registro 1 al 5</span>
+          <div class="cluster">
+            <button class="btn btn-ghost btn-sm" disabled>← Anterior</button>
+            <button class="btn btn-secondary btn-sm">Siguiente (cursor: eyJpZCI...) →</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="sitefooter">
+      <div class="container">
+        <span>Banco del Instituto Ecuatoriano de Seguridad Social</span>
+        <span>Sistema de Concurso de Méritos y Oposición EF-13</span>
+      </div>
+    </footer>
+  </body>
+</html>

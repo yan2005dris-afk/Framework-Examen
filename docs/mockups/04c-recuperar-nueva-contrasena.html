@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Recuperar contraseña · Nueva contraseña</title>
+    <link rel="stylesheet" href="assets/tokens.css" />
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <div class="mockbar no-print">
+      <a href="index.html">← Galería</a>
+      <span class="mockbar-current">04c-recuperar-nueva-contrasena · ruta /recuperar-contrasena/:token</span>
+      <span class="mockbar-tag">Mockup estático · sin lógica</span>
+    </div>
+
+    <header class="govbar">
+      <div class="container">
+        <span>REPÚBLICA DEL ECUADOR <span class="govbar-sep">|</span> Comisión Especial de Selección y Designación</span>
+        <span class="govbar-note">BIESS — IESS</span>
+      </div>
+    </header>
+
+    <header class="siteheader">
+      <div class="container">
+        <a class="brand" href="01-portal.html">
+          <span class="brand-mark" aria-hidden="true">BIESS</span>
+          <span>
+            <span class="brand-name">Directorio del BIESS</span><br />
+            <span class="brand-sub">Concurso Público de Méritos y Oposición</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Navegación">
+          <a href="01-portal.html">Convocatoria</a>
+          <a href="03a-login.html">Iniciar sesión</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" class="container container-narrow page">
+      <div class="card">
+        <div class="card-head">
+          <p class="tag">EF-11 · HU-04</p>
+          <h1 class="card-title mt-3">Defina su nueva contraseña</h1>
+          <p class="card-sub">El enlace es válido por única vez y vence en el plazo que indica el correo.</p>
+          <ol class="steps-inline mt-4" aria-label="Pasos de la recuperación">
+            <li class="is-done">
+              <span class="step-num" aria-hidden="true">✓</span> Identidad
+            </li>
+            <li class="is-done">
+              <span class="step-num" aria-hidden="true">✓</span> Correo
+            </li>
+            <li aria-current="step">
+              <span class="step-num" aria-hidden="true">3</span> Nueva contraseña
+            </li>
+            <li>
+              <span class="step-num" aria-hidden="true">4</span> Listo
+            </li>
+          </ol>
+        </div>
+
+        <form class="card-body stack" action="#" method="post">
+          <div class="field">
+            <label class="label" for="nueva-password">Nueva contraseña <span class="req" aria-hidden="true">*</span></label>
+            <input
+              class="input"
+              id="nueva-password"
+              name="password"
+              type="password"
+              autocomplete="new-password"
+              aria-describedby="nueva-password-hint"
+            />
+            <div class="cluster between">
+              <p class="hint" id="nueva-password-hint">Debe cumplir las cuatro reglas.</p>
+              <button
+                class="btn btn-link"
+                type="button"
+                data-password-toggle
+                aria-controls="nueva-password"
+              >
+                Mostrar
+              </button>
+            </div>
+          </div>
+
+          <fieldset class="fieldset">
+            <legend>Requisitos de la contraseña</legend>
+            <ul class="stack stack-sm text-sm">
+              <li><span class="badge badge-success">✓</span> Mínimo 8 caracteres</li>
+              <li><span class="badge badge-success">✓</span> Al menos una mayúscula</li>
+              <li><span class="badge badge-warning">!</span> Al menos un número</li>
+              <li><span class="badge badge-danger">×</span> Al menos un símbolo (!, %, #, $)</li>
+            </ul>
+          </fieldset>
+
+          <div class="field">
+            <label class="label" for="confirmar-password">Confirme la nueva contraseña <span class="req" aria-hidden="true">*</span></label>
+            <input class="input" id="confirmar-password" name="password2" type="password" autocomplete="new-password" />
+          </div>
+
+          <button class="btn btn-primary btn-block" type="submit">Cambiar contraseña</button>
+        </form>
+
+        <div class="card-foot">
+          <a class="btn btn-ghost btn-sm" href="03a-login.html">Cancelar y volver</a>
+        </div>
+      </div>
+    </main>
+
+    <footer class="sitefooter">
+      <div class="container">
+        <span>Banco del Instituto Ecuatoriano de Seguridad Social</span>
+        <span>Canal seguro · Datos protegidos</span>
+      </div>
+    </footer>
+    <script src="assets/mock.js"></script>
+  </body>
+</html>

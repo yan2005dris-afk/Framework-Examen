@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Postulaciones recibidas · EF-13</title>
+    <link rel="stylesheet" href="assets/tokens.css" />
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <div class="mockbar no-print">
+      <a href="index.html">← Galería</a>
+      <span class="mockbar-current">10b-postulaciones · ruta /dashboard/postulaciones</span>
+      <span class="mockbar-tag">Mockup estático · sin lógica</span>
+    </div>
+
+    <header class="govbar">
+      <div class="container">
+        <span>REPÚBLICA DEL ECUADOR <span class="govbar-sep">|</span> Comisión Especial de Selección y Designación</span>
+        <span class="govbar-note">BIESS — IESS</span>
+      </div>
+    </header>
+
+    <header class="siteheader">
+      <div class="container">
+        <a class="brand" href="10a-panel-admin.html">
+          <span class="brand-mark" aria-hidden="true">BIESS</span>
+          <span>
+            <span class="brand-name">Directorio del BIESS</span><br />
+            <span class="brand-sub">Módulo de administración · Talento Humano</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Navegación de administración">
+          <a href="10a-panel-admin.html">Dashboard</a>
+          <a href="10b-postulaciones.html" aria-current="page">Postulaciones</a>
+          <a href="10d-matriz.html">Matriz</a>
+        </nav>
+        <div class="user-chip">
+          <span class="user-avatar" aria-hidden="true">AT</span>
+          <span>
+            <span class="user-name">Ana Torres</span><br />
+            <span class="user-doc">Analista TH · rol admin</span>
+          </span>
+          <a class="btn btn-ghost btn-sm" href="11c-sesion-expirada.html">Salir</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="container page stack">
+      <div class="cluster between">
+        <div>
+          <h1 class="title-page">Listado de postulaciones</h1>
+          <p class="muted">Registro general de expedientes recibidos. Paginación por cursor para grandes volúmenes.</p>
+        </div>
+        <div class="cluster">
+          <a class="btn btn-secondary" href="10d-matriz.html">Exportar matriz</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <form class="grid-4" role="search" action="#" method="post">
+            <div class="field">
+              <label class="label" for="buscar-cedula">Buscar por Cédula o Código</label>
+              <input class="input" id="buscar-cedula" type="search" placeholder="Ej. 1713849204 o EF12-" />
+            </div>
+            <div class="field">
+              <label class="label" for="filtro-sector">Sector convocado</label>
+              <select class="select" id="filtro-sector">
+                <option value="">Todos los sectores</option>
+                <option value="afiliados">Afiliados (Representante y Alterno)</option>
+                <option value="jubilados">Jubilados (Representante y Alterno)</option>
+                <option value="empleadores">Empleadores (Representante y Alterno)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="label" for="filtro-estado">Estado</label>
+              <select class="select" id="filtro-estado">
+                <option value="">Todos los estados</option>
+                <option value="enviada" selected>Enviada (Cerrada)</option>
+                <option value="borrador">Borrador</option>
+                <option value="no-elegible">No elegible</option>
+              </select>
+            </div>
+            <div class="field self-end">
+              <button class="btn btn-primary btn-block" type="submit">Filtrar registros</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table">
+            <caption>
+              Postulaciones registradas (Mostrando 1–5 de 1 147 enviadas) ·
+              <a class="btn-link" href="10b-postulaciones-vacia.html">ver estado sin resultados</a>
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Código único</th>
+                <th scope="col">Cédula</th>
+                <th scope="col">Postulante</th>
+                <th scope="col">Sector postulado</th>
+                <th scope="col">Fecha de envío</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Hash canónico</th>
+                <th scope="col"><span class="sr-only">Acciones</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono"><a href="10c-detalle-postulacion.html">EF12-2026-004821</a></td>
+                <td class="mono">1713849204</td>
+                <td><strong>Carlos Alberto Mendoza Andrade</strong></td>
+                <td>Afiliados · Principal</td>
+                <td class="num">31/10/2026 21:04</td>
+                <td><span class="badge badge-success">Enviada</span></td>
+                <td class="mono text-sm" title="9f2c41b7d8e05a63c1b904f7ae2d58c3b6f10e7d94a2c85531ef0b7d6c48a91e">9f2c41b7…a91e</td>
+                <td><a class="btn btn-secondary btn-sm" href="10c-detalle-postulacion.html">Ver expediente</a></td>
+              </tr>
+              <tr>
+                <td class="mono"><a href="10c-detalle-postulacion.html">EF12-2026-004820</a></td>
+                <td class="mono">0928374615</td>
+                <td><strong>Elena Morales Vivanco</strong></td>
+                <td>Jubilados · Principal</td>
+                <td class="num">14/11/2026 09:15</td>
+                <td><span class="badge badge-success">Enviada</span></td>
+                <td class="mono text-sm">a9c2b1...3f18</td>
+                <td><a class="btn btn-secondary btn-sm" href="10c-detalle-postulacion.html">Ver expediente</a></td>
+              </tr>
+              <tr>
+                <td class="mono"><a href="10c-detalle-postulacion.html">EF12-2026-004819</a></td>
+                <td class="mono">0102938475</td>
+                <td><strong>Mario Andrés Vega</strong></td>
+                <td>Afiliados · Alterno</td>
+                <td class="num">13/11/2026 18:40</td>
+                <td><span class="badge badge-success">Enviada</span></td>
+                <td class="mono text-sm">f7e8d9...901a</td>
+                <td><a class="btn btn-secondary btn-sm" href="10c-detalle-postulacion.html">Ver expediente</a></td>
+              </tr>
+              <tr>
+                <td class="mono">EF12-2026-004818</td>
+                <td class="mono">1103948572</td>
+                <td><strong>Patricia Salazar C.</strong></td>
+                <td>Afiliados · Principal</td>
+                <td class="num">13/11/2026 16:12</td>
+                <td><span class="badge badge-danger">No elegible</span></td>
+                <td class="mono text-sm">—</td>
+                <td><a class="btn btn-secondary btn-sm" href="10c-detalle-postulacion.html">Ver detalle</a></td>
+              </tr>
+              <tr>
+                <td class="mono">EF12-2026-004817</td>
+                <td class="mono">1708392014</td>
+                <td><strong>Roberto Jaramillo Q.</strong></td>
+                <td>Jubilados · Alterno</td>
+                <td class="num">13/11/2026 14:05</td>
+                <td><span class="badge badge-warning">Borrador</span></td>
+                <td class="mono text-sm">—</td>
+                <td><span class="muted text-sm">Sin enviar</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card-foot cluster between">
+          <span class="text-sm muted">Cursor keyset: registro 1 al 5</span>
+          <div class="cluster">
+            <button class="btn btn-ghost btn-sm" disabled>← Anterior</button>
+            <button class="btn btn-secondary btn-sm">Siguiente (cursor: eyJpZCI...) →</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="sitefooter">
+      <div class="container">
+        <span>Banco del Instituto Ecuatoriano de Seguridad Social</span>
+        <span>Sistema de Concurso de Méritos y Oposición EF-13</span>
+      </div>
+    </footer>
+  </body>
+</html>

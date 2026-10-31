@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Registro · Credenciales de acceso</title>
+    <link rel="stylesheet" href="assets/tokens.css" />
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <div class="mockbar no-print">
+      <a href="index.html">← Galería</a>
+      <span class="mockbar-current">02b-registro-credenciales · ruta /registro</span>
+      <span class="mockbar-tag">Mockup estático · sin lógica</span>
+    </div>
+
+    <header class="govbar">
+      <div class="container">
+        <span>REPÚBLICA DEL ECUADOR <span class="govbar-sep">|</span> Comisión Especial de Selección y Designación</span>
+        <span class="govbar-note">BIESS — IESS</span>
+      </div>
+    </header>
+
+    <header class="siteheader">
+      <div class="container">
+        <a class="brand" href="01-portal.html">
+          <span class="brand-mark" aria-hidden="true">BIESS</span>
+          <span>
+            <span class="brand-name">Directorio del BIESS</span><br />
+            <span class="brand-sub">Concurso Público de Méritos y Oposición</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Navegación">
+          <a href="01-portal.html">Convocatoria</a>
+          <a href="03a-login.html">Iniciar sesión</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" class="container container-narrow page">
+      <div class="card">
+        <div class="card-head">
+          <p class="tag">EF-11</p>
+          <h1 class="card-title mt-3">Crea tus credenciales</h1>
+          <p class="card-sub">Identidad verificada para la cédula <span class="mono">1713849204</span>.</p>
+          <ol class="steps-inline mt-4" aria-label="Pasos del registro">
+            <li class="is-done">
+              <span class="step-num" aria-hidden="true">✓</span> Identidad
+            </li>
+            <li aria-current="step">
+              <span class="step-num" aria-hidden="true">2</span> Credenciales
+            </li>
+            <li>
+              <span class="step-num" aria-hidden="true">3</span> Listo
+            </li>
+          </ol>
+        </div>
+
+        <form class="card-body stack" action="#" method="post">
+          <div class="field">
+            <label class="label" for="correo">Correo electrónico <span class="req" aria-hidden="true">*</span></label>
+            <input
+              class="input"
+              id="correo"
+              name="correo"
+              type="email"
+              autocomplete="email"
+              placeholder="nombre.apellido@correo.com"
+              aria-describedby="correo-hint"
+              required
+            />
+            <p class="hint" id="correo-hint">A este correo llegará la confirmación del envío.</p>
+          </div>
+
+          <div class="field">
+            <label class="label" for="correo2">Confirme el correo electrónico <span class="req" aria-hidden="true">*</span></label>
+            <input class="input" id="correo2" name="correo2" type="email" autocomplete="email" required />
+          </div>
+
+          <div class="field">
+            <label class="label" for="password">Contraseña <span class="req" aria-hidden="true">*</span></label>
+            <input
+              class="input"
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="new-password"
+              aria-describedby="password-hint"
+              required
+            />
+            <div class="cluster between">
+              <p class="hint" id="password-hint">
+                Mínimo 8 caracteres con mayúscula, minúscula, número y símbolo.
+              </p>
+              <button
+                class="btn btn-link"
+                type="button"
+                data-password-toggle
+                aria-controls="password"
+              >
+                Mostrar
+              </button>
+            </div>
+            <div class="progress" id="password-strength">
+              <div class="progress-bar" data-level="3" aria-hidden="true"></div>
+            </div>
+            <p class="hint">Fortaleza actual: <strong>media</strong> — agregue un símbolo.</p>
+          </div>
+
+          <div class="field">
+            <label class="label" for="password2">Confirme la contraseña <span class="req" aria-hidden="true">*</span></label>
+            <input class="input" id="password2" name="password2" type="password" autocomplete="new-password" required />
+          </div>
+
+          <div class="field">
+            <label class="check">
+              <input type="checkbox" name="terminos" required />
+              <span>
+                Acepto el tratamiento de mis datos personales conforme al artículo 7 de la
+                Ley Orgánica de Protección de Datos Personales.
+              </span>
+            </label>
+          </div>
+
+          <button class="btn btn-primary btn-block" type="submit">Crear cuenta</button>
+        </form>
+
+        <div class="card-foot">
+          <a class="btn btn-ghost btn-sm" href="02a-registro-identidad.html">← Volver</a>
+          <span class="text-sm muted">Cédula 1713849204 verificada</span>
+        </div>
+      </div>
+    </main>
+
+    <footer class="sitefooter">
+      <div class="container">
+        <span>Banco del Instituto Ecuatoriano de Seguridad Social</span>
+        <span>Canal seguro · Datos protegidos</span>
+      </div>
+    </footer>
+    <script src="assets/mock.js"></script>
+  </body>
+</html>

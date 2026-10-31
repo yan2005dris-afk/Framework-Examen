@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EF-12 · 3. Información adicional</title>
+    <link rel="stylesheet" href="assets/tokens.css" />
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <div class="mockbar no-print">
+      <a href="index.html">← Galería</a>
+      <span class="mockbar-current">06-03-informacion-adicional · ruta /postulacion/3</span>
+      <span class="mockbar-tag">Mockup estático · sin lógica</span>
+    </div>
+
+    <header class="govbar">
+      <div class="container">
+        <span>REPÚBLICA DEL ECUADOR <span class="govbar-sep">|</span> Comisión Especial de Selección y Designación</span>
+        <span class="govbar-note">BIESS — IESS</span>
+      </div>
+    </header>
+
+    <header class="siteheader">
+      <div class="container">
+        <a class="brand" href="05-panel-postulante.html">
+          <span class="brand-mark" aria-hidden="true">BIESS</span>
+          <span>
+            <span class="brand-name">Directorio del BIESS</span><br />
+            <span class="brand-sub">Concurso Público de Méritos y Oposición</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Navegación del postulante">
+          <a href="05-panel-postulante.html">Mi panel</a>
+          <a href="06-03-informacion-adicional.html" aria-current="page">Formulario EF-12</a>
+        </nav>
+        <div class="user-chip">
+          <span class="user-avatar" aria-hidden="true">CM</span>
+          <span>
+            <span class="user-name">Carlos Mendoza</span><br />
+            <span class="user-doc">C.I. 1713849204</span>
+          </span>
+          <a class="btn btn-ghost btn-sm" href="01-portal.html">Salir</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="container page">
+      <div class="sidebar-layout">
+        <aside class="stepper no-print" aria-label="Secciones del formulario">
+          <p class="stepper-title">Formulario EF-12</p>
+          <ol>
+            <li><a class="step is-done" href="06-01-informacion-personal.html"><span class="step-num">✓</span> Información personal<span class="step-state">Completada</span></a></li>
+            <li><a class="step is-done" href="06-02-domicilio-contacto.html"><span class="step-num">✓</span> Domicilio y contacto<span class="step-state">Completada</span></a></li>
+            <li><a class="step" href="06-03-informacion-adicional.html" aria-current="step"><span class="step-num">3</span> Información adicional</a></li>
+            <li><a class="step" href="06-04-seleccion-cargo.html"><span class="step-num">4</span> Selección del cargo</a></li>
+            <li><a class="step" href="06-05-formacion-academica.html"><span class="step-num">5</span> Formación académica</a></li>
+            <li><a class="step" href="06-06-experiencia-profesional.html"><span class="step-num">6</span> Experiencia profesional</a></li>
+            <li><a class="step" href="06-07-publicaciones.html"><span class="step-num">7</span> Publicaciones</a></li>
+            <li><a class="step" href="06-08-capacitacion.html"><span class="step-num">8</span> Capacitación</a></li>
+            <li><a class="step" href="06-09-inhabilidades.html"><span class="step-num">9</span> Inhabilidades</a></li>
+          </ol>
+          <div class="stepper-progress">
+            Avance: 2 de 9 secciones
+            <div class="progress"><div class="progress-bar" data-level="2"></div></div>
+          </div>
+        </aside>
+
+        <div class="stack">
+          <div class="card">
+            <div class="card-head">
+              <div class="cluster between">
+                <span class="badge badge-info">Sección 3 de 9</span>
+                <span class="badge badge-success">Guardado</span>
+              </div>
+              <h1 class="card-title mt-3">3. Información adicional</h1>
+              <p class="card-sub">
+                Parentesco dentro del segundo grado de consanguinidad y cuarto de afinidad.
+              </p>
+            </div>
+
+            <form class="card-body stack" action="#" method="post">
+              <fieldset class="fieldset has-si">
+                <legend>
+                  ¿Tiene familiares dentro del segundo grado de consanguinidad y cuarto de
+                  afinidad, trabajando en el IESS o BIESS actualmente? <span class="req" aria-hidden="true">*</span>
+                </legend>
+                <div class="radio-row">
+                  <label class="radio">
+                    <input type="radio" name="familiares" value="si" checked />
+                    Sí
+                  </label>
+                  <label class="radio">
+                    <input type="radio" name="familiares" value="no" />
+                    No
+                  </label>
+                </div>
+
+                <div class="conditional" data-when="si">
+                  <div class="cluster between">
+                    <p class="text-sm muted">2 familiares registrados.</p>
+                    <button class="btn btn-secondary btn-sm" type="button">Agregar familiar</button>
+                  </div>
+
+                  <div class="table-wrap">
+                    <table class="table">
+                      <caption>Familiares declarados</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Nombres y apellidos</th>
+                          <th scope="col">Parentesco</th>
+                          <th scope="col">Institución</th>
+                          <th scope="col">Área</th>
+                          <th scope="col">Cargo</th>
+                          <th scope="col"><span class="sr-only">Acciones</span></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>ANA LUCÍA MENDOZA VARGAS</td>
+                          <td>Hermano/a</td>
+                          <td><span class="badge">IESS</span></td>
+                          <td>Talento Humano</td>
+                          <td>Analista de nómina</td>
+                          <td>
+                            <div class="cluster">
+                              <button class="btn btn-secondary btn-sm" type="button">Editar</button>
+                              <button class="btn btn-ghost btn-sm" type="button">Eliminar</button>
+                            </div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>JORGE LUIS ANDRADE PÉREZ</td>
+                          <td>Tío/a</td>
+                          <td><span class="badge">BIESS</span></td>
+                          <td>Riesgos</td>
+                          <td>Jefe de suscripción</td>
+                          <td>
+                            <div class="cluster">
+                              <button class="btn btn-secondary btn-sm" type="button">Editar</button>
+                              <button class="btn btn-ghost btn-sm" type="button">Eliminar</button>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <p class="hint">
+                    Parentescos válidos del RF: conviviente, cónyuge, cuñado/a, hermano/a, hijo
+                    político, hijo/a, madre, nieto/a, nuera, padre, primo hermano/a, sobrino/a,
+                    suegro/a, tío/a, yerno.
+                  </p>
+                </div>
+              </fieldset>
+            </form>
+
+            <div class="card-foot">
+              <a class="btn btn-ghost" href="06-02-domicilio-contacto.html">← Anterior</a>
+              <button class="btn btn-secondary" type="button">Guardar progreso</button>
+              <a class="btn btn-primary" href="06-04-seleccion-cargo.html">Guardar y continuar →</a>
+            </div>
+          </div>
+
+          <div class="alert alert-warning">
+            <div>
+              <p class="alert-title">Documente cada familiar</p>
+              <p class="text-sm">
+                Los datos declarados se contrastan con el registro institucional durante la
+                verificación de la Comisión.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="sitefooter">
+      <div class="container">
+        <span>Banco del Instituto Ecuatoriano de Seguridad Social</span>
+        <span>Código único EF12-2026-004821</span>
+      </div>
+    </footer>
+  </body>
+</html>

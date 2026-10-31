@@ -43,9 +43,11 @@ apps/backend/data/
 *.ppt
 *.pptx
 
-# Mockup original: referencia local durante la migracion de vistas.
-# Se elimina del equipo cuando termine; no se versiona.
-mockups/
+# Mockup original en React (raiz): ya no esta en el repo, fue reemplazado por
+# el set versionado de docs/mockups/. La regla se conserva como red de seguridad
+# para que una copia local nunca se versione por accidente.
+# El ancla ^ mantiene docs/mockups/ versionable.
+/mockups/
 
 # Logs
 logs

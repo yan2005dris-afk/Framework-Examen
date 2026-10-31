@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EF-12 · Anexos del wizard</title>
+    <link rel="stylesheet" href="assets/tokens.css" />
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <div class="mockbar no-print">
+      <a href="index.html">← Galería</a>
+      <span class="mockbar-current">06-anexos-modales · ruta /postulacion/:seccion</span>
+      <span class="mockbar-tag">Mockup estático · sin lógica</span>
+    </div>
+
+    <header class="govbar">
+      <div class="container">
+        <span>REPÚBLICA DEL ECUADOR <span class="govbar-sep">|</span> Comisión Especial de Selección y Designación</span>
+        <span class="govbar-note">BIESS — IESS</span>
+      </div>
+    </header>
+
+    <header class="siteheader">
+      <div class="container">
+        <a class="brand" href="05-panel-postulante.html">
+          <span class="brand-mark" aria-hidden="true">BIESS</span>
+          <span>
+            <span class="brand-name">Directorio del BIESS</span><br />
+            <span class="brand-sub">Concurso Público de Méritos y Oposición</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Navegación del postulante">
+          <a href="05-panel-postulante.html">Mi panel</a>
+          <a href="06-01-informacion-personal.html">Formulario EF-12</a>
+        </nav>
+        <div class="user-chip">
+          <span class="user-avatar" aria-hidden="true">CM</span>
+          <span>
+            <span class="user-name">Carlos Mendoza</span><br />
+            <span class="user-doc">C.I. 1713849204</span>
+          </span>
+          <a class="btn btn-ghost btn-sm" href="01-portal.html">Salir</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="container page stack">
+      <div class="stack stack-sm">
+        <h1 class="title-page">Anexos del wizard</h1>
+        <p class="muted">
+          Los cuatro diálogos que el formulario EF-12 abre sobre la sección en curso. Cada uno se
+          muestra aquí en su estado inicial, sin necesidad de interactuar con la pantalla.
+        </p>
+      </div>
+
+      <div class="alert alert-info">
+        <div>
+          <p class="alert-title">Por qué estos diálogos están en un archivo aparte</p>
+          <p class="text-sm">
+            Son estados reales del sistema, pero no tienen ruta propia: se superponen a la sección
+            que los invoca. En React serán <span class="mono">Dialog</span> de shadcn montados
+            sobre la misma página; por eso el mockup los documenta juntos en lugar de repetirlos en
+            las nueve secciones.
+          </p>
+        </div>
+      </div>
+
+      <section class="stack">
+        <div class="section-head">
+          <h2>1. Carga de documento de respaldo</h2>
+          <p>Límite de 2 MB por archivo · 4 MB para el respaldo de organización</p>
+        </div>
+
+        <div class="dialog-backdrop">
+          <div class="dialog" id="dlg-carga" role="dialog" aria-labelledby="dlg-carga-title" aria-describedby="dlg-carga-desc" data-dialog>
+            <div class="dialog-head">
+              <h3 class="dialog-title" id="dlg-carga-title">Subir documento de respaldo</h3>
+              <p class="dialog-desc" id="dlg-carga-desc">
+                Sección 5 · Formación académica — título «Magíster en Finanzas».
+              </p>
+            </div>
+            <form class="dialog-body stack" action="#" method="post">
+              <div class="field">
+                <label class="label" for="dlg-archivo">Archivo PDF <span class="req" aria-hidden="true">*</span></label>
+                <input class="input" id="dlg-archivo" name="dlg-archivo" type="file" accept="application/pdf" aria-describedby="dlg-archivo-hint" />
+                <p class="hint" id="dlg-archivo-hint">Solo PDF. Máximo 2 MB por archivo.</p>
+              </div>
+
+              <div class="alert">
+                <div>
+                  <p class="alert-title">Consumo del cupo total</p>
+                  <p class="text-sm">
+                    18,4 MB de 50 MB utilizados. Este archivo no debe superar 2 MB.
+                  </p>
+                </div>
+              </div>
+
+              <div class="table-wrap">
+                <table class="table">
+                  <caption>Documentos ya adjuntos en esta sección</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Archivo</th>
+                      <th scope="col">Tamaño</th>
+                      <th scope="col">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="mono">maestria.pdf</td>
+                      <td class="num">1,4 MB</td>
+                      <td><span class="badge badge-success">Cargado</span></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">titulo-grado.pdf</td>
+                      <td class="num">2,1 MB</td>
+                      <td><span class="badge badge-danger">Excede el límite</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </form>
+            <div class="dialog-foot">
+              <button class="btn btn-secondary" type="button" data-dialog-close>Cancelar</button>
+              <button class="btn btn-primary" type="button" aria-busy="true">
+                <span class="spinner" aria-hidden="true"></span>
+                Cargando documento…
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dialog-backdrop">
+          <div class="dialog" id="dlg-error" role="dialog" aria-labelledby="dlg-error-title" aria-describedby="dlg-error-desc" data-dialog>
+            <div class="dialog-head">
+              <h3 class="dialog-title" id="dlg-error-title">El archivo supera el límite permitido</h3>
+              <p class="dialog-desc" id="dlg-error-desc">
+                La carga se rechazó. El documento no quedó registrado.
+              </p>
+            </div>
+            <div class="dialog-body stack">
+              <div class="alert alert-danger" role="alert">
+                <div>
+                  <p class="alert-title">titulo-grado.pdf · 2,1 MB</p>
+                  <p class="text-sm">
+                    El tamaño máximo para los respaldos de las secciones 5 a 8 es de 2 MB. Comprima
+                    el PDF y vuelva a intentarlo.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="dialog-foot">
+              <button class="btn btn-secondary" type="button" data-dialog-close>Entendido</button>
+              <button class="btn btn-primary" type="button">Elegir otro archivo</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stack">
+        <div class="section-head">
+          <h2>2. Confirmación de eliminación</h2>
+          <p>Aplica a títulos, experiencias, publicaciones, capacitaciones y familiares</p>
+        </div>
+
+        <div class="dialog-backdrop">
+          <div class="dialog" id="dlg-eliminar" role="dialog" aria-labelledby="dlg-eliminar-title" aria-describedby="dlg-eliminar-desc" data-dialog>
+            <div class="dialog-head">
+              <h3 class="dialog-title" id="dlg-eliminar-title">¿Eliminar este registro?</h3>
+              <p class="dialog-desc" id="dlg-eliminar-desc">
+                La acción no se puede deshacer desde el formulario.
+              </p>
+            </div>
+            <div class="dialog-body stack">
+              <dl class="meta">
+                <div>
+                  <dt>Registro</dt>
+                  <dd>Experiencia profesional</dd>
+                </div>
+                <div>
+                  <dt>Detalle</dt>
+                  <dd>Analista de riesgos · Banco del Pacífico</dd>
+                </div>
+                <div>
+                  <dt>Documento adjunto</dt>
+                  <dd class="mono">certificado.pdf · 0,9 MB</dd>
+                </div>
+              </dl>
+
+              <div class="alert alert-warning">
+                <div>
+                  <p class="alert-title">El cupo se libera al eliminar</p>
+                  <p class="text-sm">
+                    Al eliminar el registro se liberan 0,9 MB del total de 50 MB por postulante.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="dialog-foot">
+              <button class="btn btn-secondary" type="button" data-dialog-close>Cancelar</button>
+              <button class="btn btn-danger" type="button">Eliminar registro</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stack">
+        <div class="section-head">
+          <h2>3. Alta de familiar en el IESS o BIESS</h2>
+          <p>Sección 3 · Información adicional</p>
+        </div>
+
+        <div class="dialog-backdrop">
+          <div class="dialog" id="dlg-familiar" role="dialog" aria-labelledby="dlg-familiar-title" aria-describedby="dlg-familiar-desc" data-dialog>
+            <div class="dialog-head">
+              <h3 class="dialog-title" id="dlg-familiar-title">Agregar familiar</h3>
+              <p class="dialog-desc" id="dlg-familiar-desc">
+                Solo se aceptan parentescos dentro del segundo grado de consanguinidad y cuarto de
+                afinidad.
+              </p>
+            </div>
+            <form class="dialog-body stack" action="#" method="post">
+              <div class="field">
+                <label class="label" for="dlg-familiar-nombres">Nombres y apellidos <span class="req" aria-hidden="true">*</span></label>
+                <input class="input" id="dlg-familiar-nombres" name="dlg-familiar-nombres" type="text" maxlength="200" />
+              </div>
+
+              <div class="grid-2">
+                <div class="field">
+                  <label class="label" for="dlg-familiar-parentesco">Parentesco <span class="req" aria-hidden="true">*</span></label>
+                  <select class="select" id="dlg-familiar-parentesco" name="dlg-familiar-parentesco">
+                    <option value="">Seleccione una opción</option>
+                    <option value="conyuge">Cónyuge</option>
+                    <option value="conviviente">Conviviente</option>
+                    <option value="padre">Padre</option>
+                    <option value="madre">Madre</option>
+                    <option value="hijo">Hijo/a</option>
+                    <option value="hermano">Hermano/a</option>
+                    <option value="nieto">Nieto/a</option>
+                    <option value="suegro">Suegro/a</option>
+                    <option value="yerno">Yerno</option>
+                    <option value="nuera">Nuera</option>
+                    <option value="cunado">Cuñado/a</option>
+                    <option value="tio">Tío/a</option>
+                    <option value="sobrino">Sobrino/a</option>
+                    <option value="primo">Primo hermano/a</option>
+                    <option value="hijo-politico">Hijo político</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="label" for="dlg-familiar-institucion">Institución <span class="req" aria-hidden="true">*</span></label>
+                  <select class="select" id="dlg-familiar-institucion" name="dlg-familiar-institucion">
+                    <option value="">Seleccione una opción</option>
+                    <option value="iess">IESS</option>
+                    <option value="biess">BIESS</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="label" for="dlg-familiar-area">Área <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input" id="dlg-familiar-area" name="dlg-familiar-area" type="text" maxlength="150" />
+                </div>
+                <div class="field">
+                  <label class="label" for="dlg-familiar-cargo">Cargo <span class="req" aria-hidden="true">*</span></label>
+                  <input class="input" id="dlg-familiar-cargo" name="dlg-familiar-cargo" type="text" maxlength="150" />
+                </div>
+              </div>
+
+              <p class="hint">
+                Los datos se contrastan con el registro institucional durante la verificación de
+                la Comisión.
+              </p>
+            </form>
+            <div class="dialog-foot">
+              <button class="btn btn-secondary" type="button" data-dialog-close>Cancelar</button>
+              <button class="btn btn-primary" type="button">Guardar familiar</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stack">
+        <div class="section-head">
+          <h2>4. Confirmación de envío definitivo</h2>
+          <p>Sección 7 · Revisión y consentimiento</p>
+        </div>
+
+        <div class="dialog-backdrop">
+          <div class="dialog" id="dlg-envio" role="dialog" aria-labelledby="dlg-envio-title" aria-describedby="dlg-envio-desc" data-dialog>
+            <div class="dialog-head">
+              <h3 class="dialog-title" id="dlg-envio-title">¿Enviar la postulación?</h3>
+              <p class="dialog-desc" id="dlg-envio-desc">
+                Esta acción cierra el formulario de forma definitiva.
+              </p>
+            </div>
+            <div class="dialog-body stack">
+              <div class="alert alert-danger">
+                <div>
+                  <p class="alert-title">Una postulación enviada no se edita ni se elimina</p>
+                  <p class="text-sm">
+                    El código único ya está asignado a su expediente. Al enviar se calcula el hash
+                    SHA-256 del contenido canónico y se envía el correo de confirmación.
+                  </p>
+                </div>
+              </div>
+              <dl class="meta">
+                <div>
+                  <dt>Código único</dt>
+                  <dd class="mono">EF12-2026-004821</dd>
+                </div>
+                <div>
+                  <dt>Secciones completas</dt>
+                  <dd>9 de 9</dd>
+                </div>
+                <div>
+                  <dt>Documentos adjuntos</dt>
+                  <dd>6 · 18,4 MB</dd>
+                </div>
+              </dl>
+            </div>
+            <div class="dialog-foot">
+              <button class="btn btn-secondary" type="button" data-dialog-close>Volver a revisar</button>
+              <a class="btn btn-primary" href="08-confirmacion-envio.html">Enviar postulación</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="card no-print">
+        <div class="card-head">
+          <h2 class="card-title">Demostración del comportamiento</h2>
+          <p class="card-sub">El único JavaScript del set: abrir y cerrar estos diálogos.</p>
+        </div>
+        <div class="card-body cluster">
+          <button class="btn btn-secondary" type="button" data-dialog-open="dlg-carga">Abrir diálogo de carga</button>
+          <button class="btn btn-secondary" type="button" data-dialog-open="dlg-error">Abrir diálogo de error</button>
+          <button class="btn btn-secondary" type="button" data-dialog-open="dlg-eliminar">Abrir confirmación</button>
+          <button class="btn btn-secondary" type="button" data-dialog-open="dlg-familiar">Abrir alta de familiar</button>
+          <button class="btn btn-secondary" type="button" data-dialog-open="dlg-envio">Abrir envío</button>
+        </div>
+      </div>
+    </main>
+
+    <footer class="sitefooter">
+      <div class="container">
+        <span>Banco del Instituto Ecuatoriano de Seguridad Social</span>
+        <span>Código único EF12-2026-004821</span>
+      </div>
+    </footer>
+    <script src="assets/mock.js"></script>
+  </body>
+</html>
