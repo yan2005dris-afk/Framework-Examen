@@ -42,6 +42,7 @@ docs/
 │   └── PRODUCTION_DEPLOYMENT.md  # entorno de producción
 └── tasks/
     ├── backend-tasks.md          # trabajo pendiente del backend, mapeado a la rúbrica
+    ├── cross-cutting-tasks.md    # tareas transversales de seguridad, contratos y operación
     └── frontend-tasks.md         # trabajo pendiente del frontend, mapeado a la rúbrica
 ```
 
