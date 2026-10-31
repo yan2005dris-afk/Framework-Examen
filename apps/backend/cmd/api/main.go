@@ -137,6 +137,10 @@ func main() {
 		}
 		// Incluso sin SMTP/clave se retiran cargas vencidas; nunca se marcan como entregadas.
 		go outbox.Run(ctx, smtpSender, otpStore.Active)
+		var identityMailer identity.Mailer
+		if smtpSender != nil && outboxErr == nil {
+			identityMailer = outbox
+		}
 
 		// Contexto de identidad (EF-11: registro, login, sesión, OTP)
 		identityRepo := identitypostgres.NewRepository(queries, db.NewTxManager(pool))
@@ -148,7 +152,7 @@ func main() {
 			Resets:     identityRepo,
 			Attempts:   attemptsStore,
 			OTPStore:   otpStore,
-			Mailer:     outbox,
+			Mailer:     identityMailer,
 			SessionTTL: cfg.SessionTTL,
 		})
 		identity.NewHandler(identityService, cfg.IsProduction()).RegisterRoutes(router)

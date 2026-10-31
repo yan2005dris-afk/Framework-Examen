@@ -933,3 +933,12 @@ El frontend consume la API con un cliente único (`src/lib/api.ts`):
 **Ver también**: [`../trd/TRD.md`](../trd/TRD.md) ·
 [`../database/SCHEMA.md`](../database/SCHEMA.md) ·
 [`../architecture/ARQUITECTURA.md`](../architecture/ARQUITECTURA.md)
+
+
+## Corrección vigente de identidad/notificaciones (2026-10-31)
+
+[IDENTITY_SECURITY.md](IDENTITY_SECURITY.md) actualiza el contrato de OTP:
+`desafio_id`/`expira_en`, aislamiento por finalidad y correo, límites, seguridad
+no degradable, y estado de cola de correo. Prevalece sobre ejemplos anteriores
+que hablen de OTP sin finalidad o afirmen entrega inmediata. La respuesta EF-12
+puede incluir `notificacion` fuera del contenido sellado. Las rutas no cambian.

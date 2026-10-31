@@ -43,6 +43,18 @@ fecha de expedición ni código dactilar. El RF original se conserva sin modific
 esta adaptación se documenta en ADR-008. La lista de tareas distingue lo literal
 del RF, la adaptación aprobada y las definiciones que todavía faltan.
 
+## Corrección transversal del informe T1–T9 (2026-10-31)
+
+Se corrigen OTP por finalidad/desafío/cuenta/correo, consumo y bloqueo atómicos,
+TTL, reenvíos, fallo cerrado de identidad sin Redis y propagación de errores.
+`00011_mail_outbox.sql` añade correo cifrado durable y reintentos; la cola de
+confirmación participa del commit del sello y SMTP se ejecuta después. Se
+requiere `MAIL_OUTBOX_KEY`; no se afirma entrega por encolar. Hay integración CI
+separada, pero no se da por ejecutada localmente sin variables de pruebas.
+Detalle: [IDENTITY_SECURITY.md](../api-contracts/IDENTITY_SECURITY.md) e informe
+corregido en la raíz. Las dependencias futuras de T8/T9 no se marcan cerradas.
+T23 conserva integración de otras etapas y administración por rol.
+
 ## 2. Estado por criterio de la rúbrica
 
 | # | Criterio | Puntos máximos | Cobertura técnica y pendientes |
@@ -76,7 +88,7 @@ que hoy está en cero.
 | Contador de intentos | `internal/platform/cache/attempts.go` | `Incr` + TTL atómico, lectura del contador y del bloqueo |
 | Caché de catálogos | `internal/platform/cache/catalog.go` | Get-or-set con TTL de 24 h |
 
-**Base de bloqueo implementada; cierre de registro y recuperación en T16**
+**Bloqueo/OTP corregidos; T16 conserva el cierre de integración del ciclo completo**
 
 1. Cada intento fallido de autenticación incrementa
    `identity:login-attempts:{cédula}`.
