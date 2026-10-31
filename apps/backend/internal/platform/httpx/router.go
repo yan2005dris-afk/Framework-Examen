@@ -56,15 +56,27 @@ func handleHealth(deps RouterDependencies) http.HandlerFunc {
 }
 
 /**
- * handleReady verifica que la base de datos esté disponible.
+ * handleReady verifica que la base de datos y dependencias principales estén listas (XT-08).
  *
  * @param {RouterDependencies} deps - Dependencias del router.
  * @returns {http.HandlerFunc} Handler de readiness.
  */
 func handleReady(deps RouterDependencies) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		checks := map[string]string{
+			"database": "ok",
+		}
+
 		if deps.Pool == nil {
-			RespondError(w, r, http.StatusServiceUnavailable, "base_datos_no_configurada", "La base de datos no está configurada en este entorno.")
+			checks["database"] = "no_configurada"
+			Respond(w, r, http.StatusServiceUnavailable, map[string]any{
+				"status": "not_ready",
+				"checks": checks,
+				"error": ErrorResponse{
+					Code:    "base_datos_no_configurada",
+					Message: "La base de datos no está configurada en este entorno.",
+				},
+			})
 			return
 		}
 
@@ -72,11 +84,22 @@ func handleReady(deps RouterDependencies) http.HandlerFunc {
 		defer cancel()
 
 		if err := deps.Pool.Ping(ctx); err != nil {
-			RespondError(w, r, http.StatusServiceUnavailable, "base_datos_no_disponible", "La base de datos no está disponible.")
+			checks["database"] = "no_disponible"
+			Respond(w, r, http.StatusServiceUnavailable, map[string]any{
+				"status": "not_ready",
+				"checks": checks,
+				"error": ErrorResponse{
+					Code:    "base_datos_no_disponible",
+					Message: "La base de datos no está disponible.",
+				},
+			})
 			return
 		}
 
-		Respond(w, r, http.StatusOK, map[string]any{"status": "ready"})
+		Respond(w, r, http.StatusOK, map[string]any{
+			"status": "ready",
+			"checks": checks,
+		})
 	}
 }
 

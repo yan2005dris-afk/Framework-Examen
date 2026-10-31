@@ -77,7 +77,7 @@ func itoa(n int64) string {
 // ---- Tests de AttemptsStore ----
 
 func TestAttemptsStore_NoBloqueoAntesDelLimite(t *testing.T) {
-	store := cache.NewAttemptsStore(newMemCache())
+	store := cache.NewAttemptsStore(newAtomicTestCache(t))
 	ctx := context.Background()
 
 	// Dos intentos fallidos no deben bloquear la cuenta.
@@ -97,7 +97,7 @@ func TestAttemptsStore_NoBloqueoAntesDelLimite(t *testing.T) {
 }
 
 func TestAttemptsStore_BloqueoAlAlcanzarLimite(t *testing.T) {
-	store := cache.NewAttemptsStore(newMemCache())
+	store := cache.NewAttemptsStore(newAtomicTestCache(t))
 	ctx := context.Background()
 
 	// Tres intentos fallidos deben bloquear la cuenta.
@@ -117,7 +117,7 @@ func TestAttemptsStore_BloqueoAlAlcanzarLimite(t *testing.T) {
 }
 
 func TestAttemptsStore_ResetDespuesDeExito(t *testing.T) {
-	store := cache.NewAttemptsStore(newMemCache())
+	store := cache.NewAttemptsStore(newAtomicTestCache(t))
 	ctx := context.Background()
 
 	// Dos intentos fallidos seguidos de un inicio de sesión exitoso.
@@ -146,7 +146,7 @@ func TestAttemptsStore_ResetDespuesDeExito(t *testing.T) {
 }
 
 func TestAttemptsStore_CuentasSeparadas(t *testing.T) {
-	store := cache.NewAttemptsStore(newMemCache())
+	store := cache.NewAttemptsStore(newAtomicTestCache(t))
 	ctx := context.Background()
 
 	// Bloquear solo la primera cédula.

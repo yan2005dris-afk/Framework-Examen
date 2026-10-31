@@ -7,6 +7,16 @@ import (
 	"github.com/google/uuid"
 )
 
+/** PasswordRecoveryRepository confirma cambio de clave y revocación de sesiones como una unidad. */
+type PasswordRecoveryRepository interface {
+	ResetPasswordAndSessions(context.Context, uuid.UUID, string) error
+}
+
+/** AuthenticatedSessionRepository serializa la emisión con cambios de clave y comprueba la versión validada. */
+type AuthenticatedSessionRepository interface {
+	CreateAuthenticatedSession(context.Context, *Session, string) error
+}
+
 /**
  * ApplicantRepository define los métodos de persistencia para postulantes.
  */

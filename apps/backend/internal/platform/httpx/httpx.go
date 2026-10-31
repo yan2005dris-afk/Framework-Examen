@@ -182,6 +182,48 @@ func CORS(next http.Handler, origins []string) http.Handler {
 }
 
 /**
+ * CSRF valida que las peticiones mutantes (POST, PUT, PATCH, DELETE) provengan
+ * exclusivamente de los orígenes autorizados o de la misma aplicación, bloqueando
+ * ataques de falsificación de peticiones en sitios cruzados (XT-01).
+ *
+ * @param {http.Handler} next - Handler siguiente de la cadena.
+ * @param {string[]} origins - Orígenes autorizados (e.g. "http://localhost:5173").
+ * @returns {http.Handler} Handler con validación CSRF por origen.
+ */
+func CSRF(next http.Handler, origins []string) http.Handler {
+	allowed := make(map[string]struct{}, len(origins))
+	for _, origin := range origins {
+		trimmed := strings.TrimRight(strings.TrimSpace(origin), "/")
+		if trimmed != "" {
+			allowed[trimmed] = struct{}{}
+		}
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet, http.MethodHead, http.MethodOptions:
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if r.Header.Get("Sec-Fetch-Site") == "cross-site" {
+			RespondError(w, r, http.StatusForbidden, "origen_no_permitido", "Petición cruzada no autorizada.")
+			return
+		}
+
+		origin := strings.TrimRight(strings.TrimSpace(r.Header.Get("Origin")), "/")
+		if origin != "" && len(allowed) > 0 {
+			if _, ok := allowed[origin]; !ok {
+				RespondError(w, r, http.StatusForbidden, "origen_no_permitido", "Origen de la petición no autorizado.")
+				return
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+/**
  * MaxBodySize limita el tamaño del cuerpo de la petición y responde 413
  * cuando se supera el máximo permitido.
  *

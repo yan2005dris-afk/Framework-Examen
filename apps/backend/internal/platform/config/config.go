@@ -48,6 +48,7 @@ type Config struct {
 	SMTPPassword      string
 	SMTPFrom          string
 	SMTPUseTLS        bool
+	MailOutboxKey     string
 }
 
 /**
@@ -139,6 +140,7 @@ func Load() (Config, error) {
 		SMTPPassword:      getString("SMTP_PASSWORD", ""),
 		SMTPFrom:          getString("SMTP_FROM", "no-reply@biess.local"),
 		SMTPUseTLS:        smtpUseTLS,
+		MailOutboxKey:     getString("MAIL_OUTBOX_KEY", ""),
 	}, nil
 }
 

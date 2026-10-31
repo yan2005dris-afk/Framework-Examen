@@ -28,6 +28,7 @@ type UpdateRequest struct {
  * Response es la representación pública de una postulación.
  */
 type Response struct {
+	Notification  *DeliveryStatus `json:"notificacion,omitempty"`
 	CompetitionID *uuid.UUID      `json:"convocatoriaId,omitempty"`
 	ID            uuid.UUID       `json:"id"`
 	ApplicantID   uuid.UUID       `json:"applicantId"`
@@ -49,6 +50,7 @@ type Response struct {
  */
 func NewResponse(item *Submission) Response {
 	return Response{
+		Notification:  item.Notification,
 		CompetitionID: item.CompetitionID,
 		ID:            item.ID,
 		ApplicantID:   item.ApplicantID,

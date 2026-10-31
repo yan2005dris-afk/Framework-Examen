@@ -43,6 +43,7 @@ const (
  * nueve secciones del formulario tal como las entrega el cliente.
  */
 type Submission struct {
+	Notification  *DeliveryStatus
 	ID            uuid.UUID
 	CompetitionID *uuid.UUID
 	ApplicantID   uuid.UUID

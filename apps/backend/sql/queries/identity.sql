@@ -68,6 +68,9 @@ WHERE applicant_id = $1;
 DELETE FROM sessions
 WHERE expires_at <= now();
 
+-- name: LockApplicantCredentials :one
+SELECT id,password_hash FROM applicants WHERE id=$1 FOR UPDATE;
+
 -- name: CreatePasswordReset :one
 INSERT INTO password_resets (
     id, applicant_id, token_hash, expires_at, used, created_at

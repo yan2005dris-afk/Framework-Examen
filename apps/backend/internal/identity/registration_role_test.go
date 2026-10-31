@@ -11,12 +11,12 @@ import (
 )
 
 func TestPublicOTPRegistrationCannotAssignAnAdministrativeRole(t *testing.T) {
-	service, applicants, _, mem := setupService()
+	service, applicants, mailer, _ := setupService(t)
 	ctx := context.Background()
 	if err := service.RequestRegistration(ctx, identity.RegisterRequestDTO{Cedula: validCedula, Correo: validEmail}); err != nil {
 		t.Fatal(err)
 	}
-	otp, err := mem.Get(ctx, "identity:otp:"+validCedula)
+	otp, err := readOTP(mailer)
 	if err != nil {
 		t.Fatal(err)
 	}

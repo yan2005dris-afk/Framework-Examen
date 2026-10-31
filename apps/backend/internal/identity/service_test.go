@@ -2,6 +2,8 @@ package identity_test
 
 import (
 	"context"
+	"github.com/alicebob/miniredis/v2"
+	"regexp"
 	"sync"
 	"testing"
 	"time"
@@ -249,18 +251,27 @@ func (m *mockMailer) Send(_ context.Context, msg mail.Message) error {
 
 // ── Tests de Service ─────────────────────────────────────────────────────────
 
-func setupService() (*identity.Service, *inMemApplicantRepo, *mockMailer, *inMemCache) {
+func setupService(t *testing.T) (*identity.Service, *inMemApplicantRepo, *mockMailer, *inMemCache) {
+	t.Helper()
 	appRepo := newInMemApplicantRepo()
 	sessionRepo := newInMemSessionRepo(appRepo)
 	resetRepo := newInMemPasswordResetRepo()
 	mem := newInMemCache()
-	attempts := cache.NewAttemptsStore(mem)
-	otpStore := cache.NewOTPStore(mem)
+
+	server := miniredis.RunT(t)
+	atomic, err := cache.NewRedis(context.Background(), "redis://"+server.Addr())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = atomic.Close() })
+	attempts := cache.NewAttemptsStore(atomic)
+	otpStore := cache.NewOTPStore(atomic)
 	mailer := &mockMailer{}
 
 	svc := identity.NewService(identity.ServiceDependencies{
 		Applicants: appRepo,
 		Sessions:   sessionRepo,
+		Recovery:   &atomicRecovery{appRepo, sessionRepo},
 		Resets:     resetRepo,
 		Attempts:   attempts,
 		OTPStore:   otpStore,
@@ -278,7 +289,7 @@ var (
 )
 
 func TestService_RequestRegistration(t *testing.T) {
-	svc, _, mailer, _ := setupService()
+	svc, _, mailer, _ := setupService(t)
 	ctx := context.Background()
 
 	// 1. Solicitud exitosa
@@ -317,7 +328,7 @@ func TestService_RequestRegistration(t *testing.T) {
 }
 
 func TestService_VerifyAndRegister(t *testing.T) {
-	svc, _, _, mem := setupService()
+	svc, _, mailer, _ := setupService(t)
 	ctx := context.Background()
 
 	// Iniciar registro para sembrar el OTP en caché
@@ -326,7 +337,7 @@ func TestService_VerifyAndRegister(t *testing.T) {
 		Correo: validEmail,
 	})
 
-	otpCode, err := mem.Get(ctx, "identity:otp:"+validCedula)
+	otpCode, err := readOTP(mailer)
 	if err != nil {
 		t.Fatalf("error al leer OTP de caché: %v", err)
 	}
@@ -379,7 +390,7 @@ func TestService_VerifyAndRegister(t *testing.T) {
 }
 
 func TestService_Login_And_Lockout(t *testing.T) {
-	svc, appRepo, _, _ := setupService()
+	svc, appRepo, _, _ := setupService(t)
 	ctx := context.Background()
 
 	// Sembrar postulante
@@ -411,7 +422,7 @@ func TestService_Login_And_Lockout(t *testing.T) {
 }
 
 func TestService_Session_Validate_And_Logout(t *testing.T) {
-	svc, appRepo, _, _ := setupService()
+	svc, appRepo, _, _ := setupService(t)
 	ctx := context.Background()
 
 	passHash, _ := password.Hash(validPass)
@@ -444,4 +455,43 @@ func TestService_Session_Validate_And_Logout(t *testing.T) {
 	if err != identity.ErrSessionExpired {
 		t.Errorf("ValidateSession() esperaba ErrSessionExpired tras logout, obtuve %v", err)
 	}
+}
+
+func readOTP(m *mockMailer) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	matches := regexp.MustCompile(`[0-9]{6}`).FindString(m.sent[len(m.sent)-1].Body)
+	return matches, nil
+}
+
+type atomicRecovery struct {
+	app      *inMemApplicantRepo
+	sessions *inMemSessionRepo
+}
+
+func (r *atomicRecovery) ResetPasswordAndSessions(ctx context.Context, id uuid.UUID, hash string) error {
+	r.sessions.mu.Lock()
+	defer r.sessions.mu.Unlock()
+	r.app.mu.Lock()
+	defer r.app.mu.Unlock()
+	r.app.byID[id].PasswordHash = hash
+	for k, s := range r.sessions.byTokenHash {
+		if s.ApplicantID == id {
+			delete(r.sessions.byTokenHash, k)
+		}
+	}
+	return nil
+}
+
+func (r *inMemSessionRepo) CreateAuthenticatedSession(_ context.Context, session *identity.Session, hash string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.appRepo.mu.Lock()
+	defer r.appRepo.mu.Unlock()
+	account, ok := r.appRepo.byID[session.ApplicantID]
+	if !ok || account.PasswordHash != hash {
+		return identity.ErrInvalidCredentials
+	}
+	r.byTokenHash[session.TokenHash] = session
+	return nil
 }

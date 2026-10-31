@@ -324,6 +324,22 @@ func (q *Queries) GetValidPasswordReset(ctx context.Context, tokenHash string) (
 	return i, err
 }
 
+const lockApplicantCredentials = `-- name: LockApplicantCredentials :one
+SELECT id,password_hash FROM applicants WHERE id=$1 FOR UPDATE
+`
+
+type LockApplicantCredentialsRow struct {
+	ID           uuid.UUID `json:"id"`
+	PasswordHash string    `json:"password_hash"`
+}
+
+func (q *Queries) LockApplicantCredentials(ctx context.Context, id uuid.UUID) (LockApplicantCredentialsRow, error) {
+	row := q.db.QueryRow(ctx, lockApplicantCredentials, id)
+	var i LockApplicantCredentialsRow
+	err := row.Scan(&i.ID, &i.PasswordHash)
+	return i, err
+}
+
 const markPasswordResetUsed = `-- name: MarkPasswordResetUsed :exec
 UPDATE password_resets
 SET used = true

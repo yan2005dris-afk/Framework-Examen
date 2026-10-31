@@ -54,6 +54,7 @@ services:
       S3_SECRET_KEY: rustfsadmin
       S3_REGION: us-east-1
       # Correo: Mailpit captura todo lo que envía la API.
+      MAIL_OUTBOX_KEY: ${MAIL_OUTBOX_KEY:-}
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_FROM: no-reply@biess.local

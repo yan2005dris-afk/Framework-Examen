@@ -84,33 +84,34 @@ func main() {
 		log.Warn("DATABASE_URL no está configurada: la API arranca solo con los healthchecks")
 	}
 
-	// ── Redis (fail-open) ────────────────────────────────────────────────────
-	// Si Redis no está disponible la API arranca en modo degradado: el rate
-	// limiting y la caché de catálogos quedan desactivados, pero el resto
-	// de la aplicación funciona con normalidad.
+	// ── Redis: caché opcional, controles de identidad obligatorios ────────────
+	// Sin Redis se conservan lectura de sesiones y catálogos desde PostgreSQL,
+	// pero login y flujos OTP fallan cerrados; nunca se usa Noop para seguridad.
 	var cacheClient cache.Cache
+	var securityCache cache.Cache = &cache.UnavailableCache{}
 	if cfg.RedisURL != "" {
 		redisClient, redisErr := cache.NewRedis(ctx, cfg.RedisURL)
 		if redisErr != nil {
-			log.Warn("no se pudo conectar a Redis: la API arranca sin caché ni rate limiting", "error", redisErr)
+			log.Warn("Redis no disponible: autenticación bloqueada; catálogos consultan PostgreSQL")
 			cacheClient = &cache.NoopCache{}
 		} else {
 			defer redisClient.Close()
 			cacheClient = redisClient
-			log.Info("Redis conectado", "url", cfg.RedisURL)
+			securityCache = redisClient
+			log.Info("Redis conectado")
 		}
 	} else {
-		log.Warn("REDIS_URL no está configurada: la API arranca sin caché ni rate limiting")
+		log.Warn("REDIS_URL no configurada: autenticación bloqueada; catálogos consultan PostgreSQL")
 		cacheClient = &cache.NoopCache{}
 	}
 
-	attemptsStore := cache.NewAttemptsStore(cacheClient)
-	otpStore := cache.NewOTPStore(cacheClient)
+	attemptsStore := cache.NewAttemptsStore(securityCache)
+	otpStore := cache.NewOTPStore(securityCache)
 
 	// ── Correo (SMTP / Mailpit) ──────────────────────────────────────────────
-	var mailer identity.Mailer
+	var smtpSender mail.Sender
 	if cfg.SMTPHost != "" {
-		mailer = mail.NewSMTPSender(mail.Config{
+		smtpSender = mail.NewSMTPSender(mail.Config{
 			Host:     cfg.SMTPHost,
 			Port:     cfg.SMTPPort,
 			User:     cfg.SMTPUser,
@@ -130,6 +131,12 @@ func main() {
 
 	if pool != nil {
 		queries := sqlcgen.New(pool)
+		outbox, outboxErr := mail.NewOutbox(queries, cfg.MailOutboxKey)
+		if outboxErr != nil {
+			log.Warn("MAIL_OUTBOX_KEY ausente o inválida: nuevos OTP y envíos finales bloqueados")
+		}
+		// Incluso sin SMTP/clave se retiran cargas vencidas; nunca se marcan como entregadas.
+		go outbox.Run(ctx, smtpSender, otpStore.Active)
 
 		// Contexto de identidad (EF-11: registro, login, sesión, OTP)
 		identityRepo := identitypostgres.NewRepository(queries, db.NewTxManager(pool))
@@ -137,23 +144,18 @@ func main() {
 		identityService := identity.NewService(identity.ServiceDependencies{
 			Applicants: identityRepo,
 			Sessions:   identityRepo,
+			Recovery:   identityRepo,
 			Resets:     identityRepo,
 			Attempts:   attemptsStore,
 			OTPStore:   otpStore,
-			Mailer:     mailer,
+			Mailer:     outbox,
 			SessionTTL: cfg.SessionTTL,
 		})
 		identity.NewHandler(identityService, cfg.IsProduction()).RegisterRoutes(router)
 
 		// Contexto de postulaciones
 		submissionRepository := submissionpostgres.NewRepository(queries, db.NewTxManager(pool))
-		var submissionNotifier submission.Notifier
-		if mailer != nil {
-			submissionNotifier = &submissionnotification.Confirmation{
-				Sender:     mailer,
-				Applicants: identityRepo,
-			}
-		}
+		confirmations := &submissionnotification.QueuedConfirmation{Outbox: outbox, Applicants: identityRepo}
 		var objects document.Storage
 		switch cfg.StorageDriver {
 		case "local":
@@ -168,7 +170,7 @@ func main() {
 			os.Exit(1)
 		}
 		documentService := document.NewService(documentpostgres.NewRepository(pool, db.NewTxManager(pool)), objects).WithAudit(auditor)
-		submissionService := submission.NewService(submissionRepository, submissionNotifier).
+		submissionService := submission.NewService(submissionRepository).WithConfirmationQueue(confirmations).
 			WithDocuments(documentService).WithApplicants(identityRepo).WithAudit(auditor)
 		router.Group(func(r chi.Router) {
 			r.Use(identity.RequireSession(identityService))
@@ -190,7 +192,10 @@ func main() {
 		httpx.Recover(
 			httpx.Logging(
 				httpx.CORS(
-					httpx.MaxBodySize(router, cfg.MaxBodyBytes),
+					httpx.CSRF(
+						httpx.MaxBodySize(router, cfg.MaxBodyBytes),
+						cfg.CORSOrigins,
+					),
 					cfg.CORSOrigins,
 				),
 			),

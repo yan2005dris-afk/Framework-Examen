@@ -27,9 +27,15 @@ var (
  * Message es un correo saliente.
  */
 type Message struct {
-	To      string
-	Subject string
-	Body    string
+	Suppressed   bool
+	Kind         string
+	ResourceID   string
+	ExpiresAt    time.Time
+	ChallengeKey string
+	ChallengeID  string
+	To           string
+	Subject      string
+	Body         string
 }
 
 /**

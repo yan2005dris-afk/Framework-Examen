@@ -5,11 +5,8 @@ import (
 	"time"
 )
 
-/**
- * NoopCache es un adaptador de caché que no hace nada.
- * Se usa cuando Redis no está disponible para que la API arranque en modo
- * degradado: el rate limiting y la caché de catálogos quedan desactivados,
- * pero el resto de la aplicación funciona con normalidad.
+/** NoopCache omite sólo caché de catálogos; no es un adaptador de seguridad.
+ * OTP y bloqueo de intentos rechazan expresamente este adaptador.
  */
 type NoopCache struct{}
 
