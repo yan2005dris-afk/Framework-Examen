@@ -176,7 +176,9 @@ Raíz del repo:
 - **ESLint** desactiva dos reglas solo para `src/components/ui/**` y `src/hooks/**`
   (`react-refresh/only-export-components`, `react-hooks/set-state-in-effect`), porque el
   código que genera shadcn no cumple las reglas nuevas de React Compiler. El resto del
-  proyecto sí las cumple.
+  proyecto sí las cumple. La única excepción propia: los módulos `src/features/**/*-context.tsx`
+  pueden exportar su hook de consumo junto al proveedor, porque la regla se configura con
+  `allowExportNames` (al crear otro contexto, agregá el hook a esa lista en vez de apagar la regla).
 
 ## Testing instructions
 

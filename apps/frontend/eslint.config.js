@@ -30,4 +30,23 @@ export default defineConfig([
       "react-hooks/set-state-in-effect": "off",
     },
   },
+  {
+    // Módulos de contexto (`*-context.tsx`): exportan el proveedor junto a su
+    // hook de consumo para que el contexto sea un solo archivo cohesionado.
+    // La regla sigue activa: solo se permiten los hooks declarados acá, y
+    // cambiar este archivo hace que el HMR recargue el módulo completo (no hay
+    // Fast Refresh del provider). Al crear otro contexto, agregá su hook a la
+    // lista en lugar de apagar la regla.
+    files: ["src/features/**/*-context.tsx"],
+    rules: {
+      "react-refresh/only-export-components": [
+        "error",
+        {
+          allowConstantExport: true,
+          allowCompoundComponents: true,
+          allowExportNames: ["useSesion"],
+        },
+      ],
+    },
+  },
 ])

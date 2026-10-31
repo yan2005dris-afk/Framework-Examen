@@ -35,7 +35,7 @@ Lista de trabajo del frontend, priorizada y mapeada a la rúbrica de 40 puntos
 | Catálogo geográfico | `src/data/ecuadorGeo.ts` | ✅ con tests (24 provincias, 221 cantones) |
 | Proxy de Vite | `vite.config.ts` | ✅ |
 | Vitest + Prettier | `apps/frontend/package.json` | ✅ (64 tests en verde) |
-| **Router** | — | ⬜ |
+| **Router** | `src/router.tsx` | ✅ (rutas protegidas + guard) |
 | **Cliente HTTP** | `src/lib/api.ts` | ✅ (con clientes de dominio y tests) |
 | **Vistas de registro y login** | — | ⬜ |
 | **Vistas de las 9 secciones** | — | ⬜ |
@@ -107,7 +107,7 @@ export async function obtenerPostulaciones(
 
 | Pieza | Ubicación | Contenido |
 |---|---|---|
-| Router | `src/router.tsx` | React Router v7 |
+| Router | `src/router.tsx` | React Router 8 (`createBrowserRouter`) |
 | Guard de sesión | `src/components/guard-sesion.tsx` | Consulta la sesión y redirige |
 | Layout | `src/layouts/layout-postulante.tsx` | Shell con sidebar y header |
 | Layout | `src/layouts/layout-admin.tsx` | Shell del dashboard |
@@ -131,15 +131,15 @@ export async function obtenerPostulaciones(
 
 **Criterios de aceptación**
 
-- [ ] Sin sesión, las rutas protegidas redirigen a `/login` y conservan el
+- [x] Sin sesión, las rutas protegidas redirigen a `/login` y conservan el
       destino para volver tras entrar.
-- [ ] Con sesión, `/postulacion` es la ruta por defecto del postulante que
+- [x] Con sesión, `/postulacion` es la ruta por defecto del postulante que
       aún no ha enviado ninguna postulación (HU-03, criterio 5).
-- [ ] Las rutas del dashboard exigen rol; un postulante que las abre recibe
+- [x] Las rutas del dashboard exigen rol; un postulante que las abre recibe
       `403`.
-- [ ] El guard muestra un estado de carga mientras consulta la sesión, sin
+- [x] El guard muestra un estado de carga mientras consulta la sesión, sin
       parpadeo de la pantalla de login.
-- [ ] La navegación interna no recarga la página.
+- [x] La navegación interna no recarga la página.
 
 **Esfuerzo estimado**: 1,5 días.
 
