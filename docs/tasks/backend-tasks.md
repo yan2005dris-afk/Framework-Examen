@@ -599,16 +599,19 @@ notificaciones de fases/resultados de T23.
 
 **Origen:** EF-12 1.10.1–1.10.3 y notas finales. **Prioridad:** P1-RF.
 
-- [ ] Producir una representación íntegra y legible del snapshot sellado para
+- [x] Producir una representación íntegra y legible del snapshot sellado para
       impresión/descarga, con código único, nueve secciones, cinco literales,
       nombres, apellidos, cédula y apartado de firma manuscrita.
-- [ ] Reutilizar ese snapshot para el formulario remitido al correo registrado.
+- [x] Reutilizar ese snapshot para el formulario remitido al correo registrado.
       Hoy SMTP ya incluye el JSON completo; completar su presentación imprimible
       (por ejemplo PDF), sin regenerarlo desde un borrador posterior.
-- [ ] Mostrar los literales al guardar, no solo al enviar; guardar y enviar siguen
+- [x] Mostrar los literales al guardar, no solo al enviar; guardar y enviar siguen
       siendo operaciones distintas. No exigir una firma digital dibujada.
-- [ ] Mantener hash y fecha reproducibles y autorización de acceso a la copia final.
+- [x] Mantener hash y fecha reproducibles y autorización de acceso a la copia final.
       El fallo del correo no revierte el sello: su entrega se gestiona mediante T23.
+
+**Estado técnico:** implementado localmente; PDF autenticado y adjunto desde cola cifrada.
+Ver [contrato T19/T20](../api-contracts/MERITS_AND_PRINTING.md). Integración visual y despliegue no incluidos.
 
 **Dependencias:** T3–T5, T23. **Frontend:** FT6.
 
@@ -616,18 +619,21 @@ notificaciones de fases/resultados de T23.
 
 **Origen:** EF-1, verificación de requisitos y calificación automática. **Prioridad:** P1-RF.
 
-- [ ] Registrar revisión de requisitos y respaldos por el personal autorizado,
+- [x] Registrar revisión de requisitos y respaldos por el personal autorizado,
       observaciones, resultado y motivo de avance o exclusión en el expediente.
-- [ ] Aplicar reglas de inhabilidades conforme a la definición aprobada; no usar
+- [x] Aplicar reglas de inhabilidades conforme a la definición aprobada; no usar
       «cualquier Sí excluye», porque la pregunta 1.9.1 tiene sentido positivo.
-- [ ] Parametrizar y versionar criterios, ponderaciones, máximos, umbrales y
+- [x] Parametrizar y versionar criterios, ponderaciones, máximos, umbrales y
       reglas de desempate de méritos cuando sean entregados por el responsable.
-- [ ] Calcular puntaje desde evidencias verificadas, conservar desglose reproducible
+- [x] Calcular puntaje desde evidencias verificadas, conservar desglose reproducible
       y emitir el resultado de la fase que habilitará o no la evaluación técnica.
-- [ ] Auditar cambios y recalcular solo mediante una acción autorizada; no alterar
+- [x] Auditar cambios y recalcular solo mediante una acción autorizada; no alterar
       silenciosamente una resolución o un resultado previamente publicado.
 
 **Dependencias:** T6, T8–T9, T18. **Frontend:** FT19.
+**Estado técnico:** motor y revisión implementados, probados con datos sintéticos.
+No existe una matriz oficial precargada; la activación institucional sigue pendiente.
+
 **Definición pendiente:** el RF no contiene la matriz de puntuación ni los umbrales;
 no fijar valores inventados en código.
 
@@ -774,14 +780,14 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | EF-12 1.3 | Familiares y opciones exactas de parentesco/institución | T3, T7 | FT5 | Opciones backend disponibles; integración visual pendiente |
 | EF-12 1.4 | Cargo, elegibilidad, mensajes, cierre y organización | T3–T4, T17–T18 | FT5, FT17–FT18 | Sustituir elegibilidad declarada por fuente del servidor |
 | EF-12 1.5–1.8 | Títulos, experiencia/calculadora, publicaciones y capacitación | T3–T4, T7 | FT5, FT18 | Backend base; vistas y adjuntos integrados pendientes |
-| EF-12 1.9 | Trece respuestas, detalles de remoción y revisión | T3, T20 | FT5, FT19 | Declaraciones base; revisión administrativa pendiente |
+| EF-12 1.9 | Trece respuestas, detalles de remoción y revisión | T3, T20 | FT5, FT19 | Revisión administrativa backend disponible; interfaz y matriz institucional pendientes |
 | EF-1, restricciones | PDF 2/4 MiB y total 50 MiB | T4 | FT18 | Backend disponible; consumo frontend pendiente |
 | EF-12, notas | Guardado parcial, CRUD de registros y código único | T3–T5 | FT5 | Backend base; interfaz funcional pendiente |
-| EF-12 1.10 | Literales al guardar, firma manuscrita, impresión y correo completo | T3, T19, T23 | FT6, FT28 | Sello y correo con JSON disponibles; presentación final pendiente |
+| EF-12 1.10 | Literales al guardar, firma manuscrita, impresión y correo completo | T3, T19, T23 | FT6, FT28 | PDF sellado y adjunto en cola disponibles; integración visual pendiente |
 | EF-13.1–2 | Publicar fases y habilitar EF-12 | T6, T18 | FT15 | Planificado |
 | EF-13.3 | Conteos por cargo en tiempo real e históricos íntegros/certificados | T8–T9, T18 | FT7 | Parcial: shell/mock; falta administración real |
 | EF-13.3 | Matriz comparativa Excel/PDF | T9 | FT8 | Planificado, obligatorio para RF completo |
-| EF-1 | Verificar requisitos y calcular méritos | T20 | FT19 | Planificado; falta matriz de calificación aprobada |
+| EF-1 | Verificar requisitos y calcular méritos | T20 | FT19 | Motor configurable y revisión backend disponibles; falta matriz institucional aprobada |
 | EF-1 | Registrar oposición psicotécnica y consolidar expediente | T21 | FT20 | Planificado; falta instrumento/reglas |
 | EF-1 | Reconsideraciones y plazos exactos por actor | T22 | FT21 | Planificado; faltan términos y calendario aprobados |
 | EF-1 | Notificar resultados de cada etapa | T23 | FT22 | Correo base; flujo y reintentos persistentes pendientes |

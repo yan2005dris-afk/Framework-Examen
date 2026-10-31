@@ -41,6 +41,7 @@ func NewHandler(service *Service) *Handler {
  * @param {chi.Router} router - Router raíz de la API.
  */
 func (h *Handler) RegisterRoutes(router chi.Router) {
+	router.With(identity.RequirePermission(identity.PermissionReview)).Get("/api/v1/admin/submissions/{id}/print.pdf", h.printAdmin)
 	router.With(identity.RequirePermission(identity.PermissionReview)).Get("/api/v1/admin/submissions/{id}", h.review)
 	router.Route("/api/v1/submissions", func(r chi.Router) {
 		r.Get("/form-definition", h.definition)
@@ -49,6 +50,7 @@ func (h *Handler) RegisterRoutes(router chi.Router) {
 		r.Route("/{id}", func(r chi.Router) {
 			r.Use(h.requireOwner)
 			r.Get("/", h.get)
+			r.Get("/print.pdf", h.printOwn)
 			r.Put("/", h.update)
 			r.Delete("/", h.delete)
 			r.Post("/sections/{n}", h.saveSection)
@@ -316,6 +318,12 @@ func decodeJSON(request *http.Request, target any) error {
  */
 func writeError(writer http.ResponseWriter, request *http.Request, err error) {
 	switch {
+	case errors.Is(err, ErrInvalidSeal):
+		httpx.RespondError(writer, request, 409, "sello_invalido", ErrInvalidSeal.Error())
+	case errors.Is(err, ErrPrintTooLarge):
+		httpx.RespondError(writer, request, 413, "impresion_demasiado_grande", ErrPrintTooLarge.Error())
+	case errors.Is(err, ErrPrintUnavailable):
+		httpx.RespondError(writer, request, 503, "impresion_no_disponible", ErrPrintUnavailable.Error())
 	case errors.Is(err, ErrEligibilityClosed):
 		httpx.RespondError(writer, request, 409, "postulacion_cerrada_elegibilidad", err.Error())
 	case errors.Is(err, ErrEligibilityUnavailable):
@@ -419,4 +427,26 @@ func (h *Handler) submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.Respond(w, r, http.StatusOK, NewResponse(item))
+}
+
+func (h *Handler) printOwn(w http.ResponseWriter, r *http.Request)   { h.printFinal(w, r, false) }
+func (h *Handler) printAdmin(w http.ResponseWriter, r *http.Request) { h.printFinal(w, r, true) }
+func (h *Handler) printFinal(w http.ResponseWriter, r *http.Request, admin bool) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, r, ErrInvalidIdentifier)
+		return
+	}
+	actor, _ := identity.ApplicantFromContext(r.Context())
+	data, err := h.service.PrintFinal(r.Context(), actor, id, admin)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Disposition", `attachment; filename="EF12-`+id.String()+`.pdf"`)
+	w.WriteHeader(200)
+	_, _ = w.Write(data)
 }

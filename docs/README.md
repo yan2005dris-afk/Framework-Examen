@@ -128,3 +128,9 @@ del proyecto. Las matrices de las tareas separan planificación de implementaci�
 
 **Ver también**: [`../README.md`](../README.md) (raíz) ·
 [`../AGENTS.md`](../AGENTS.md) (guía para agentes de IA)
+
+
+### Entrega backend T19/T20
+
+- [Contrato de impresión y méritos](api-contracts/MERITS_AND_PRINTING.md): rutas,
+  permisos, reglas sin puntajes oficiales por defecto y correcciones versionadas.

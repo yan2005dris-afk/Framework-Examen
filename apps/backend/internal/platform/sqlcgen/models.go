@@ -134,6 +134,62 @@ type MailOutbox struct {
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }
 
+type MeritCalculation struct {
+	ID           uuid.UUID `json:"id"`
+	SubmissionID uuid.UUID `json:"submission_id"`
+	Version      int64     `json:"version"`
+	ReviewID     uuid.UUID `json:"review_id"`
+	RuleSetID    uuid.UUID `json:"rule_set_id"`
+	Payload      []byte    `json:"payload"`
+}
+
+type MeritCaseStream struct {
+	SubmissionID  uuid.UUID   `json:"submission_id"`
+	ReviewID      pgtype.UUID `json:"review_id"`
+	CalculationID pgtype.UUID `json:"calculation_id"`
+	PublicationID pgtype.UUID `json:"publication_id"`
+}
+
+type MeritPublication struct {
+	ID            uuid.UUID   `json:"id"`
+	SubmissionID  uuid.UUID   `json:"submission_id"`
+	Version       int64       `json:"version"`
+	CalculationID uuid.UUID   `json:"calculation_id"`
+	SupersedesID  pgtype.UUID `json:"supersedes_id"`
+	Decision      string      `json:"decision"`
+	Payload       []byte      `json:"payload"`
+}
+
+type MeritReview struct {
+	ID           uuid.UUID `json:"id"`
+	SubmissionID uuid.UUID `json:"submission_id"`
+	Version      int64     `json:"version"`
+	RuleSetID    uuid.UUID `json:"rule_set_id"`
+	Payload      []byte    `json:"payload"`
+}
+
+type MeritRuleSet struct {
+	ID                uuid.UUID          `json:"id"`
+	CompetitionID     uuid.UUID          `json:"competition_id"`
+	Sector            string             `json:"sector"`
+	Version           int64              `json:"version"`
+	Definition        []byte             `json:"definition"`
+	DefinitionHash    string             `json:"definition_hash"`
+	Approved          bool               `json:"approved"`
+	ApprovalReference *string            `json:"approval_reference"`
+	ApprovedBy        pgtype.UUID        `json:"approved_by"`
+	ApprovedAt        pgtype.Timestamptz `json:"approved_at"`
+	ActorID           uuid.UUID          `json:"actor_id"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+}
+
+type MeritRuleStream struct {
+	CompetitionID uuid.UUID   `json:"competition_id"`
+	Sector        string      `json:"sector"`
+	Version       int64       `json:"version"`
+	ActiveRuleID  pgtype.UUID `json:"active_rule_id"`
+}
+
 type PasswordReset struct {
 	ID          uuid.UUID `json:"id"`
 	ApplicantID uuid.UUID `json:"applicant_id"`

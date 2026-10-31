@@ -47,6 +47,7 @@ type Service struct {
 	auditor       audit.Recorder
 	confirmations ConfirmationQueue
 	eligibility   EligibilityAssessor
+	printer       Printer
 }
 
 /** WithDocuments configura la validación obligatoria de respaldos en la composición.

@@ -48,7 +48,7 @@ type WorkflowRecorder interface {
 /** ValidWorkflow limita el puerto a acciones conocidas y metadatos sin texto libre. */
 func ValidWorkflow(e Event) bool {
 	actions := map[string]bool{"convocatoria.creada": true, "convocatoria.configurada": true, "fase.publicada": true, "fase.habilitada": true, "fase.cerrada": true,
-		"elegibilidad.verificada": true, "meritos.revisados": true, "meritos.calificados": true,
+		"elegibilidad.verificada": true, "meritos.reglas_creadas": true, "meritos.reglas_aprobadas": true, "meritos.revisados": true, "meritos.calificados": true,
 		"evaluacion.iniciada": true, "evaluacion.finalizada": true, "reconsideracion.presentada": true,
 		"reconsideracion.resuelta": true, "resultado.publicado": true}
 	resources := map[string]bool{"postulacion": true, "convocatoria": true, "evaluacion": true, "reconsideracion": true}

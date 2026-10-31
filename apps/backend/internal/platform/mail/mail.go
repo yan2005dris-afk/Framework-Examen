@@ -7,8 +7,9 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
+
 	"net"
+	netmail "net/mail"
 	"net/smtp"
 	"strconv"
 	"strings"
@@ -28,16 +29,18 @@ var (
  * Message es un correo saliente.
  */
 type Message struct {
-	ID           string
-	Suppressed   bool
-	Kind         string
-	ResourceID   string
-	ExpiresAt    time.Time
-	ChallengeKey string
-	ChallengeID  string
-	To           string
-	Subject      string
-	Body         string
+	Attachments   []Attachment
+	RenderPayload []byte
+	ID            string
+	Suppressed    bool
+	Kind          string
+	ResourceID    string
+	ExpiresAt     time.Time
+	ChallengeKey  string
+	ChallengeID   string
+	To            string
+	Subject       string
+	Body          string
 }
 
 /**
@@ -107,6 +110,10 @@ func (s *SMTPSender) Send(ctx context.Context, message Message) error {
 		return err
 	}
 
+	body, err := composeMessage(s.config.From, message)
+	if err != nil {
+		return err
+	}
 	address := net.JoinHostPort(s.config.Host, strconv.Itoa(s.config.Port))
 
 	dialer := net.Dialer{Timeout: s.config.Timeout}
@@ -141,11 +148,13 @@ func (s *SMTPSender) Send(ctx context.Context, message Message) error {
 		}
 	}
 
-	if err := client.Mail(s.config.From); err != nil {
+	envelopeFrom, _ := netmail.ParseAddress(s.config.From)
+	envelopeTo, _ := netmail.ParseAddress(message.To)
+	if err := client.Mail(envelopeFrom.Address); err != nil {
 		return fmt.Errorf("no se pudo indicar el remitente: %w", err)
 	}
 
-	if err := client.Rcpt(message.To); err != nil {
+	if err := client.Rcpt(envelopeTo.Address); err != nil {
 		return fmt.Errorf("no se pudo indicar el destinatario: %w", err)
 	}
 
@@ -154,7 +163,6 @@ func (s *SMTPSender) Send(ctx context.Context, message Message) error {
 		return fmt.Errorf("no se pudo iniciar el cuerpo del correo: %w", err)
 	}
 
-	body := buildMessage(s.config.From, message)
 	if _, err := writer.Write([]byte(body)); err != nil {
 		return fmt.Errorf("no se pudo escribir el cuerpo del correo: %w", err)
 	}
@@ -177,19 +185,6 @@ func (s *SMTPSender) Send(ctx context.Context, message Message) error {
  * @returns {string} Mensaje listo para enviar.
  */
 func buildMessage(from string, message Message) string {
-	var builder strings.Builder
-
-	builder.WriteString("From: " + from + "\r\n")
-	builder.WriteString("To: " + message.To + "\r\n")
-	builder.WriteString("Subject: " + message.Subject + "\r\n")
-	builder.WriteString("MIME-Version: 1.0\r\n")
-	if id, err := uuid.Parse(message.ID); err == nil {
-		builder.WriteString("Message-ID: <" + id.String() + "@notificaciones.biess.local>\r\n")
-	}
-	builder.WriteString("Content-Type: text/plain; charset=UTF-8\r\n")
-	builder.WriteString("\r\n")
-	builder.WriteString(message.Body)
-	builder.WriteString("\r\n")
-
-	return builder.String()
+	body, _ := composeMessage(from, message)
+	return body
 }

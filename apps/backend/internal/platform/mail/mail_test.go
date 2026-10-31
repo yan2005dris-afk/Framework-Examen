@@ -3,7 +3,11 @@ package mail
 import (
 	"bufio"
 	"context"
+	"io"
+	"mime"
+	"mime/quotedprintable"
 	"net"
+	netmail "net/mail"
 	"strings"
 	"testing"
 	"time"
@@ -108,13 +112,20 @@ func TestSMTPSenderSend(t *testing.T) {
 
 	select {
 	case received := <-server.messages:
-		if !strings.Contains(received, "To: postulante@example.com") {
+		parsed, parseErr := netmail.ReadMessage(strings.NewReader(received))
+		if parseErr != nil {
+			t.Fatal(parseErr)
+		}
+		recipient, parseErr := netmail.ParseAddress(parsed.Header.Get("To"))
+		if parseErr != nil || recipient.Address != "postulante@example.com" {
 			t.Fatalf("falta el destinatario en el correo: %s", received)
 		}
-		if !strings.Contains(received, "Subject: Recuperación de contraseña") {
+		subject, decodeErr := new(mime.WordDecoder).DecodeHeader(parsed.Header.Get("Subject"))
+		if decodeErr != nil || subject != "Recuperación de contraseña" {
 			t.Fatalf("falta el asunto en el correo: %s", received)
 		}
-		if !strings.Contains(received, "Tu código es 123456.") {
+		decodedBody, decodeErr := io.ReadAll(quotedprintable.NewReader(parsed.Body))
+		if decodeErr != nil || !strings.Contains(string(decodedBody), "Tu código es 123456.") {
 			t.Fatalf("falta el cuerpo en el correo: %s", received)
 		}
 	case <-time.After(5 * time.Second):

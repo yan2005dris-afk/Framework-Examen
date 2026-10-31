@@ -1,6 +1,4 @@
 -- Esquema que consume sqlc. Se regenera desde las migraciones con `make db-schema`.
-
-
 CREATE TABLE applicants (
     id                UUID PRIMARY KEY,
     cedula            VARCHAR(10)  NOT NULL UNIQUE,
@@ -29,7 +27,6 @@ CREATE TABLE submissions (
 CREATE INDEX submissions_applicant_idx ON submissions (applicant_id, updated_at DESC);
 
 
-
 -- Identificadores ordenados en el tiempo (RFC 9562, UUIDv7).
 --
 -- La función uuidv7() es nativa de PostgreSQL 18: el motor debe estar
@@ -44,7 +41,6 @@ ALTER TABLE submissions ALTER COLUMN id SET DEFAULT uuidv7();
 
 DROP INDEX IF EXISTS submissions_applicant_idx;
 CREATE INDEX submissions_applicant_idx ON submissions (applicant_id, updated_at DESC, id DESC);
-
 
 
 -- Contexto de identidad: contraseñas con Argon2id, sesiones en PostgreSQL
@@ -76,7 +72,6 @@ CREATE TABLE IF NOT EXISTS password_resets (
 );
 
 CREATE INDEX IF NOT EXISTS password_resets_applicant_idx ON password_resets (applicant_id);
-
 
 
 CREATE TABLE documents (
@@ -112,11 +107,9 @@ CREATE TRIGGER document_deletion_queue AFTER DELETE ON documents
 FOR EACH ROW EXECUTE FUNCTION enqueue_document_deletion();
 
 
-
 ALTER TABLE applicants
     ADD COLUMN role VARCHAR(32) NOT NULL DEFAULT 'postulante'
     CONSTRAINT applicants_role_check CHECK (role IN ('postulante', 'analista'));
-
 
 
 CREATE TABLE submission_events (
@@ -130,7 +123,6 @@ CREATE TABLE submission_events (
 
 CREATE INDEX submission_events_submission_idx
     ON submission_events (submission_id, created_at, id);
-
 
 
 ALTER TABLE applicants DROP CONSTRAINT applicants_role_check;
@@ -192,7 +184,6 @@ CREATE TRIGGER administrative_access_immutable BEFORE UPDATE OR DELETE OR TRUNCA
     FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();
 CREATE TRIGGER applicant_role_events_immutable BEFORE UPDATE OR DELETE OR TRUNCATE ON applicant_role_events
     FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();
-
 
 
 -- Generado con go run ./cmd/catalog-seed; fuente: submission.FormDefinition().
@@ -714,7 +705,6 @@ INSERT INTO catalogs (kind, parent_key, parent_id, value, position) VALUES
 ON CONFLICT (kind, parent_key, value) DO NOTHING;
 
 
-
 -- El historial sobrevive a la baja de borradores/cuentas. No contiene sus datos personales.
 ALTER TABLE submission_events DROP CONSTRAINT submission_events_submission_id_fkey;
 ALTER TABLE submission_events DROP CONSTRAINT submission_events_applicant_id_fkey;
@@ -790,7 +780,6 @@ CREATE TABLE workflow_events (
 CREATE INDEX workflow_events_submission_idx ON workflow_events (submission_id, created_at DESC, id DESC);
 CREATE TRIGGER workflow_events_immutable BEFORE UPDATE OR DELETE OR TRUNCATE ON workflow_events
     FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();
-
 
 
 -- Registro de períodos para T9. T18 gestionará aprobación, fases y publicación.
@@ -880,7 +869,6 @@ CREATE TRIGGER competitions_no_truncate BEFORE TRUNCATE ON competitions
     FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();
 
 
-
 -- Nunca persistir OTP, destinatario ni formulario de un correo en texto claro.
 CREATE TABLE mail_outbox (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
@@ -901,7 +889,6 @@ CREATE TABLE mail_outbox (
 CREATE INDEX mail_outbox_pending_idx ON mail_outbox(next_attempt_at,created_at)
     WHERE status IN ('pending','processing');
 CREATE INDEX mail_outbox_resource_idx ON mail_outbox(resource_id,created_at DESC,id DESC);
-
 
 
 ALTER TABLE workflow_events DROP CONSTRAINT workflow_events_action_check;
@@ -1006,3 +993,61 @@ END; $$;
 -- +goose StatementEnd
 CREATE TRIGGER documents_window BEFORE INSERT OR UPDATE OR DELETE ON documents
  FOR EACH ROW EXECUTE FUNCTION enforce_document_window();
+
+
+CREATE TABLE merit_rule_streams (
+ competition_id UUID NOT NULL REFERENCES competitions(id), sector TEXT NOT NULL CHECK(sector IN ('afiliados','jubilados','empleadores')),
+ version BIGINT NOT NULL DEFAULT 0, active_rule_id UUID, PRIMARY KEY(competition_id,sector)
+);
+CREATE TABLE merit_rule_sets (
+ id UUID PRIMARY KEY DEFAULT uuidv7(), competition_id UUID NOT NULL REFERENCES competitions(id), sector TEXT NOT NULL,
+ version BIGINT NOT NULL CHECK(version>0), definition JSONB NOT NULL, definition_hash VARCHAR(64) NOT NULL,
+ approved BOOLEAN NOT NULL DEFAULT false, approval_reference VARCHAR(2000), approved_by UUID, approved_at TIMESTAMPTZ,
+ actor_id UUID NOT NULL, created_at TIMESTAMPTZ NOT NULL, UNIQUE(competition_id,sector,version), UNIQUE(id,competition_id,sector),
+ CHECK(NOT approved OR (approval_reference IS NOT NULL AND approved_by IS NOT NULL AND approved_at IS NOT NULL))
+);
+ALTER TABLE merit_rule_streams ADD CONSTRAINT merit_active_rule FOREIGN KEY(active_rule_id,competition_id,sector) REFERENCES merit_rule_sets(id,competition_id,sector);
+CREATE TABLE merit_case_streams (
+ submission_id UUID PRIMARY KEY REFERENCES submissions(id), review_id UUID, calculation_id UUID, publication_id UUID
+);
+CREATE TABLE merit_reviews (
+ id UUID PRIMARY KEY, submission_id UUID NOT NULL REFERENCES submissions(id), version BIGINT NOT NULL CHECK(version>0),
+ rule_set_id UUID NOT NULL REFERENCES merit_rule_sets(id), payload JSONB NOT NULL, UNIQUE(submission_id,version), UNIQUE(id,submission_id)
+);
+CREATE TABLE merit_calculations (
+ id UUID PRIMARY KEY, submission_id UUID NOT NULL REFERENCES submissions(id), version BIGINT NOT NULL CHECK(version>0),
+ review_id UUID NOT NULL, rule_set_id UUID NOT NULL REFERENCES merit_rule_sets(id),
+ payload JSONB NOT NULL, UNIQUE(submission_id,version), UNIQUE(id,submission_id),
+ FOREIGN KEY(review_id,submission_id) REFERENCES merit_reviews(id,submission_id)
+);
+CREATE TABLE merit_publications (
+ id UUID PRIMARY KEY, submission_id UUID NOT NULL REFERENCES submissions(id), version BIGINT NOT NULL CHECK(version>0),
+ calculation_id UUID NOT NULL, supersedes_id UUID,
+ decision TEXT NOT NULL CHECK(decision IN ('avanza','excluido')), payload JSONB NOT NULL, UNIQUE(submission_id,version), UNIQUE(id,submission_id),
+ FOREIGN KEY(calculation_id,submission_id) REFERENCES merit_calculations(id,submission_id),
+ FOREIGN KEY(supersedes_id,submission_id) REFERENCES merit_publications(id,submission_id)
+);
+ALTER TABLE merit_case_streams ADD FOREIGN KEY(review_id,submission_id) REFERENCES merit_reviews(id,submission_id);
+ALTER TABLE merit_case_streams ADD FOREIGN KEY(calculation_id,submission_id) REFERENCES merit_calculations(id,submission_id);
+ALTER TABLE merit_case_streams ADD FOREIGN KEY(publication_id,submission_id) REFERENCES merit_publications(id,submission_id);
+
+CREATE TRIGGER merit_reviews_immutable BEFORE UPDATE OR DELETE OR TRUNCATE ON merit_reviews FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();
+CREATE TRIGGER merit_calculations_immutable BEFORE UPDATE OR DELETE OR TRUNCATE ON merit_calculations FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();
+CREATE TRIGGER merit_publications_immutable BEFORE UPDATE OR DELETE OR TRUNCATE ON merit_publications FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();
+CREATE TRIGGER merit_rules_no_delete BEFORE DELETE OR TRUNCATE ON merit_rule_sets FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();
+-- +goose StatementBegin
+CREATE FUNCTION protect_merit_rules() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF OLD.approved OR NOT NEW.approved OR (NEW.id,NEW.competition_id,NEW.sector,NEW.version,NEW.definition,NEW.definition_hash,NEW.actor_id,NEW.created_at)
+ IS DISTINCT FROM (OLD.id,OLD.competition_id,OLD.sector,OLD.version,OLD.definition,OLD.definition_hash,OLD.actor_id,OLD.created_at) THEN
+  RAISE EXCEPTION 'Las reglas se versionan; una aprobación no modifica su definición';
+ END IF;
+ RETURN NEW;
+END; $$;
+-- +goose StatementEnd
+CREATE TRIGGER merit_rules_immutable BEFORE UPDATE ON merit_rule_sets FOR EACH ROW EXECUTE FUNCTION protect_merit_rules();
+ALTER TABLE workflow_events DROP CONSTRAINT workflow_events_action_check;
+ALTER TABLE workflow_events ADD CONSTRAINT workflow_events_action_check CHECK(action IN (
+ 'convocatoria.creada','convocatoria.configurada','fase.publicada','fase.habilitada','fase.cerrada','elegibilidad.verificada',
+ 'meritos.reglas_creadas','meritos.reglas_aprobadas','meritos.revisados','meritos.calificados','evaluacion.iniciada','evaluacion.finalizada',
+ 'reconsideracion.presentada','reconsideracion.resuelta','resultado.publicado'));
