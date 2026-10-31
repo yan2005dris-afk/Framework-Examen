@@ -116,6 +116,12 @@ La documentación completa vive en [`docs/`](docs/):
 | [`docs/decisions/`](docs/decisions/) | Decisiones de arquitectura (ADR) |
 | [`docs/deployment/`](docs/deployment/) | Despliegue local y en producción |
 | [`docs/tasks/`](docs/tasks/) | Trabajo pendiente, mapeado a la rúbrica |
+| [`docs/mockups/`](docs/mockups/) | Mockups HTML de las 36 pantallas (referencia de diseño y contrato de migración) |
+
+Para ver las pantallas, abre [`docs/mockups/index.html`](docs/mockups/index.html)
+en el navegador: es HTML estático, sin servidor ni build. La guía de migración
+(mapa pantalla → historia de usuario → componente shadcn) está en
+[`docs/mockups/README.md`](docs/mockups/README.md).
 
 Para las convenciones del repositorio y el flujo de trabajo, ver
 [`AGENTS.md`](AGENTS.md).

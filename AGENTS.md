@@ -11,9 +11,13 @@ tocar código y actualízalo cuando cambie una convención.
 
 - `apps/frontend/` — SPA: React 19 + Vite 8 + Tailwind v4 + shadcn/ui
 - `apps/backend/` — API: Go 1.27 (chi + pgx/Postgres)
-- `mockups/` — mockup original. Referencia de flujo, copy y lógica de las 9 vistas.
-  **Temporal y local**: está en `.gitignore` (no se versiona) y se elimina cuando
-  termine la migración de vistas a shadcn/ui.
+- `docs/mockups/` — set de mockups HTML estático (36 pantallas) que es la **referencia
+  de diseño y contrato de migración** a shadcn/ui. Se versiona. Los nombres de clase
+  de `docs/mockups/assets/app.css` son el contrato: cada clase corresponde a un
+  componente de shadcn. Guía de migración en `docs/mockups/README.md`. Los datos de
+  negocio del expediente de ejemplo viven en `docs/mockups/fixtures/` y se validan
+  con `node docs/mockups/scripts/check-consistencia.mjs` (datos y enlaces) y
+  `node docs/mockups/scripts/check-contrato.mjs` (clases, etiquetas y a11y).
 
 ## Stack
 
@@ -57,6 +61,8 @@ Desde la raíz del repo:
 - Backend build:  `cd apps/backend && go build ./...`
 - Backend tests:  `cd apps/backend && go test ./...`
 - Stack completo: `docker compose up -d` — api, frontend, postgres y mailpit
+- Mockups (datos y enlaces):  `node docs/mockups/scripts/check-consistencia.mjs`
+- Mockups (contrato y a11y):   `node docs/mockups/scripts/check-contrato.mjs`
 
 El compose de desarrollo vive en `compose.yaml` (raíz). El de producción en
 `deploy/compose.yaml` y lee sus variables de `deploy/.env`:
@@ -260,7 +266,9 @@ Definido en `.gitignore`:
 - Secretos: `.env*` (salvo `.env.example`), `*.pem`, `*.key`, `*.p12`
 - Documentos y adjuntos de postulantes: `*.pdf`, `*.doc(x)`, `*.xls(x)`, `*.ppt(x)`,
   `apps/backend/data/`, `uploads/`, `storage/`
-- `mockups/` — referencia local del mockup original
+- `/mockups/` (raíz) — el mockup original en React ya no está en el repo; la regla de
+  `.gitignore` se conserva como red de seguridad para que una copia local nunca se
+  versione por accidente. El set vigente es `docs/mockups/`.
 
 ## Decisiones
 
@@ -275,6 +283,7 @@ decisión que afecte cómo se trabaja en el repo.
 | 2026-10-30 | shadcn/ui con preset `radix-nova` y primitivas Radix | Alineado con shadcn-admin; base neutral + iconos Lucide. |
 | 2026-10-30 | TypeScript fijado en `~6.0.3` | typescript-eslint no soporta TS 7.0; con ESLint activo la 6.x es la última compatible. |
 | 2026-10-30 | `mockups/` se conserva como referencia temporal | Fuente de las 9 vistas y del copy pendientes de migrar a shadcn/ui. |
+| 2026-10-31 | El set de mockups se versiona en `docs/mockups/` (HTML estático) y el `mockups/` de la raíz se elimina | El set nuevo reemplaza al mockup original de React: sin build ni dependencias, versionable y con las clases de `app.css` como contrato de migración a shadcn/ui. El mockup original ya no aporta nada y se iba a borrar igual. |
 | 2026-10-30 | Trabajo directo sobre `develop`, sin rama obligatoria | El equipo integra directo; `feature/*` queda como opción para trabajos grandes. |
 | 2026-10-30 | Backend en Go con `chi` v5 (en vez de Gin o Fiber) | chi opera sobre `*http.Request` nativo: interoperable con la stdlib y con `multipart`, clave para los PDF adjuntos; Fiber obliga a `fasthttp.RequestCtx` y a cargar el cuerpo entero en memoria. |
 | 2026-10-30 | Backend organizado por bounded contexts (`internal/<contexto>/<capacidad>`) con `platform/` transversal | Screaming architecture: las carpetas dicen qué hace el sistema. Referencia: `CotizacionCamisas/apps/backend`. |
@@ -304,3 +313,5 @@ decisión que afecte cómo se trabaja en el repo.
 
 | 2026-10-31 | Identidad falla cerrada sin Redis; OTP por finalidad/desafío/cuenta/correo con scripts atómicos | La corrección de INFORME-BACKEND-T1-T9 sustituye el consumo Get/Delete y el pipeline de intentos. Catálogos sí conservan fallback a PostgreSQL. Reenvío 60 s, tres emisiones/10 min y tres intentos por desafío; el TTL de la ventana no se renueva. |
 | 2026-10-31 | Cola de correo cifrada y confirmación durable dentro del sello | `MAIL_OUTBOX_KEY` es base64 de 32 bytes aleatorios estables, inyectada fuera del repo. `mail_outbox` usa AES-GCM, leases, reintentos y vencimiento; SMTP ocurre después del commit. `smtp_accepted` no significa llegada al buzón. No aceptar sellos que no puedan registrar su confirmación. Contrato: `docs/api-contracts/IDENTITY_SECURITY.md`. |
+| 2026-10-31 | El set de mockups tiene una sola fuente de verdad (`docs/mockups/fixtures/`) y dos verificadores sin dependencias (`check-consistencia.mjs`, `check-contrato.mjs`) | La revisión y la crítica de diseño Detectaron que el set mostraba tres versiones del mismo expediente (hash, fechas y adjuntos distintos). Un fixture único más dos scripts hace que la contradicción sea imposible de reintroducir: si un valor cambia, el script falla en vez de dejar dos pantallas discrepantes. |
+| 2026-10-31 | En los mockups, el folio de la hoja imprimible se genera en el margin box de `@page` | Es el único contexto donde los contadores `page` y `pages` devuelven el número real de página; con `position: fixed` el contador queda en 0. |

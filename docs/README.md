@@ -18,6 +18,12 @@ docs/
 ├── README.md                     # este índice
 ├── requerimiento.txt             # texto del RF del IESS (fuente funcional, versionada)
 ├── requerimiento.pdf             # PDF original del RF (local, no versionado: regla *.pdf)
+├── mockups/                      # mockups HTML de las 36 pantallas (referencia de migración)
+│   ├── index.html                # galería: se abre en el navegador, sin servidor
+│   ├── README.md                 # mapa pantalla → HU → componente shadcn
+│   ├── assets/                   # tokens.css, app.css (contrato de clases), mock.js
+│   ├── fixtures/                 # fuente de verdad de los datos del expediente de ejemplo
+│   └── scripts/                  # check-consistencia.mjs, check-contrato.mjs
 ├── prd/
 │   └── PRD.md                    # qué se construye y por qué (producto)
 ├── trd/
@@ -63,6 +69,8 @@ docs/
 | [`deployment/PRODUCTION_DEPLOYMENT.md`](deployment/PRODUCTION_DEPLOYMENT.md) | Topología, TLS, secretos, backup, monitoreo, rollback | Operaciones |
 | [`tasks/backend-tasks.md`](tasks/backend-tasks.md) | Tareas backend priorizadas y mapeadas a los 6 criterios de la rúbrica | Ingeniería |
 | [`tasks/frontend-tasks.md`](tasks/frontend-tasks.md) | Tareas frontend priorizadas y mapeadas a los 6 criterios de la rúbrica | Ingeniería |
+| [`mockups/index.html`](mockups/index.html) | Galería de las 36 pantallas del sistema en HTML estático (sin build) | Frontend, Diseño |
+| [`mockups/README.md`](mockups/README.md) | Mapa pantalla → historia de usuario → componente shadcn, tokens y reglas del set | Frontend |
 
 ---
 
@@ -102,6 +110,9 @@ del proyecto. Las matrices de las tareas separan planificación de implementaci�
 - **¿Por qué está hecho así?** → [`decisions/`](decisions/)
 - **¿Cómo lo levanto?** → [`deployment/LOCAL_DEPLOYMENT.md`](deployment/LOCAL_DEPLOYMENT.md)
 - **¿Qué falta?** → [`tasks/`](tasks/)
+- **¿Cómo se ve cada pantalla?** → [`mockups/index.html`](mockups/index.html) (abre
+  `docs/mockups/index.html` en el navegador) y la guía de migración en
+  [`mockups/README.md`](mockups/README.md)
 
 ## Convenciones de los documentos
 
