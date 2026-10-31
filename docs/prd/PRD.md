@@ -6,12 +6,12 @@ Ecuatoriano de Seguridad Social (BIESS)
 
 | Campo | Valor |
 |---|---|
-| Documento | PRD v1.0 |
+| Documento | PRD v1.1 |
 | Fuente funcional | `docs/requerimiento.txt` (texto del Requerimiento Funcional v1.4, 26/03/2026; el PDF original se conserva localmente) |
 | Marco legal | Resolución No. C.D. 701 — Disposición Transitoria Primera |
 | Ámbito del parcial | Módulo inicial de registro y postulación (EF-11, EF-12 y parte de EF-13) |
 | Asignatura | Frameworks de Programación Web |
-| Estado | En construcción — el alcance del parcial está definido; EF-13/EF-14 quedan fuera de la entrega |
+| Estado | En construcción — módulo inicial y backlog integral del RF diferenciados |
 
 ---
 
@@ -72,7 +72,7 @@ auditoría frente a los órganos de control.
 
 | Código | Especificación funcional | Estado |
 |---|---|---|
-| EF-11 | Registrar postulantes y autenticar su acceso | Parcial (registro y login listos; interoperabilidad real del Registro Civil simulada) |
+| EF-11 | Registrar postulantes y autenticar su acceso | Base OTP y vistas de autenticación disponibles; consolidación T16/FT16 pendiente (ADR-008) |
 | EF-12 | Formulario de postulación (9 secciones) | Parcial (CRUD y dominio listos; falta el flujo completo de secciones) |
 | EF-13 | Módulo de administración | Parcial (dashboard en el mockup; falta matriz y exportación) |
 
@@ -81,8 +81,27 @@ auditoría frente a los órganos de control.
 | Código | Especificación funcional | Motivo |
 |---|---|---|
 | EF-14 | Banco de preguntas y evaluación teórica | No pertenece al módulo inicial evaluado |
-| — | Interoperabilidad real con Registro Civil e Historial Laboral del IESS | No hay acceso a los sistemas del IESS; se **simula** con el algoritmo módulo 10 y una tabla de situación laboral |
+| — | Interoperabilidad real con Registro Civil e Historial Laboral del IESS | Registro Civil sustituido por módulo 10 + OTP (ADR-008). Historial Laboral se abstrae con una fuente simulada de servidor pendiente de T17 |
 | — | Notificaciones a cientos de postulantes en producción | El envío SMTP queda implementado; la campaña masiva es del módulo de administración |
+
+---
+
+### 3.3 Cobertura del producto completo y adaptación de identidad
+
+Las exclusiones del parcial no convierten EF-13, EF-14, méritos, oposición
+psicotécnica, reconsideraciones y listas de elegibles en mejoras opcionales.
+Su planificación integral está en las secciones 8–9 de
+[backend-tasks.md](../tasks/backend-tasks.md) y
+[frontend-tasks.md](../tasks/frontend-tasks.md). El RF no proporciona todas las
+fórmulas, umbrales ni duraciones; esas definiciones deben ser entregadas por el
+responsable antes de fijar valores en la implementación.
+
+Por decisión del proyecto, el registro y recuperación usan **OTP por correo**,
+sin fecha de expedición ni código dactilar. Se valida la estructura de la cédula
+por módulo 10 y la posesión del correo por OTP; no se certifica identidad civil.
+Los datos personales que no estén en la cuenta se declaran en EF-12. La fuente
+`requerimiento.txt` conserva la redacción original y
+[ADR-008](../decisions/ADR-008-registro-y-recuperacion-con-otp.md) registra la adaptación.
 
 ---
 
@@ -99,25 +118,27 @@ auditoría frente a los órganos de control.
 
 ## 5. Historias de usuario
 
-### HU-01 — Validación de identidad en el registro
+### HU-01 — Registro con cédula y OTP por correo
 
-**Como** postulante **quiero** que el sistema valide mi identidad con mi cédula
-**para** garantizar que solo personas reales se registren.
+**Como** postulante **quiero** registrar mi cuenta validando mi cédula y el acceso
+a mi correo **para** utilizar el portal sin depender de Registro Civil.
 
 **Criterios de aceptación**
 
-1. El sistema solicita la **cédula** (10 dígitos).
-2. El sistema valida la **fecha de expedición** (DD/MM/AAAA) o el **código
-   dactilar** (10 dígitos).
-3. Si la validación es correcta, se solicita **correo electrónico** y
-   **contraseña**.
-4. Si la validación es incorrecta, se muestra el mensaje
-   *"la información ingresada es incorrecta"*.
-5. En un entorno sin interoperabilidad real con el Registro Civil, la
-   comprobación se realiza con el **algoritmo módulo 10** del Registro Civil
-   (código de provincia 01–24 o 30, tercer dígito < 6, dígito verificador).
+1. Solicitar cédula de diez dígitos y correo; validar módulo 10 y sintaxis de correo.
+2. Enviar OTP de seis dígitos con vigencia actual de diez minutos mediante
+   `POST /api/v1/auth/register/request`.
+3. Completar nombres, apellidos, contraseña y OTP con
+   `POST /api/v1/auth/register/verify`; crear la cuenta solo tras verificar el desafío.
+4. El desafío debe vincular cédula, correo y finalidad de registro; consumo de uso
+   único, bloqueo y reenvío se completan en T16. No solicitar fecha de expedición
+   ni código dactilar, ni presentar OTP como certificación de Registro Civil.
+5. Persistir `metodo_validacion = otp_correo` y rol inicial `postulante`.
+6. Precargar en EF-12 los datos disponibles de la cuenta; los restantes, incluidos
+   género, nacimiento, nacionalidad, estado civil y pareja, se declaran en el formulario.
 
-> **RF**: EF-11, punto 4.
+> **RF de origen:** EF-11.4 y EF-12 1.1. **Adaptación aprobada:** ADR-008.
+> El TTL del OTP es una decisión técnica; no debe confundirse con el bloqueo del RF.
 
 ### HU-02 — Bloqueo temporal tras intentos fallidos
 
@@ -156,20 +177,23 @@ intentos automatizados.
 
 > **RF**: EF-11, puntos 5 y 6.
 
-### HU-04 — Recuperación de contraseña
+### HU-04 — Recuperación de contraseña con OTP
 
-**Como** postulante **quiero** recuperar mi contraseña **para** volver a entrar.
+**Como** postulante **quiero** recuperar mi contraseña mediante mi correo registrado
+**para** volver a entrar sin depender del servicio de Registro Civil.
 
 **Criterios de aceptación**
 
-1. Existe un enlace *"¿Olvidaste tu contraseña?"* en la pantalla de login.
-2. El postulante ingresa su cédula y la fecha de expedición o el código
-   dactilar.
-3. Si la validación es correcta, el sistema envía un correo automático a la
-   dirección registrada con el enlace de restablecimiento.
-4. El enlace permite definir una contraseña nueva.
+1. Ofrecer «¿Olvidaste tu contraseña?» desde login y solicitar la cédula.
+2. `POST /api/v1/auth/password/forgot` envía OTP exclusivamente al correo de la
+   cuenta registrada y responde un mensaje genérico sin revelar si la cuenta existe.
+3. Introducir cédula, OTP y contraseña nueva en `POST /api/v1/auth/password/reset`.
+4. Comprobar el desafío con propósito de recuperación, expiración y uso único,
+   actualizar el hash, invalidar sesiones anteriores y permitir iniciar sesión de nuevo.
+5. No solicitar fecha de expedición ni código dactilar, ni permitir cambiar el
+   destinatario del OTP durante la recuperación.
 
-> **RF**: EF-11, punto 6.
+> **RF de origen:** EF-11.6. **Adaptación aprobada:** ADR-008. Consolidación en T16/FT16.
 
 ### HU-05 — Formulario de postulación en 9 secciones
 
@@ -333,7 +357,7 @@ destino del trabajo descrito en [`../tasks/`](../tasks/).
 
 | RF | Punto | HU | Ubicación en el código | Estado |
 |---|---|---|---|---|
-| EF-11 | 4 — Registro y validación | HU-01 | `apps/backend/internal/identity/applicant.go` | ✅ Implementado |
+| EF-11 adaptado | Registro y OTP | HU-01 | `apps/backend/internal/identity/` y `platform/cache/otp.go` | Base disponible; consolidación T16 (ADR-008) |
 | EF-11 | 4 — 3 intentos y bloqueo | HU-02 | `apps/backend/internal/platform/cache/` | ⬜ Planificada |
 | EF-11 | 5 — Login | HU-03 | `apps/backend/internal/identity/service.go` | ⬜ Planificada |
 | EF-11 | 6 — Recuperación | HU-04 | `apps/backend/internal/identity/service.go` | ⬜ Planificada |
@@ -377,7 +401,7 @@ destino del trabajo descrito en [`../tasks/`](../tasks/).
 
 | # | Riesgo | Mitigación |
 |---|---|---|
-| R-01 | No hay acceso a los sistemas del IESS (Registro Civil, Historial Laboral) | Simulación con el algoritmo módulo 10 y una tabla `situacion_laboral`; la interfaz queda encapsulada para conectar el servicio real |
+| R-01 | No hay acceso a los sistemas del IESS (Registro Civil, Historial Laboral) | Registro Civil no se utiliza: módulo 10 + OTP por correo según ADR-008. Historial Laboral usa un puerto de elegibilidad y fuente simulada de servidor (T17); no confiar en flags del cliente |
 | R-02 | La rúbrica menciona Fiber o Gin y el proyecto usa chi | ADR-001 con la justificación técnica; la arquitectura en capas es idéntica y es lo que se evalúa |
 | R-03 | Volumen alto de postulaciones en el dashboard | Paginación por cursor (keyset) y caché Redis para los conteos |
 | R-04 | Datos personales sensibles en el repositorio | `.gitignore` estricto, hashes de documentos, sin logs de contenido |
@@ -395,7 +419,7 @@ destino del trabajo descrito en [`../tasks/`](../tasks/).
 | TRD | Technical Requirements Document — requisitos técnicos |
 | ADR | Architecture Decision Record — decisión de arquitectura registrada |
 | Sector | Representación por la que postula: Afiliados, Jubilados o Empleadores |
-| Código dactilar | Código de 10 dígitos del Registro Civil para validar identidad |
+| OTP | Código de un solo uso enviado por correo; el proyecto utiliza seis dígitos y TTL actual de diez minutos |
 | Hash criptográfico | Huella SHA-256 del contenido canónico de una postulación |
 
 ---

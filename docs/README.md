@@ -35,7 +35,8 @@ docs/
 │   ├── ADR-004-ingles-en-codigo-espanol-en-comentarios.md
 │   ├── ADR-005-paginacion-offset-y-cursor.md
 │   ├── ADR-006-sesiones-en-base-de-datos.md
-│   └── ADR-007-postgresql-18-y-uuidv7.md
+│   ├── ADR-007-postgresql-18-y-uuidv7.md
+│   └── ADR-008-registro-y-recuperacion-con-otp.md
 ├── deployment/
 │   ├── LOCAL_DEPLOYMENT.md       # entorno de desarrollo
 │   └── PRODUCTION_DEPLOYMENT.md  # entorno de producción
@@ -76,8 +77,17 @@ consecuencias. Son cortos y se leen en minutos.
 | [ADR-005](decisions/ADR-005-paginacion-offset-y-cursor.md) | Paginación offset y cursor sobre un kernel compartido | Aceptada |
 | [ADR-006](decisions/ADR-006-sesiones-en-base-de-datos.md) | Sesiones en PostgreSQL con cookie `HttpOnly` | Aceptada |
 | [ADR-007](decisions/ADR-007-postgresql-18-y-uuidv7.md) | PostgreSQL 18 y UUIDv7 como estrategia de identificadores | Aceptada |
+| [ADR-008](decisions/ADR-008-registro-y-recuperacion-con-otp.md) | Registro y recuperación con OTP por correo, sin Registro Civil | Aceptada |
 
 ---
+
+## Alcance funcional y adaptación vigente
+
+`requerimiento.txt` conserva el RF v1.4 original. Las tareas de backend y frontend
+incluyen su cobertura integral, también EF-13/EF-14 y los procesos generales de
+méritos, psicotécnica y reconsideraciones. Registro y recuperación se adaptan a
+OTP por correo (ADR-008): fecha de expedición y código dactilar no son requisitos
+del proyecto. Las matrices de las tareas separan planificación de implementación.
 
 ## Cómo leer la documentación
 

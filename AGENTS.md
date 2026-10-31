@@ -38,6 +38,9 @@ tocar código y actualízalo cuando cambie una convención.
 - Módulo Go **independiente**: `apps/backend/` no es paquete pnpm, no lo instales con pnpm
 - Config por entorno: `PORT`, `APP_ENV`, `APP_URL`, `DATABASE_URL`, `DB_REQUIRED`,
   `STORAGE_DIR`, `CORS_ALLOWED_ORIGINS`, `SESSION_TTL`, `MAX_REQUEST_BODY_BYTES`, `LOG_LEVEL`
+- Identidad: registro y recuperación mediante **OTP por correo** (`otp_correo`),
+  cédula por módulo 10. No solicitar fecha de expedición ni código dactilar ni
+  presentar los datos como verificados por Registro Civil. Ver ADR-008.
 - Correo por SMTP: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_TLS`
   (en desarrollo apunta a Mailpit)
 
@@ -284,3 +287,5 @@ decisión que afecte cómo se trabaja en el repo.
 
 | 2026-10-31 | Documentos PDF con cuota por postulante y referencia confirmada en la misma transacción | Bloquear postulante y luego postulación serializa la cuota de 50 MiB entre todas sus postulaciones; el envío verifica cada respaldo y sella su SHA-256. |
 | 2026-10-31 | Descargas temporales desde servidor local separado o S3; cola persistente de bajas | La API no hace proxy de PDFs. El modo local firma URLs HMAC de cinco minutos; S3 usa SigV4. Los borrados y las cascadas generan tareas reintentables dentro de PostgreSQL. |
+
+| 2026-10-31 | Registro y recuperación con OTP por correo, sin validación dactilar ni fecha de expedición | No existe acceso a Registro Civil. Se valida módulo 10 y acceso al correo; los demás datos personales son declarados. El RF original se conserva y la adaptación se documenta en ADR-008. |

@@ -313,6 +313,15 @@ cliente lo reenvía, no lo interpreta.
 
 ---
 
+### 6.1 Identidad adaptada mediante OTP
+
+Registro y recuperación usan OTP de seis dígitos enviado por SMTP, TTL actual de
+diez minutos, cédula validada por módulo 10 y método `otp_correo`. No se solicita
+fecha de expedición ni código dactilar. Los datos de EF-12 no se presentan como
+verificados por Registro Civil. La adaptación está aprobada en ADR-008; T16 cubre
+los controles pendientes de vinculación, propósito, consumo atómico y reenvío.
+El detalle de endpoints vigentes está en el contrato, sección 5.
+
 ## 7. Caché y control de intentos (Redis)
 
 **Objetivo**: cumplir el EF-11 (3 intentos → bloqueo de 10 minutos) y cachear

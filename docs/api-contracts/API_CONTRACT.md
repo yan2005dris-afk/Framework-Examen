@@ -11,7 +11,7 @@ Contrato HTTP v1.0
 | TRD asociado | [`../trd/TRD.md`](../trd/TRD.md) |
 
 > **Estado**: este documento describe el contrato **vigente** (el contexto
-> `submission`, `document` y los endpoints transversales) y **anticipa** el de los contextos
+> `identity`, `submission`, `document` y los endpoints transversales) y **anticipa** el de los contextos
 > que faltan. Los endpoints marcados como *planificado* todavía no existen en
 > el servidor: su forma está declarada para que el frontend y el backend se
 > desarrollen en paralelo sin sorpresas.
@@ -33,8 +33,9 @@ Contrato HTTP v1.0
   `Secure` en producción.
 - El token **nunca** se devuelve en el cuerpo de la respuesta ni se guarda en
   `localStorage`: el frontend no lo puede leer.
-- Rutas públicas: `GET /healthz`, `GET /readyz`, `POST /api/v1/auth/register`,
-  `POST /api/v1/auth/login`, `POST /api/v1/auth/password/forgot`.
+- Rutas públicas: `GET /healthz`, `GET /readyz`, `/api/v1/auth/register/request`,
+  `/register/verify`, `/login`, `/password/forgot` y `/password/reset` (las rutas
+  abreviadas comparten el prefijo `/api/v1/auth` y usan `POST`).
 
 ### 1.3 Cabeceras
 
@@ -431,7 +432,9 @@ los mismos casos de prueba para años, meses y días, incluidos febrero y bisies
 **Límites de integración:** `verificacionIessCumplida` es actualmente un estado
 declarado por el cliente. Se valida la regla y se rechaza el estado negativo
 con el mensaje del RF, pero **todavía no se consulta al IESS**. Del mismo modo,
-`verificadoRegistroCivil` no acredita una consulta al Registro Civil. El catálogo
+`verificadoRegistroCivil` no acredita una consulta al Registro Civil: no existe
+esa integración en el alcance actual (ADR-008). EF-12 precarga datos de la cuenta
+OTP y recoge el resto como declaraciones del postulante. El catálogo
 geográfico replica la referencia local del frontend; su persistencia y caché
 corresponden a T7. Los respaldos se cargan mediante el contexto `document` (sección 4.3). Al enviar,
 se comprueban sus identificadores y se normalizan sus metadatos desde PostgreSQL;
@@ -618,56 +621,83 @@ SigV4: no sustituye una comprobación con el bucket real.
 
 ---
 
-## 5. Contexto `identity` (planificado)
+## 5. Contexto `identity` (vigente: OTP por correo)
 
-| Método | Ruta | Descripción | Requisito |
-|---|---|---|---|
-| `POST` | `/api/v1/auth/register` | Registra al postulante validando cédula y fecha de expedición/código dactilar | HU-01, HU-02 |
-| `POST` | `/api/v1/auth/login` | Inicia sesión con cédula y contraseña | HU-03 |
-| `POST` | `/api/v1/auth/logout` | Cierra la sesión | HU-03 |
-| `GET` | `/api/v1/auth/session` | Devuelve la sesión vigente | RNF-03 |
-| `POST` | `/api/v1/auth/password/forgot` | Envía el enlace de recuperación por correo | HU-04 |
-| `POST` | `/api/v1/auth/password/reset` | Define la contraseña nueva | HU-04 |
+El proyecto utiliza módulo 10 + OTP por correo para registro y recuperación,
+según [ADR-008](../decisions/ADR-008-registro-y-recuperacion-con-otp.md). No solicita
+fecha de expedición ni código dactilar y no certifica identidad civil.
 
-### 5.1 `POST /api/v1/auth/login`
+| Método | Ruta | Comportamiento actual |
+|---|---|---|
+| `POST` | `/api/v1/auth/register/request` | Recibe cédula y correo, envía OTP y devuelve `200` con mensaje |
+| `POST` | `/api/v1/auth/register/verify` | Verifica OTP, crea la cuenta con `otp_correo` y devuelve `201` con `postulante`; puede emitir cookie de sesión |
+| `POST` | `/api/v1/auth/login` | Cédula y contraseña; `200` con `postulante` y cookie de sesión |
+| `POST` | `/api/v1/auth/logout` | Revoca sesión y limpia cookie |
+| `GET` | `/api/v1/auth/session` | Perfil actual dentro de `postulante`, incluido `rol`, o `401` |
+| `POST` | `/api/v1/auth/password/forgot` | Solicita cédula y envía OTP al correo registrado; mensaje genérico |
+| `POST` | `/api/v1/auth/password/reset` | Verifica OTP y actualiza contraseña; invalida sesiones anteriores |
+
+### 5.1 Registro y recuperación
+
+Los cuerpos vigentes corresponden a `internal/identity/dto.go`:
+
+```json
+{ "cedula": "1710034008", "correo": "cuenta@example.test" }
+```
+
+Es el cuerpo de `register/request`. El OTP tiene seis dígitos y TTL actual de diez
+minutos. `register/verify` recibe:
 
 ```json
 {
   "cedula": "1710034008",
+  "correo": "cuenta@example.test",
+  "codigo_otp": "123456",
+  "nombres": "Persona",
+  "apellidos": "Prueba",
   "password": "UnaClaveSegura1!"
 }
 ```
 
-**Respuesta `200`**: cookie `session` + cuerpo con el perfil.
+Recuperación: `password/forgot` recibe `{ "cedula": "1710034008" }`.
+`password/reset` recibe `cedula`, `codigo_otp` y `new_password`; el destinatario
+no forma parte del cuerpo. No se utiliza un enlace de restablecimiento como flujo vigente.
+
+La base OTP está implementada. T16 debe completar vinculación a correo/finalidad,
+consumo atómico y controles de reenvío; esta descripción no afirma que esos
+controles pendientes ya estén garantizados. TTL del OTP y bloqueo de diez minutos
+son conceptos diferentes.
+
+### 5.2 Login y sesión
 
 ```json
-{
-  "applicant": {
-    "id": "11111111-1111-1111-1111-111111111111",
-    "cedula": "1710034008",
-    "nombres": "Ana",
-    "apellidos": "Pérez",
-    "correo": "ana.perez@example.com"
-  },
-  "mustCompleteApplication": true
-}
+{ "cedula": "1710034008", "password": "UnaClaveSegura1!" }
 ```
 
-`mustCompleteApplication` es `true` cuando el postulante todavía no ha
-enviado ninguna postulación: el frontend lo lleva al formulario (HU-03,
-criterio 5).
+Respuesta de login: cookie `session` y perfil bajo la clave **`postulante`**.
+`GET /auth/session` utiliza la misma clave y `ApplicantResponseDTO`, cuyos campos
+incluyen `id`, `cedula`, `nombres`, `apellidos`, `nombre_completo`, `correo`,
+`rol`, `metodo_validacion` y `fecha_registro`.
 
-**Errores**
+El contrato actual no devuelve `mustCompleteApplication`. La interfaz determina
+su ruta inicial desde sesión/rol y completa la integración del primer acceso al
+formulario en FT2/FT3. Los roles hoy persistidos son `postulante` y `analista`;
+`administrador` y sus permisos se incorporarán con T6/FT15.
 
-| HTTP | `codigo` | Causa |
+| HTTP | `codigo` | Situación |
 |---:|---|---|
-| 400 | `credenciales_invalidas` | Cédula con formato inválido |
-| 401 | `credenciales_incorrectas` | Cédula o contraseña incorrectas |
-| 429 | `intentos_excedidos` | 3 intentos fallidos: cuenta bloqueada 10 minutos |
+| 400 | `cuerpo_invalido` | JSON que no puede decodificarse |
+| 401 | `otp_invalido` | OTP incorrecto, usado o expirado |
+| 401 | `credenciales_invalidas` | Error de cédula o contraseña en login |
+| 401 | `sin_sesion` / `sesion_expirada` | Falta cookie o sesión expirada en `GET /auth/session` |
+| 401 | `no_autenticado` / `sesion_invalida` | Rechazo del middleware de rutas protegidas |
+| 409 | `postulante_existente` | Cuenta ya registrada |
+| 422 | `informacion_invalida` / `password_debil` | Datos de registro o fortaleza inválidos, según operación |
+| 429 | `intentos_excedidos` | Bloqueo temporal de intentos |
 
-> El mensaje al usuario es el del RF: *"sus credenciales de ingreso son
-> incorrectas"*. El código `credenciales_incorrectas` es estable para el
-> frontend; el mensaje exacto puede cambiar sin romper el contrato.
+Los mensajes del RF se mantienen para credenciales y bloqueo; los errores de OTP
+se expresan como tales. La confirmación genérica de recuperación no acredita
+que el mensaje SMTP se haya entregado.
 
 ---
 

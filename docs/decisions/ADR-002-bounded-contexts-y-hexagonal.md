@@ -119,15 +119,15 @@ Reglas de dependencia:
 
 ## Nota sobre la interoperabilidad con el IESS
 
-No hay acceso a los sistemas del IESS (Registro Civil, Historial Laboral). La
-interoperabilidad se **simula**:
+**Actualización 2026-10-31:** Registro Civil no se simula mediante fecha de
+expedición o código dactilar. El proyecto adopta **OTP por correo + módulo 10**
+para registro y recuperación ([ADR-008](ADR-008-registro-y-recuperacion-con-otp.md)).
+El OTP verifica el acceso al correo; no equivale a certificar datos de identidad.
+Los datos restantes se declaran en EF-12.
 
-- La cédula se valida con el **algoritmo módulo 10** del Registro Civil
-  (`internal/identity/applicant.go`).
-- El historial laboral se simula con una tabla de situación laboral.
-
-Ambas cosas quedan **encapsuladas detrás de interfaces**, de modo que conectar
-el servicio real es sustituir un adaptador, no reescribir el dominio.
+Historial Laboral conserva un puerto independiente y una fuente simulada en el
+servidor para elegibilidad mientras no haya acceso real; su consolidación está
+pendiente en T17. La simulación no debe depender de un booleano del cliente.
 
 ## Referencias
 

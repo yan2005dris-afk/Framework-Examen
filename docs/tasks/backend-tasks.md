@@ -1,12 +1,14 @@
 # Tareas del backend
 
 **Sistema de Registro y Postulación al Directorio del BIESS**
-Lista de trabajo del backend, priorizada y mapeada a la rúbrica de 40 puntos
+Lista de trabajo del backend: rúbrica del parcial y cobertura integral del RF v1.4
 
 | Campo | Valor |
 |---|---|
-| Documento | backend-tasks v1.0 |
+| Documento | backend-tasks v1.1 |
 | Ámbito | `apps/backend/` |
+| Fuente funcional | [RF v1.4](../requerimiento.txt), EF-1 y EF-11 a EF-14 |
+| Adaptación de identidad | [ADR-008: OTP por correo](../decisions/ADR-008-registro-y-recuperacion-con-otp.md) |
 | Rúbrica | [enunciado del examen práctico](../prd/PRD.md) |
 
 ---
@@ -15,7 +17,7 @@ Lista de trabajo del backend, priorizada y mapeada a la rúbrica de 40 puntos
 
 Cada tarea tiene:
 
-- **ID** — identificador estable (`BE-xx`) para seguirla en el PR y en el
+- **ID** — identificador estable (`T1` a `T28`) para seguirla en el PR y en el
   issues.
 - **Criterio** — criterio de la rúbrica que la tarea cubre y los puntos que
   puede sumar.
@@ -29,17 +31,30 @@ recomendado es: **T1 (Redis) → T2 (identidad) → T3 (formulario) → T4
 
 ---
 
+**Alcance de esta revisión (2026-10-31):** las tareas originales se concentraban en
+el parcial. EF-13, EF-14, méritos, psicotécnica y reconsideraciones son obligatorios
+para cubrir el RF completo, aunque puedan ejecutarse después de la entrega inicial.
+La sección 8 añade esas tareas con prioridad **P1-RF**; los pendientes de identidad,
+elegibilidad, permisos y apertura se señalan como **P0-RF**. P2 queda para mejoras no exigidas por
+el RF. Una casilla pendiente describe planificación, no una función implementada.
+
+El proyecto usa **OTP por correo** en registro y recuperación: no se requieren
+fecha de expedición ni código dactilar. El RF original se conserva sin modificar;
+esta adaptación se documenta en ADR-008. La lista de tareas distingue lo literal
+del RF, la adaptación aprobada y las definiciones que todavía faltan.
+
 ## 2. Estado por criterio de la rúbrica
 
-| # | Criterio | Puntos | Estado | Tareas |
-|---|---|---:|---|---|
-| 1 | Arquitectura backend e inyección de dependencias | 8 | ✅ **8/8** | T6, T7 |
-| 2 | Persistencia relacional y transacciones | 8 | 🟡 **7/8** | T5, T8 |
-| 3 | Caché, expiración y rate limiting (Redis) | 6 | ✅ **6/6** | T1 |
-| 4 | Frontend SPA (ver [frontend-tasks.md](frontend-tasks.md)) | 6 | — | — |
-| 5 | Consumo de API y manejo asíncrono (ver [frontend-tasks.md](frontend-tasks.md)) | 6 | — | — |
-| 6 | Cumplimiento de las reglas del negocio (RF IESS) | 6 | ✅ **6/6** | T2, T3, T4 |
-| | **Total backend** | **28** | **27/28** | |
+| # | Criterio | Puntos máximos | Cobertura técnica y pendientes |
+|---|---|---:|---|
+| 1 | Arquitectura e inyección de dependencias | 8 | Base disponible; completar contextos y permisos de las nuevas capacidades |
+| 2 | Persistencia y transacciones | 8 | T4/T5 implementadas; ampliar trazabilidad, convocatoria y expediente |
+| 3 | Caché, expiración y rate limiting | 6 | T1 disponible; catálogos T7 y consolidación OTP T16 pendientes |
+| 4–5 | SPA y consumo asíncrono | 12 | Ver frontend-tasks.md; son criterios compartidos con la integración |
+| 6 | Reglas del negocio | 6 | Parcial frente al RF completo: ver matriz de la sección 9 |
+
+Los puntos son los máximos de la rúbrica, no una calificación otorgada ni una
+medición de cumplimiento del RF. La existencia de T1–T5 no cierra EF-13 o EF-14.
 
 ---
 
@@ -61,7 +76,7 @@ que hoy está en cero.
 | Contador de intentos | `internal/platform/cache/attempts.go` | `Incr` + TTL atómico, lectura del contador y del bloqueo |
 | Caché de catálogos | `internal/platform/cache/catalog.go` | Get-or-set con TTL de 24 h |
 
-**Comportamiento exigido por el EF-11**
+**Base de bloqueo implementada; cierre de registro y recuperación en T16**
 
 1. Cada intento fallido de autenticación incrementa
    `identity:login-attempts:{cédula}`.
@@ -107,7 +122,8 @@ que hoy está en cero.
 
 > **Criterio 6 — Reglas del negocio (6 pts) · Criterio 5 — Rutas protegidas**
 
-Implementa el EF-11 completo.
+Base de autenticación implementada con OTP. La consolidación del desafío y sus
+controles corresponde a T16; no depende de acceso al Registro Civil.
 
 **Piezas**
 
@@ -141,15 +157,16 @@ Implementa el EF-11 completo.
 
 **Criterios de aceptación**
 
-- [x] `POST /api/v1/auth/register` valida la fecha de expedición o el código
-      dactilar y devuelve `201`.
+- [x] `POST /api/v1/auth/register/request` recibe cédula y correo y envía un OTP.
+- [x] `POST /api/v1/auth/register/verify` verifica el OTP y crea la cuenta (`201`)
+      con método `otp_correo` y rol inicial `postulante`.
 - [x] `POST /api/v1/auth/login` devuelve la cookie `session` con `HttpOnly` y
       `SameSite=Lax`; en producción añade `Secure`.
 - [x] El token **no** se persiste en claro: en `sessions` solo su SHA-256.
 - [x] El login responde `429` con `intentos_excedidos` cuando hay bloqueo.
 - [x] `GET /api/v1/auth/session` responde `200` con el perfil o `401`.
-- [x] `POST /api/v1/auth/password/forgot` envía el correo con el enlace
-      (vía `platform/mail`).
+- [x] `POST /api/v1/auth/password/forgot` envía un OTP al correo registrado;
+      `POST /api/v1/auth/password/reset` lo recibe con la contraseña nueva.
 - [x] Existe un middleware de autenticación (`RequireSession`) reutilizable
       por los demás contextos.
 - [x] Tests: módulo 10, fortaleza de contraseña, y el flujo de login con
@@ -163,7 +180,8 @@ Implementa el EF-11 completo.
 
 > **Criterio 6 — Reglas del negocio (6 pts)**
 
-**Backend implementado (2026-10-31)**: modelo tipado, validación, progreso, guardado parcial, sello y confirmación SMTP. La verificación externa IESS/Registro Civil y los documentos reales aún dependen de sus integraciones.
+**Backend implementado (2026-10-31)**: modelo tipado, validación, progreso, guardado parcial, sello y confirmación SMTP. Los documentos reales ya se vinculan mediante T4. La identidad usa OTP (ADR-008);
+la elegibilidad laboral debe resolverse en el servidor con T17.
 
 **Piezas**
 
@@ -199,6 +217,16 @@ Implementa el EF-11 completo.
 - [x] Los 5 puntos de consentimiento se guardan y son verificables.
 - [x] La postulación enviada es inmutable: `PUT` y `DELETE` devuelven `409`.
 - [x] Tests de cada regla con los casos de borde del RF.
+- [ ] Precargar nombres, apellidos y cédula desde la cuenta y correo principal
+      desde el registro; validar los datos restantes declarados sin atribuirles
+      verificación de Registro Civil (ADR-008).
+- [ ] Mantener catálogos exactos de parentescos, instituciones, niveles, áreas,
+      tipos de experiencia/publicación/evento y las 13 preguntas del RF (T7).
+- [ ] Distinguir datos opcionales y obligatorios conforme al RF; resolver las
+      inconsistencias registradas en la sección 9 antes de endurecer validaciones.
+- [ ] Mostrar los cinco literales también al guardar la postulación y conservarlos
+      en el formulario final; no limitar su presentación al envío (T19/FT6).
+
 
 **Verificación**: pruebas de reglas, guardado concurrente, doble envío, rollback, consentimiento, destinatario registrado y estados HTTP con dobles en memoria. Las pruebas PostgreSQL optativas se ejecutan con `SUBMISSION_TEST_DATABASE_URL` y crean un esquema aislado por ejecución. En este entorno se omiten por falta de URL; SMTP real y `-race` requieren sockets habilitados y CGO, respectivamente.
 
@@ -267,17 +295,22 @@ T3 ya utiliza `TxManager.WithinTx` y bloqueo de fila para guardar y sellar la po
 
 **Esfuerzo estimado**: 1 día.
 
-### T6 · Middleware de autenticación y de roles
+### T6 · Middleware de autenticación y de los tres roles
 
-> **Criterio 5 — Rutas protegidas (6 pts)**
+> **RF EF-1: actores y permisos; EF-13 y EF-14. Prioridad P0-RF.**
 
-- [ ] `RequireSession` resuelve la cookie y adjunta el postulante al
-      contexto.
-- [ ] `RequireRole` para los endpoints del dashboard (Analista TH,
-      Administrador).
-- [ ] El servicio de revisión solo es accesible con rol.
+- [x] `RequireSession` resuelve la cookie y adjunta el postulante al contexto.
+- [x] Persistencia de roles `postulante` y `analista` y campo `rol` en sesión.
+- [ ] Ampliar la restricción de roles con `administrador` (Comisión de Selección)
+      y definir permisos por operación junto con los responsables del concurso.
+- [ ] Implementar `RequireRole` en revisión, documentos administrativos, fases,
+      banco de preguntas, calificaciones y reconsideraciones; no basta el guard SPA.
+- [ ] Permitir al personal autorizado consultar formularios históricos y obtener
+      URLs temporales de certificados, manteniendo la restricción de propietario
+      en las rutas del postulante y auditando el acceso (T8/T9).
+- [ ] Mantener la asignación de roles fuera del registro público y registrar sus cambios.
 
-**Dependencias**: T2. **Esfuerzo estimado**: 1 día.
+**Dependencias**: T2. **Frontend**: FT2, FT7, FT15, FT24–FT25.
 
 ### T7 · Contexto de catálogo con caché
 
@@ -286,37 +319,51 @@ T3 ya utiliza `TxManager.WithinTx` y bloqueo de fila para guardar y sellar la po
 - [ ] `GET /api/v1/catalogs/countries`, `/provinces`, `/cities`.
 - [ ] Se sirven desde Redis con TTL de 24 h; ante un fallo de Redis, se
       responde desde PostgreSQL (fail-open).
-- [ ] La tabla `catalogs` se puebla con la semilla del RF (24 provincias,
-      221 cantones, 18 países) en una migración idempotente.
+- [ ] La tabla `catalogs` incluye todos los países enumerados en EF-12 1.2.1,
+      las 24 provincias y su relación con ciudades/cantones. Conservar el catálogo
+      nacional de 221 cantones y documentar diferencias con la lista parcial del RF;
+      no reducir países a la antigua semilla de 18. Usar una migración idempotente.
 - [ ] **Entregable del examen**: existe un `.sql` con el DDL completo y los
       datos semilla de la división política, listo para ejecutarse sobre una
       base vacía. El DDL vive en `apps/backend/sql/migrations/`; el seed, en
       una migración idempotente (`INSERT ... ON CONFLICT DO NOTHING`) y, en
       forma plana, en `apps/backend/sql/seeds/`.
 
-**Dependencias**: T1. **Esfuerzo estimado**: 1,5 días.
+- [ ] Publicar los catálogos de dominio de EF-12: parentescos, IESS/BIESS, niveles
+      de estudio, áreas, tipo Nacional/Extranjera, experiencia General/Dirección,
+      publicaciones y Curso/Seminario/Taller, sin opciones inventadas.
 
-### T8 · Auditoría: `submission_events`
+**Dependencias**: T1. **Frontend**: FT5. **Esfuerzo estimado**: 1,5 días.
 
-> **Criterio 2 — Modelo normalizado (parte de los 8 pts)**
+### T8 · Completar auditoría de expediente y accesos
 
-- [ ] Tabla `submission_events` append-only: `guardada`, `enviada`,
-      `consultada`.
-- [ ] Se escribe en la misma transacción que el cambio que la origina.
-- [ ] `GET /api/v1/submissions/{id}/events` para el historial (EF-13).
+> **RF EF-1: trazabilidad completa; EF-13: consulta histórica.**
 
-**Dependencias**: T5. **Esfuerzo estimado**: 1 día.
+- [x] Tabla `submission_events` y eventos `guardada`/`enviada` disponibles desde T5.
+- [x] Guardados, envío y cambios de adjuntos registran eventos en la transacción.
+- [ ] Restringir modificaciones de eventos y definir conservación del historial;
+      registrar `consultada` y descargas administrativas con actor, fecha y resultado.
+- [ ] Añadir eventos de fases, permisos, elegibilidad, méritos, evaluaciones,
+      reconsideraciones y publicación sin copiar datos sensibles a logs o payloads.
+- [ ] Publicar historial paginado para el propio expediente y para personal autorizado.
 
-### T9 · Contexto de revisión y dashboard
+**Dependencias**: T5, T6. **Frontend**: FT7, FT19–FT23, FT27.
 
-> **Criterio 2 y 6 (parcial EF-13)**
+### T9 · Revisión, dashboard e históricos del concurso
 
-- [ ] Listado de postulaciones con filtros (estado, sector) y paginación por
-      **cursor**.
-- [ ] Conteos por cargo y por estado, cacheados en Redis.
-- [ ] Exportación de la matriz comparativa a `.xlsx` y PDF.
+> **RF EF-13. Obligatoria para el RF completo; no es una mejora opcional.**
 
-**Esfuerzo estimado**: 3 días.
+- [ ] Listar postulaciones por convocatoria, cargo/sector y estado, con cursor.
+- [ ] Mostrar número de postulantes por cargo y actualizarlo sin recarga manual;
+      definir mecanismo y latencia aceptable de tiempo real (eventos o refresco periódico).
+- [ ] Al abrir una convocatoria cerrada, devolver su nómina completa y los EF-12
+      sellados de ese período, sin mezclarlos con convocatorias posteriores.
+- [ ] Incluir certificados descargables con autorización y duración de cada experiencia
+      en años, meses y días, usando el dato del expediente histórico correspondiente.
+- [ ] Exportar matriz comparativa en `.xlsx` y PDF con la misma selección y filtros;
+      acordar las columnas con Talento Humano porque el RF no las enumera.
+
+**Dependencias**: T6, T8, T18. **Frontend**: FT7–FT8.
 
 ---
 
@@ -326,25 +373,24 @@ T3 ya utiliza `TxManager.WithinTx` y bloqueo de fila para guardar y sellar la po
 |---|---|---|
 | T10 | Observabilidad: métricas Prometheus y trazas OpenTelemetry | Evaluar RNF-01 en datos reales |
 | T11 | Pruebas E2E del recorrido registro → formulario → envío | Detectar regresiones completas |
-| T12 | Migración de los documentos a S3/MinIO | Resiliencia del almacenamiento |
+| T12 | Operación y recuperación de RustFS/S3 (base disponible desde T4) | Copias y restauración de los objetos |
 | T13 | Tarea programada de purga de sesiones expiradas | Evita que la tabla crezca |
 | T14 | Rate limiting general por IP en nginx | Complementa el bloqueo por cédula |
-| T15 | Reintento exponencial en el cliente de correo | Entregabilidad de las notificaciones |
 
 ---
 
-## 6. Cobertura de la rúbrica: plan de puntos
+## 6. Orden de ejecución y relación con la rúbrica
 
-| Criterio | Hoy | Con T1–T4 | Con todo |
-|---|---:|---:|---:|
-| 1. Arquitectura e ID | 8 | 8 | 8 |
-| 2. Persistencia y transacciones | 5 | 7 | 8 |
-| 3. Redis | 0 | 6 | 6 |
-| 6. Reglas del negocio | 2 | 5 | 6 |
-| **Subtotal backend** | **15/28** | **26/28** | **28/28** |
+1. Sobre T1–T5 disponibles, completar permisos, catálogos y OTP: T6, T7, T16.
+2. Configurar convocatorias y políticas (T18/T28), cerrar elegibilidad T17 y
+   formulario final T19, con la base de notificaciones persistentes T15/T23.
+3. Completar auditoría/revisión e implementar requisitos y méritos: T8–T9, T20.
+4. Incorporar banco y examen T25–T27; consolidar oposición psicotécnica T21,
+   reconsideraciones T22 y listas T24 conforme a las dependencias declaradas.
 
-Con T1–T4, el backend pasa de **15 a 26 de 28 puntos posibles**. Es la
-prioridad absoluta de la hoja de ruta.
+El cumplimiento se comprueba por criterios de aceptación y trazabilidad de la
+sección 9. No se asignan puntos automáticamente por completar una tarea; los
+criterios 4–6 requieren integración con las tareas del frontend.
 
 ---
 
@@ -361,6 +407,289 @@ prioridad absoluta de la hoja de ruta.
    y su tabla de errores.
 5. **Antes de abrir el PR**: `gofmt -l .`, `go build ./...`, `go vet ./...`,
    `go test ./... -race` en verde.
+
+---
+
+## 8. Tareas añadidas para cubrir el RF completo
+
+Todas las casillas de esta sección están pendientes. Los nombres de capacidades
+son propuestas de organización; no indican que ya existan endpoints o tablas.
+
+### T15 · Entrega fiable del correo (integrada en T23)
+
+**Prioridad:** P1-RF; trasladada desde deseables. Mantiene su ID para trazabilidad.
+Sus criterios de reintento persistente, idempotencia y seguimiento de entrega se
+implementan junto con T23; no es un requisito cerrado por disponer de un cliente SMTP.
+
+### T16 · Consolidar registro y recuperación con OTP
+
+**Origen:** EF-11.4–6 adaptado por ADR-008. **Prioridad:** P0-RF.
+
+- [ ] Vincular cada desafío a cédula, correo y finalidad; no permitir usar un OTP
+      enviado a un correo para registrar otro ni usar el de registro para recuperación.
+- [ ] Hacer el consumo de uso único atómico, con TTL, invalidación del anterior
+      al reenviar y límites de reenvío definidos por configuración.
+- [ ] Respetar tres intentos fallidos y diez minutos de bloqueo; informar al cliente
+      un vencimiento/tiempo restante fiable y mantener los contadores en el servidor.
+- [ ] Recuperar únicamente al correo ya registrado, no revelar existencia de cuentas
+      y revocar sesiones tras restablecer la contraseña.
+- [ ] Registrar método `otp_correo` y separar correo verificado de identidad civil;
+      la falta de acceso a Registro Civil no bloquea este flujo aprobado.
+
+**Dependencias:** T1–T2. **Frontend:** FT3, FT16.
+
+### T17 · Elegibilidad por sector y cierre de postulación
+
+**Origen:** EF-12 1.1.6 y 1.4.1–1.4.3. **Prioridad:** P0-RF.
+
+- [ ] Resolver condición de afiliado/jubilado/empleador desde un puerto del servidor.
+      Para el entorno sin acceso al IESS, usar un adaptador de situación laboral
+      simulada y controlada en servidor, identificado como tal; no una bandera del cliente.
+- [ ] Asociar la verificación a cuenta, sector y convocatoria y conservar resultado,
+      fecha y origen. No confundir un error técnico del proveedor con no elegible.
+- [ ] Persistir el cierre por nacionalidad no admitida o por sector no elegible,
+      impedir continuar/guardar/enviar y devolver los mensajes literales de cada caso.
+- [ ] Modelar ese cierre separadamente de `submitted` y de la fase del concurso;
+      definir su eventual revisión administrativa y mantener trazabilidad.
+- [ ] Exigir nombre y respaldo PDF cuando se declara organización/federación,
+      con el texto correspondiente a cada sector. El OTP no acredita elegibilidad.
+
+**Dependencias:** T3–T4, T18. **Frontend:** FT5, FT17.
+
+### T18 · Convocatorias, fases y calendario de apertura/cierre
+
+**Origen:** EF-1 restricciones temporales, EF-11.1 y EF-13.1–2. **Prioridad:** P0-RF.
+
+- [ ] Persistir convocatoria, cargos/sectores, fases, aprobación de inicio,
+      publicación, habilitación del EF-12, fecha de apertura y fecha de cierre.
+- [ ] Asociar postulaciones al concurso y período correctos sin perder los registros
+      existentes; separar estado del formulario, fase y resultado de evaluación.
+- [ ] Publicar estado y fases visibles para el portal y proteger su administración
+      según T6; un cambio de fase debe quedar auditado.
+- [ ] Aplicar aprobación, habilitación y ventana temporal en el servidor para altas,
+      guardados, adjuntos y envíos; cerrar fuera de plazo aunque una pestaña siga abierta.
+- [ ] Definir zona horaria y límites inclusivos/exclusivos del calendario, validarlos
+      con el responsable y conservar el histórico de convocatorias cerradas.
+
+**Dependencias:** T6, T8. **Frontend:** FT14–FT15, FT25.
+
+### T19 · Formulario final legible, impresión y correo completo
+
+**Origen:** EF-12 1.10.1–1.10.3 y notas finales. **Prioridad:** P1-RF.
+
+- [ ] Producir una representación íntegra y legible del snapshot sellado para
+      impresión/descarga, con código único, nueve secciones, cinco literales,
+      nombres, apellidos, cédula y apartado de firma manuscrita.
+- [ ] Reutilizar ese snapshot para el formulario remitido al correo registrado.
+      Hoy SMTP ya incluye el JSON completo; completar su presentación imprimible
+      (por ejemplo PDF), sin regenerarlo desde un borrador posterior.
+- [ ] Mostrar los literales al guardar, no solo al enviar; guardar y enviar siguen
+      siendo operaciones distintas. No exigir una firma digital dibujada.
+- [ ] Mantener hash y fecha reproducibles y autorización de acceso a la copia final.
+      El fallo del correo no revierte el sello: su entrega se gestiona mediante T23.
+
+**Dependencias:** T3–T5, T23. **Frontend:** FT6.
+
+### T20 · Revisión de requisitos, inhabilidades y calificación de méritos
+
+**Origen:** EF-1, verificación de requisitos y calificación automática. **Prioridad:** P1-RF.
+
+- [ ] Registrar revisión de requisitos y respaldos por el personal autorizado,
+      observaciones, resultado y motivo de avance o exclusión en el expediente.
+- [ ] Aplicar reglas de inhabilidades conforme a la definición aprobada; no usar
+      «cualquier Sí excluye», porque la pregunta 1.9.1 tiene sentido positivo.
+- [ ] Parametrizar y versionar criterios, ponderaciones, máximos, umbrales y
+      reglas de desempate de méritos cuando sean entregados por el responsable.
+- [ ] Calcular puntaje desde evidencias verificadas, conservar desglose reproducible
+      y emitir el resultado de la fase que habilitará o no la evaluación técnica.
+- [ ] Auditar cambios y recalcular solo mediante una acción autorizada; no alterar
+      silenciosamente una resolución o un resultado previamente publicado.
+
+**Dependencias:** T6, T8–T9, T18. **Frontend:** FT19.
+**Definición pendiente:** el RF no contiene la matriz de puntuación ni los umbrales;
+no fijar valores inventados en código.
+
+### T21 · Calificaciones de oposición psicotécnica y expediente consolidado
+
+**Origen:** EF-1, oposición teórica y psicotécnica. **Prioridad:** P1-RF.
+
+- [ ] Registrar resultados psicotécnicos según el instrumento/formato aprobado,
+      con responsable, fecha y evidencia; el RF no detalla su instrumento de aplicación.
+- [ ] Incorporar la nota teórica calculada por T27, sin sustituirla por una nota
+      ingresada libremente desde la interfaz.
+- [ ] Consolidar méritos y oposición conforme a reglas aprobadas, con historial
+      y correcciones autorizadas; evitar contar dos veces el mismo resultado.
+- [ ] Exponer el expediente propio y el administrativo con sus permisos específicos.
+
+**Dependencias:** T18, T20, T27. **Frontend:** FT20, FT22.
+
+### T22 · Reconsideraciones y control de plazos por actor
+
+**Origen:** EF-1, gestión de reconsideraciones. **Prioridad:** P1-RF.
+
+- [ ] Registrar solicitud, motivos y respaldos, vincularlos al resultado de una fase
+      y controlar su presentación por el postulante dentro de la ventana aplicable.
+- [ ] Modelar recepción, atención de Talento Humano y resolución de la Comisión
+      con responsables, estados, fecha límite y trazabilidad de cada actuación.
+- [ ] Parametrizar el cómputo de términos/plazos por actor y calendario aprobado;
+      rechazar acciones fuera de plazo y evitar duplicados ante reintentos.
+- [ ] Conservar resultado original, resolución y efecto sobre puntajes/avance,
+      notificando cada decisión y habilitando su consulta en el expediente.
+
+**Dependencias:** T6, T8, T18, T20–T21, T23. **Frontend:** FT21.
+**Definición pendiente:** duración, días hábiles/calendario y reglas aplicables no
+están detallados en este RF; requieren parámetros aprobados.
+
+### T23 · Notificaciones automáticas por etapa y entrega persistente
+
+**Origen:** EF-1, EF-12 1.10.3 y EF-14 1.4. **Prioridad:** P1-RF; absorbe T15.
+
+- [ ] Encolar la notificación dentro de la transacción que confirma el evento;
+      enviar por SMTP después del commit con reintentos persistentes e idempotencia.
+- [ ] Cubrir envío de postulación, resultados de requisitos/méritos/oposición,
+      reconsideraciones y publicación de resultados según el flujo aprobado.
+- [ ] Usar destinatario registrado y plantillas versionadas; adjuntar o enlazar
+      de forma autorizada el formulario/reporte cuando corresponda (T19/T27).
+- [ ] Registrar entrega/fallo sin OTP ni datos sensibles en logs y permitir reintento
+      autorizado. Un fallo de entrega no cambia una nota ni duplica una postulación.
+
+**Dependencias:** T5, T8, correo existente. **Frontend:** FT6, FT22, FT27.
+
+### T24 · Listas de elegibles y publicación de resultados
+
+**Origen:** EF-1, reportes/listas de elegibles; EF-12 1.10.1.4. **Prioridad:** P1-RF.
+
+- [ ] Generar listas por convocatoria/cargo desde resultados aprobados y
+      reconsideraciones resueltas, con versión, fecha y orden definido por las reglas.
+- [ ] Gestionar publicación por el rol competente y conservar versiones históricas.
+- [ ] Distinguir reportes internos de listas públicas: no publicar documentos,
+      contactos o datos personales no autorizados; respetar el consentimiento del RF.
+- [ ] Vincular reportes a los mismos resultados del expediente y de la matriz T9.
+
+**Dependencias:** T6, T9, T18, T20–T23, T28. **Frontend:** FT8, FT23.
+
+### T25 · Banco de preguntas y matriz de respuestas correctas
+
+**Origen:** EF-14 1.1. **Prioridad:** P1-RF.
+
+- [ ] Permitir al administrador cargar y gestionar preguntas de opción múltiple,
+      opciones, respuestas correctas y versiones del banco.
+- [ ] Validar estructura, opciones válidas y disponibilidad de preguntas suficientes
+      para la cantidad parametrizada; definir el formato de carga con el responsable.
+- [ ] Mantener respuestas correctas fuera de las respuestas HTTP del examen activo.
+- [ ] Congelar la versión de preguntas/respuestas empleada en cada evaluación,
+      aunque después se edite el banco, y auditar la gestión administrativa.
+
+**Dependencias:** T6, T8, T18. **Frontend:** FT24.
+
+### T26 · Habilitación y aplicación de la evaluación teórica
+
+**Origen:** EF-14, apertura y puntos 1.2–1.3.4. **Prioridad:** P1-RF.
+
+- [ ] Admitir solo a quienes superaron méritos y están habilitados por el administrador
+      en fecha/hora programadas; reflejar la fase «Evaluación Técnica» en el expediente.
+      El público general no puede consultar el examen.
+- [ ] Parametrizar cantidad de preguntas y duración. Al iniciar, seleccionar al azar
+      preguntas y orden, persistir la asignación y el vencimiento antes de responder.
+- [ ] Validar que banco y parámetros permiten la unicidad de exámenes solicitada;
+      definir cómo resolver agotamiento de combinaciones sin prometer unicidad imposible.
+- [ ] Al reintentar inicio o recuperar sesión, mantener el mismo intento, orden,
+      respuestas y tiempo restante, según la política de intentos aprobada.
+- [ ] Guardar respuestas por pregunta y exigir que pertenezcan al intento vigente;
+      no confiar en tiempo, elegibilidad, puntaje o IDs arbitrarios del navegador.
+- [ ] Cerrar al vencer el reloj del servidor y conservar respuestas hasta el plazo,
+      incluso si se pierde la conexión o se cierra la pantalla; rechazar respuestas tardías.
+
+**Dependencias:** T18, T20, T25. **Frontend:** FT25–FT26.
+**Definición pendiente:** número de preguntas, duración y política de intentos.
+
+### T27 · Finalización, calificación, PDF y correo de la evaluación
+
+**Origen:** EF-14 1.3.3–1.4. **Prioridad:** P1-RF.
+
+- [ ] Unificar «Finalizar y Calificar» y vencimiento automático en una operación
+      idempotente; una carrera entre ambos produce una única nota definitiva.
+- [ ] Comparar respuestas con la matriz congelada y calcular la nota conforme a
+      la escala/ponderación aprobadas, sin aceptar la calificación del cliente.
+- [ ] Confirmar cierre, respuestas finales, nota, expediente, auditoría y evento de
+      notificación en una transacción; conservar el desglose de cálculo.
+- [ ] Generar reporte PDF, almacenarlo para administración y habilitar su consulta
+      por el postulante; notificar automáticamente al correo registrado mediante T23.
+
+**Dependencias:** T5, T8, T23, T25–T26. **Frontend:** FT20, FT27.
+**Definición pendiente:** escala y regla de cálculo de la nota no detalladas en el RF.
+
+### T28 · Políticas de privacidad y tratamiento de datos
+
+**Origen:** EF-1, precondiciones y restricciones; EF-12 1.10. **Prioridad:** P1-RF.
+
+- [ ] Publicar la política de privacidad y la información de tratamiento aprobadas
+      por la institución, con versión/fecha, sin inventar textos jurídicos o plazos.
+- [ ] Vincular la versión aplicable al expediente y conservar los cinco consentimientos
+      literales ya implementados; no sustituirlos por una aceptación genérica.
+- [ ] Definir con el responsable acceso, conservación y eliminación de datos,
+      documentos y reportes, preservando los registros que deban mantenerse.
+- [ ] Aplicar esas reglas a exportación, correo, URLs temporales y listas públicas.
+
+**Dependencias:** T3–T4, T6, T8. **Frontend:** FT6, FT28.
+
+---
+
+## 9. Matriz de cobertura y definiciones pendientes
+
+**Cobertura de planificación, no certificación de implementación.** La matriz
+incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin detallar.
+
+| Fuente del RF | Requisito o adaptación | Backend | Frontend | Situación |
+|---|---|---|---|---|
+| EF-1, actores | Postulante, Analista TH y Administrador/Comisión | T6 | FT2, FT15 | Dos roles disponibles; falta administrador y permisos completos |
+| EF-1, privacidad | Política, tratamiento y consentimiento informado | T28, T3 | FT28, FT6 | Consentimientos base; política e integración pendientes |
+| EF-11.1–3 | Fase aprobada, portal institucional, nueva pestaña y acceso | T18 | FT14–FT15 | Planificado |
+| EF-11.4–6, ADR-008 | Registro, login y recuperación con OTP por correo | T1–T2, T16 | FT3, FT16 | Base OTP y vistas disponibles; consolidación T16/FT16 pendiente |
+| EF-12, primer ingreso | Entrada obligatoria al formulario | T2, T18 | FT2–FT3 | Guard base; cerrar flujo funcional |
+| EF-12 1.1 | Datos personales/cónyuge y nacionalidad; precarga de cuenta OTP | T3, T17 | FT5, FT16–FT17 | Tipado base; autocompletado civil sustituido por datos declarados |
+| EF-12 1.2 | Países completos, cascada, correo registrado y dirección | T3, T7 | FT5 | Falta cerrar catálogos y vistas |
+| EF-12 1.3 | Familiares y opciones exactas de parentesco/institución | T3, T7 | FT5 | Base tipada; vista y catálogos pendientes |
+| EF-12 1.4 | Cargo, elegibilidad, mensajes, cierre y organización | T3–T4, T17–T18 | FT5, FT17–FT18 | Sustituir elegibilidad declarada por fuente del servidor |
+| EF-12 1.5–1.8 | Títulos, experiencia/calculadora, publicaciones y capacitación | T3–T4, T7 | FT5, FT18 | Backend base; vistas y adjuntos integrados pendientes |
+| EF-12 1.9 | Trece respuestas, detalles de remoción y revisión | T3, T20 | FT5, FT19 | Declaraciones base; revisión administrativa pendiente |
+| EF-1, restricciones | PDF 2/4 MiB y total 50 MiB | T4 | FT18 | Backend disponible; consumo frontend pendiente |
+| EF-12, notas | Guardado parcial, CRUD de registros y código único | T3–T5 | FT5 | Backend base; interfaz funcional pendiente |
+| EF-12 1.10 | Literales al guardar, firma manuscrita, impresión y correo completo | T3, T19, T23 | FT6, FT28 | Sello y correo con JSON disponibles; presentación final pendiente |
+| EF-13.1–2 | Publicar fases y habilitar EF-12 | T6, T18 | FT15 | Planificado |
+| EF-13.3 | Conteos por cargo en tiempo real e históricos íntegros/certificados | T8–T9, T18 | FT7 | Parcial: shell/mock; falta administración real |
+| EF-13.3 | Matriz comparativa Excel/PDF | T9 | FT8 | Planificado, obligatorio para RF completo |
+| EF-1 | Verificar requisitos y calcular méritos | T20 | FT19 | Planificado; falta matriz de calificación aprobada |
+| EF-1 | Registrar oposición psicotécnica y consolidar expediente | T21 | FT20 | Planificado; falta instrumento/reglas |
+| EF-1 | Reconsideraciones y plazos exactos por actor | T22 | FT21 | Planificado; faltan términos y calendario aprobados |
+| EF-1 | Notificar resultados de cada etapa | T23 | FT22 | Correo base; flujo y reintentos persistentes pendientes |
+| EF-1 | Reportes, listas de elegibles y trazabilidad completa | T8, T24 | FT7–FT8, FT23 | Planificado sobre auditoría base de T5 |
+| EF-14, apertura/1.1 | Módulo restringido y banco de preguntas | T6, T25 | FT24–FT25 | Planificado |
+| EF-14 1.2 | Méritos aprobados, fecha/hora, azar, cantidad y orden distinto | T18, T20, T26 | FT25–FT26 | Planificado; parámetros pendientes |
+| EF-14 1.3.1–1.3.4 | Pregunta individual, reloj, controles UI y cierre al vencer | T26–T27 | FT26 | Planificado |
+| EF-14 1.3.5–1.4 | Calificar, guardar nota, PDF, correo y copia administrativa | T21, T23, T27 | FT20, FT27 | Planificado; escala de nota pendiente |
+
+### Definiciones que el RF no permite resolver por suposición
+
+- Fórmula y máximos de méritos, umbrales de avance, ponderación de oposición,
+  instrumento psicotécnico y reglas de desempate: T20–T21.
+- Duración y cantidad de preguntas, escala de calificación, intentos permitidos y
+  criterio de unicidad cuando se agota el banco: T25–T27.
+- Plazos de reconsideración de cada actor, cómputo de días y calendario: T22.
+- Columnas de matriz/listas, permisos precisos por actor y latencia de «tiempo real»:
+  T6, T9 y T24. El RF los solicita pero no fija todos esos detalles.
+- EF-12 menciona al inicio «Referencias Personales», pero sus apartados 1.1–1.9
+  no desarrollan esa sección. Aclarar su alcance antes de crear una décima sección.
+- Resolver campos opcionales/asteriscos frente a «todos los campos llenos», y la
+  diferencia entre las ciudades enumeradas en el RF y el catálogo nacional usado.
+- La decisión de no usar Registro Civil ya está resuelta por ADR-008: no queda
+  como bloqueo ni se vuelve a exigir fecha de expedición/código dactilar. El RF
+  original se conserva para trazabilidad y el OTP se documenta como adaptación.
+
+**Pendiente de implementación** no significa **requisito opcional**: FT7/FT8 y
+T16–T28/FT14–FT28 cubren funciones del RF que faltaban o estaban insuficientemente
+definidas en las listas anteriores. Tareas P2 de offline, idiomas, métricas o
+atajos no sustituyen estos requisitos.
 
 ---
 
