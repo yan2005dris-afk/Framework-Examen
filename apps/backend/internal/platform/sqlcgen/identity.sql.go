@@ -14,10 +14,10 @@ import (
 
 const createApplicant = `-- name: CreateApplicant :one
 INSERT INTO applicants (
-    id, cedula, nombres, apellidos, correo, password_hash, metodo_validacion, is_verified, fecha_registro
+    id, cedula, nombres, apellidos, correo, password_hash, metodo_validacion, is_verified, role, fecha_registro
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, now()
-) RETURNING id, cedula, nombres, apellidos, correo, password_hash, is_verified, metodo_validacion, fecha_registro, created_at, updated_at
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, now()
+) RETURNING id, cedula, nombres, apellidos, correo, password_hash, is_verified, metodo_validacion, fecha_registro, created_at, updated_at, role
 `
 
 type CreateApplicantParams struct {
@@ -29,6 +29,7 @@ type CreateApplicantParams struct {
 	PasswordHash     string    `json:"password_hash"`
 	MetodoValidacion string    `json:"metodo_validacion"`
 	IsVerified       bool      `json:"is_verified"`
+	Role             string    `json:"role"`
 }
 
 func (q *Queries) CreateApplicant(ctx context.Context, arg CreateApplicantParams) (Applicant, error) {
@@ -41,6 +42,7 @@ func (q *Queries) CreateApplicant(ctx context.Context, arg CreateApplicantParams
 		arg.PasswordHash,
 		arg.MetodoValidacion,
 		arg.IsVerified,
+		arg.Role,
 	)
 	var i Applicant
 	err := row.Scan(
@@ -55,6 +57,7 @@ func (q *Queries) CreateApplicant(ctx context.Context, arg CreateApplicantParams
 		&i.FechaRegistro,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Role,
 	)
 	return i, err
 }
@@ -163,7 +166,7 @@ func (q *Queries) DeleteSessionsByApplicantID(ctx context.Context, applicantID u
 }
 
 const getApplicantByCedula = `-- name: GetApplicantByCedula :one
-SELECT id, cedula, nombres, apellidos, correo, password_hash, is_verified, metodo_validacion, fecha_registro, created_at, updated_at FROM applicants
+SELECT id, cedula, nombres, apellidos, correo, password_hash, is_verified, metodo_validacion, fecha_registro, created_at, updated_at, role FROM applicants
 WHERE cedula = $1 LIMIT 1
 `
 
@@ -182,12 +185,13 @@ func (q *Queries) GetApplicantByCedula(ctx context.Context, cedula string) (Appl
 		&i.FechaRegistro,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Role,
 	)
 	return i, err
 }
 
 const getApplicantByEmail = `-- name: GetApplicantByEmail :one
-SELECT id, cedula, nombres, apellidos, correo, password_hash, is_verified, metodo_validacion, fecha_registro, created_at, updated_at FROM applicants
+SELECT id, cedula, nombres, apellidos, correo, password_hash, is_verified, metodo_validacion, fecha_registro, created_at, updated_at, role FROM applicants
 WHERE correo = $1 LIMIT 1
 `
 
@@ -206,12 +210,13 @@ func (q *Queries) GetApplicantByEmail(ctx context.Context, correo string) (Appli
 		&i.FechaRegistro,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Role,
 	)
 	return i, err
 }
 
 const getApplicantByID = `-- name: GetApplicantByID :one
-SELECT id, cedula, nombres, apellidos, correo, password_hash, is_verified, metodo_validacion, fecha_registro, created_at, updated_at FROM applicants
+SELECT id, cedula, nombres, apellidos, correo, password_hash, is_verified, metodo_validacion, fecha_registro, created_at, updated_at, role FROM applicants
 WHERE id = $1 LIMIT 1
 `
 
@@ -230,6 +235,7 @@ func (q *Queries) GetApplicantByID(ctx context.Context, id uuid.UUID) (Applicant
 		&i.FechaRegistro,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Role,
 	)
 	return i, err
 }
@@ -247,6 +253,7 @@ SELECT
     a.nombres,
     a.apellidos,
     a.correo,
+    a.role,
     a.metodo_validacion,
     a.is_verified,
     a.fecha_registro
@@ -268,6 +275,7 @@ type GetSessionWithApplicantRow struct {
 	Nombres          string    `json:"nombres"`
 	Apellidos        string    `json:"apellidos"`
 	Correo           string    `json:"correo"`
+	Role             string    `json:"role"`
 	MetodoValidacion string    `json:"metodo_validacion"`
 	IsVerified       bool      `json:"is_verified"`
 	FechaRegistro    time.Time `json:"fecha_registro"`
@@ -288,6 +296,7 @@ func (q *Queries) GetSessionWithApplicant(ctx context.Context, tokenHash string)
 		&i.Nombres,
 		&i.Apellidos,
 		&i.Correo,
+		&i.Role,
 		&i.MetodoValidacion,
 		&i.IsVerified,
 		&i.FechaRegistro,
@@ -340,4 +349,23 @@ type UpdateApplicantPasswordParams struct {
 func (q *Queries) UpdateApplicantPassword(ctx context.Context, arg UpdateApplicantPasswordParams) error {
 	_, err := q.db.Exec(ctx, updateApplicantPassword, arg.ID, arg.PasswordHash)
 	return err
+}
+
+const updateApplicantRoleByCedula = `-- name: UpdateApplicantRoleByCedula :execrows
+UPDATE applicants
+SET role = $2, updated_at = now()
+WHERE cedula = $1
+`
+
+type UpdateApplicantRoleByCedulaParams struct {
+	Cedula string `json:"cedula"`
+	Role   string `json:"role"`
+}
+
+func (q *Queries) UpdateApplicantRoleByCedula(ctx context.Context, arg UpdateApplicantRoleByCedulaParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateApplicantRoleByCedula, arg.Cedula, arg.Role)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

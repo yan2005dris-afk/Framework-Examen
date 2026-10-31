@@ -120,6 +120,7 @@ type Applicant struct {
 	FirstName        string
 	LastName         string
 	Email            string
+	Role             string
 	PasswordHash     string
 	IsVerified       bool
 	ValidationMethod string
@@ -167,6 +168,7 @@ func NewApplicant(
 		FirstName:        firstName,
 		LastName:         lastName,
 		Email:            strings.ToLower(strings.TrimSpace(email)),
+		Role:             RoleApplicant,
 		PasswordHash:     passwordHash,
 		IsVerified:       true,
 		ValidationMethod: validationMethod,

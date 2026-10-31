@@ -78,6 +78,9 @@ func TestNewApplicantAndFullName(t *testing.T) {
 	if applicant.Email != "maria.fernandez@example.com" {
 		t.Fatalf("el correo debe quedar normalizado en minúsculas: %q", applicant.Email)
 	}
+	if applicant.Role != RoleApplicant {
+		t.Fatalf("el registro público debe crear un postulante: %q", applicant.Role)
+	}
 }
 
 /**
