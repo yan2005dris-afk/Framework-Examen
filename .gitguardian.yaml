@@ -1,0 +1,16 @@
+# Configuración de GitGuardian para este repositorio.
+#
+# Los fixtures de los tests se parecen a credenciales (contraseñas de ejemplo,
+# cédulas, tokens) y disparan falsos positivos. No son secretos: se excluyen
+# del escaneo de secretos, pero siguen cubiertos por el lint y los tests.
+
+version: 1
+
+paths-ignore:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "**/*_test.go"
+  - "**/testdata/**"
+  - "**/migrations/**"
