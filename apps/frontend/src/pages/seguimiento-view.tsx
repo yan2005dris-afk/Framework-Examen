@@ -1,11 +1,15 @@
 import { Link } from "react-router"
 import {
+  BrainIcon,
   CheckCircle2Icon,
   ClockIcon,
   FileCheckIcon,
+  ScaleIcon,
   XCircleIcon,
 } from "lucide-react"
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -14,26 +18,40 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { RUTAS } from "@/lib/rutas"
+import { useEvaluacionPostulante } from "@/features/evaluacion/queries"
 import { useListarPostulaciones } from "@/features/postulaciones/queries"
+import { useReconsideracionesPostulante } from "@/features/reconsideracion/queries"
 import { useResultadoMeritosPostulante } from "@/features/revision/queries"
 import { centipuntosAPuntos } from "@/lib/clientes/meritos"
+import { RUTAS } from "@/lib/rutas"
 
 /**
- * Seguimiento de fases, resultados y notificaciones del postulante (FT19/FT22).
+ * Seguimiento de fases, resultados y notificaciones del postulante (FT19/FT20/FT21/FT22).
  */
 export function SeguimientoView() {
   const { data: postulacionesData } = useListarPostulaciones({ limit: 1 })
   const postulacion = postulacionesData?.items?.[0]
+  const submissionId = postulacion?.id ?? ""
 
-  const { data: meritosData } = useResultadoMeritosPostulante(
-    postulacion?.id ?? "",
+  // Consultas de fases y calificaciones oficiales
+  const { data: meritosData } = useResultadoMeritosPostulante(submissionId)
+  const { data: evaluacionData } = useEvaluacionPostulante(submissionId)
+  const { data: reconsideracionesData } =
+    useReconsideracionesPostulante(submissionId)
+
+  const resultadoMeritos = meritosData?.resultado
+  const meritosPublicado = meritosData?.publicado && Boolean(resultadoMeritos)
+
+  const resultadosPublicados = evaluacionData?.expediente.resultados ?? {}
+  const psicotecnicaPublicada = resultadosPublicados["oposicion_psicotecnica"]
+  const teoricaPublicada = resultadosPublicados["oposicion_teorica"]
+  const consolidadoPublicado = resultadosPublicados["resultados"]
+
+  const listaReconsideraciones =
+    reconsideracionesData?.pages.flatMap((p) => p.items) ?? []
+  const impugnacionesPorFase = new Map(
+    listaReconsideraciones.map((r) => [r.resultadoOriginal.fase, r]),
   )
-
-  const resultado = meritosData?.resultado
-  const publicado = meritosData?.publicado && Boolean(resultado)
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-6">
@@ -42,17 +60,19 @@ export function SeguimientoView() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <FileCheckIcon className="size-5 text-primary" />
-              <CardTitle>Seguimiento de Fases y Resultados (FT19)</CardTitle>
+              <CardTitle>
+                Seguimiento de Fases, Oposición y Resultados
+              </CardTitle>
             </div>
             {postulacion && (
               <Badge variant="outline" className="font-mono text-xs">
-                {postulacion.code}
+                Expediente: {postulacion.code}
               </Badge>
             )}
           </div>
           <CardDescription>
-            Consulte las resoluciones oficiales y el avance de su expediente en
-            cada etapa del concurso.
+            Consulte las resoluciones oficiales, sus calificaciones en cada
+            etapa y acceda a la presentación de reconsideraciones.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -83,14 +103,16 @@ export function SeguimientoView() {
               <span className="font-semibold text-sm">
                 2. Calificación de Méritos
               </span>
-              {publicado ? (
+              {meritosPublicado ? (
                 <Badge
                   variant={
-                    resultado?.decision === "avanza" ? "default" : "destructive"
+                    resultadoMeritos?.decision === "avanza"
+                      ? "default"
+                      : "destructive"
                   }
                   className="capitalize"
                 >
-                  Resolución: {resultado?.decision}
+                  Resolución: {resultadoMeritos?.decision}
                 </Badge>
               ) : (
                 <Badge variant="outline" className="flex items-center gap-1">
@@ -100,50 +122,67 @@ export function SeguimientoView() {
               )}
             </div>
 
-            {publicado ? (
-              <Alert
-                className={
-                  resultado?.decision === "avanza"
-                    ? "border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20"
-                    : "border-destructive/40 bg-destructive/10"
-                }
-              >
-                {resultado?.decision === "avanza" ? (
-                  <CheckCircle2Icon className="size-4 text-emerald-600" />
-                ) : (
-                  <XCircleIcon className="size-4 text-destructive" />
-                )}
-                <AlertTitle className="text-sm font-semibold">
-                  {resultado?.decision === "avanza"
-                    ? "Postulación Habilitada para Oposición Técnica"
-                    : "Postulación No Habilitada"}
-                </AlertTitle>
-                <AlertDescription className="text-xs space-y-2 mt-1">
-                  <p>
-                    <strong>Puntaje oficial de méritos:</strong>{" "}
-                    <span className="font-semibold">
+            {meritosPublicado ? (
+              <div className="space-y-3">
+                <Alert
+                  className={
+                    resultadoMeritos?.decision === "avanza"
+                      ? "border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20"
+                      : "border-destructive/40 bg-destructive/10"
+                  }
+                >
+                  {resultadoMeritos?.decision === "avanza" ? (
+                    <CheckCircle2Icon className="size-4 text-emerald-600" />
+                  ) : (
+                    <XCircleIcon className="size-4 text-destructive" />
+                  )}
+                  <AlertTitle className="text-sm font-semibold">
+                    {resultadoMeritos?.decision === "avanza"
+                      ? "Postulación Habilitada para Oposición Técnica"
+                      : "Postulación No Habilitada"}
+                  </AlertTitle>
+                  <AlertDescription className="text-xs space-y-2 mt-1">
+                    <p>
+                      <strong>Puntaje oficial de méritos:</strong>{" "}
+                      <span className="font-semibold">
+                        {centipuntosAPuntos(
+                          resultadoMeritos?.evaluacion.totalCentipuntos ?? 0,
+                        )}{" "}
+                        puntos
+                      </span>{" "}
+                      (de un máximo de{" "}
                       {centipuntosAPuntos(
-                        resultado?.evaluacion.totalCentipuntos ?? 0,
+                        resultadoMeritos?.evaluacion.maximoCentipuntos ?? 0,
                       )}{" "}
-                      puntos
-                    </span>{" "}
-                    (de un máximo de{" "}
-                    {centipuntosAPuntos(
-                      resultado?.evaluacion.maximoCentipuntos ?? 0,
-                    )}{" "}
-                    pts).
-                  </p>
-                  <p>
-                    <strong>Motivo de la resolución:</strong>{" "}
-                    {resultado?.motivo}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {resultado?.decision === "avanza"
-                      ? "Conforme a las bases del concurso, al superar el umbral de méritos se encuentra facultado para rendir las pruebas psicotécnicas y teóricas."
-                      : "La postulación no alcanzó el umbral mínimo exigido o presentó causales de exclusión documental."}
-                  </p>
-                </AlertDescription>
-              </Alert>
+                      pts).
+                    </p>
+                    <p>
+                      <strong>Motivo de la resolución:</strong>{" "}
+                      {resultadoMeritos?.motivo}
+                    </p>
+                  </AlertDescription>
+                </Alert>
+
+                <div className="flex items-center justify-between pt-1 text-xs">
+                  {impugnacionesPorFase.has("meritos") ? (
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <ScaleIcon className="size-3 text-primary" />
+                      Reconsideración interpuesta (Estado:{" "}
+                      <strong>
+                        {impugnacionesPorFase.get("meritos")?.estado}
+                      </strong>
+                      )
+                    </span>
+                  ) : (
+                    <Button asChild variant="outline" size="sm">
+                      <Link to={`${RUTAS.reconsideracion}?fase=meritos`}>
+                        <ScaleIcon className="size-3 mr-1" />
+                        Presentar Reconsideración sobre Méritos
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
             ) : (
               <p className="text-xs text-muted-foreground">
                 La Comisión Especial se encuentra verificando los documentos de
@@ -153,9 +192,228 @@ export function SeguimientoView() {
             )}
           </div>
 
-          <div className="flex gap-2">
+          {/* Fase 3: Oposición Psicotécnica y Teórica (FT20) */}
+          <div className="rounded-lg border p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-sm">
+                3. Oposición Psicotécnica y Pruebas Teóricas
+              </span>
+              {psicotecnicaPublicada ? (
+                <Badge
+                  variant={
+                    psicotecnicaPublicada.habilitaAvance
+                      ? "default"
+                      : "destructive"
+                  }
+                >
+                  Psicotécnica:{" "}
+                  {psicotecnicaPublicada.habilitaAvance
+                    ? "Habilitada"
+                    : "No Habilitada"}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <ClockIcon className="size-3" />
+                  <span>En Desarrollo</span>
+                </Badge>
+              )}
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {/* Bloque Psicotécnico */}
+              <div className="rounded border bg-muted/20 p-3 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold flex items-center gap-1">
+                    <BrainIcon className="size-3.5 text-primary" />
+                    Evaluación Psicotécnica
+                  </span>
+                  {psicotecnicaPublicada ? (
+                    <Badge variant="default" className="text-[10px]">
+                      Oficial v{psicotecnicaPublicada.version}
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-[10px]">
+                      Pendiente
+                    </Badge>
+                  )}
+                </div>
+                {psicotecnicaPublicada ? (
+                  <div className="space-y-1">
+                    <p>
+                      <strong>Calificación oficial:</strong>{" "}
+                      {psicotecnicaPublicada.puntaje !== null
+                        ? `${psicotecnicaPublicada.puntaje} / ${psicotecnicaPublicada.maximo ?? "—"} pts`
+                        : "Diagnóstico cualitativo acreditado"}
+                    </p>
+                    <p className="text-muted-foreground">
+                      {psicotecnicaPublicada.motivo}
+                    </p>
+                    <div className="pt-2">
+                      {impugnacionesPorFase.has("oposicion_psicotecnica") ? (
+                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <ScaleIcon className="size-3 text-primary" />
+                          Reconsideración interpuesta (Estado:{" "}
+                          <strong>
+                            {
+                              impugnacionesPorFase.get("oposicion_psicotecnica")
+                                ?.estado
+                            }
+                          </strong>
+                          )
+                        </span>
+                      ) : (
+                        <Button asChild variant="outline" size="sm">
+                          <Link
+                            to={`${RUTAS.reconsideracion}?fase=oposicion_psicotecnica`}
+                          >
+                            <ScaleIcon className="size-3 mr-1" />
+                            Reconsiderar Psicotécnica
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">
+                    Los resultados de su informe psicométrico se publicarán una
+                    vez aprobados por la Comisión.
+                  </p>
+                )}
+              </div>
+
+              {/* Bloque Teórico */}
+              <div className="rounded border bg-muted/20 p-3 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold flex items-center gap-1">
+                    <FileCheckIcon className="size-3.5 text-primary" />
+                    Examen Teórico de Conocimientos
+                  </span>
+                  {teoricaPublicada ? (
+                    <Badge variant="default" className="text-[10px]">
+                      Oficial
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px]">
+                      Pendiente
+                    </Badge>
+                  )}
+                </div>
+                {teoricaPublicada ? (
+                  <div className="space-y-1">
+                    <p>
+                      <strong>Nota obtenida:</strong> {teoricaPublicada.puntaje}{" "}
+                      / {teoricaPublicada.maximo} pts
+                    </p>
+                    <p className="text-muted-foreground">
+                      {teoricaPublicada.motivo}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">
+                    La rendición del examen de conocimientos se habilitará
+                    conforme al calendario institucional.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Fase 4: Consolidación Definitiva (FT20) */}
+          <div className="rounded-lg border p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-sm">
+                4. Resultados Consolidados Definitivos
+              </span>
+              {consolidadoPublicado ? (
+                <Badge
+                  variant={
+                    consolidadoPublicado.habilitaAvance
+                      ? "default"
+                      : "destructive"
+                  }
+                >
+                  {consolidadoPublicado.habilitaAvance
+                    ? "Elegible / Aprobado"
+                    : "No Elegible"}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <ClockIcon className="size-3" />
+                  <span>Pendiente de Consolidación</span>
+                </Badge>
+              )}
+            </div>
+
+            {consolidadoPublicado ? (
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between rounded bg-muted/40 p-3">
+                  <div>
+                    <span className="text-muted-foreground">
+                      Puntaje total ponderado:
+                    </span>
+                    <p className="text-xl font-black text-primary">
+                      {consolidadoPublicado.puntaje} /{" "}
+                      {consolidadoPublicado.maximo ?? 10000} pts
+                    </p>
+                  </div>
+                  <Badge variant="outline">
+                    Motor: {consolidadoPublicado.versionMotor}
+                  </Badge>
+                </div>
+
+                {consolidadoPublicado.desglose && (
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {consolidadoPublicado.desglose.map((item) => (
+                      <div
+                        key={item.fase}
+                        className="rounded border p-2 text-center"
+                      >
+                        <span className="font-semibold capitalize">
+                          {item.fase.replace("_", " ")}
+                        </span>
+                        <p className="text-muted-foreground">
+                          Aporte: {item.aporte} pts
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  {impugnacionesPorFase.has("resultados") ? (
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <ScaleIcon className="size-3 text-primary" />
+                      Reconsideración sobre resultados definitivos interpuesta
+                    </span>
+                  ) : (
+                    <Button asChild variant="outline" size="sm">
+                      <Link to={`${RUTAS.reconsideracion}?fase=resultados`}>
+                        <ScaleIcon className="size-3 mr-1" />
+                        Reconsiderar Resultado Consolidado
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Una vez concluidas las fases de méritos, psicotécnica y teórica,
+                la Comisión publicará el acta consolidada con los aportes
+                ponderados.
+              </p>
+            )}
+          </div>
+
+          {/* Botones de navegación inferior */}
+          <div className="flex flex-wrap gap-2 border-t pt-4">
             <Button asChild variant="outline" size="sm">
               <Link to={RUTAS.postulacion}>Volver a mi postulación</Link>
+            </Button>
+            <Button asChild variant="secondary" size="sm">
+              <Link to={RUTAS.reconsideracion}>
+                <ScaleIcon className="size-3.5 mr-1.5" />
+                Bandeja de Reconsideraciones
+              </Link>
             </Button>
             {postulacion?.status === "submitted" && (
               <Button asChild size="sm">

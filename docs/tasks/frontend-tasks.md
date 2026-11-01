@@ -528,11 +528,11 @@ Ver [entrega FT14/FT15](FT14-FT15.md).
 
 **Origen:** EF-1, oposición teórica y psicotécnica. **Prioridad:** P1-RF.
 
-- [ ] Proporcionar al personal autorizado el registro del resultado psicotécnico
+- [x] Proporcionar al personal autorizado el registro del resultado psicotécnico
       según instrumento y formato definidos, con evidencia y responsable.
-- [ ] Mostrar nota teórica recibida de T27 y resultados consolidados del servidor,
+- [x] Mostrar nota teórica recibida de T27 y resultados consolidados del servidor,
       con historial de correcciones y versiones publicadas.
-- [ ] Permitir al postulante consultar únicamente su expediente y sus resultados
+- [x] Permitir al postulante consultar únicamente su expediente y sus resultados
       cuando sean publicados, sin acceder a documentos o notas de otros usuarios.
 
 **Backend:** T21, T27. **Dependencias:** FT7, FT15, FT19.
@@ -541,13 +541,13 @@ Ver [entrega FT14/FT15](FT14-FT15.md).
 
 **Origen:** EF-1, reconsideraciones y plazos por actor. **Prioridad:** P1-RF.
 
-- [ ] Permitir al postulante presentar motivos y respaldos contra el resultado
+- [x] Permitir al postulante presentar motivos y respaldos contra el resultado
       habilitado; mostrar plazo y estado de su solicitud con datos del servidor.
-- [ ] Incorporar bandejas de atención de Talento Humano y de resolución de la Comisión,
+- [x] Incorporar bandejas de atención de Talento Humano y de resolución de la Comisión,
       con expediente, responsables, vencimiento y acciones autorizadas por estado.
-- [ ] Mostrar resolución y efecto en calificaciones/avance, sin sobrescribir la
+- [x] Mostrar resolución y efecto en calificaciones/avance, sin sobrescribir la
       evidencia del resultado original ni permitir envíos duplicados.
-- [ ] No permitir actuar fuera de plazo aunque la pantalla haya quedado abierta;
+- [x] No permitir actuar fuera de plazo aunque la pantalla haya quedado abierta;
       no fijar días o términos legales que el RF no especifica.
 
 **Backend:** T22. **Dependencias:** FT15, FT19–FT20, FT22.
