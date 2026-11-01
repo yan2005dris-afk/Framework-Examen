@@ -93,3 +93,25 @@ OTP conserva finalidad/cuenta/correo/desafío y consumo único atómico. Configu
 diez minutos. Los rechazos 429 informan `Retry-After` y, cuando hay TTL efectivo,
 `X-Retry-At`; no reiniciar contadores desde el navegador. Reenvío y bloqueo no son
 estados exitosos de correo.
+
+
+## Consumo frontend FT14/FT15 (2026-10-31)
+
+- `/` permite seleccionar convocatorias publicadas, muestra sólo fases publicadas
+  y enlaza registro/login conservando `?convocatoria=<UUID>`.
+- `/admin/convocatorias` y `/admin/fases?convocatoria=<UUID>` exigen administrador.
+  Crear y guardar requieren revisar un resumen y confirmar; no se persiste al
+  pulsar un interruptor. Los rechazos conservan HTTP/código en pantalla.
+- Las fechas de controles se interpretan en **Ecuador UTC-5**, aunque el equipo
+  esté en otra zona. Apertura/cierre generales se programan al crear; el PUT
+  existente sólo modifica configuración/fases y no cambia las fechas base.
+- Las listas paginan por cursor opaco. La gestión no elige el primer período
+  automáticamente. Sus cifras describen los períodos cargados, no un total global.
+- El borrador consulta su **convocatoria de origen**, no la más reciente. Refresco
+  de 30 s y al recuperar foco/conexión; si falta confirmación, falla la consulta,
+  se pierde conexión o la lectura tiene más de 45 s, la UI deja de enviar cambios.
+  El reloj local sólo restringe; nunca sustituye los controles del servidor.
+- Se proporciona un enlace público exacto para integración, con apertura segura
+  en nueva pestaña. Su publicación en IESS/BIESS requiere coordinación externa.
+
+Detalles y evidencia local en [FT14-FT15.md](../tasks/FT14-FT15.md).
