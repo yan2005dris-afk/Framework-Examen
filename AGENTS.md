@@ -133,7 +133,7 @@ Raíz del repo:
 - `apps/frontend/Dockerfile` — etapas `dev` (Vite) y `prod` (nginx)
 - `.github/workflows/ci.yml` — CI: formato, lint y tests de frontend y backend
 - `docs/` — documentación del proyecto: `prd/`, `trd/`, `architecture/`,
-  `database/`, `api-contracts/`, `decisions/`, `deployment/` y `tasks/`.
+  `database/`, `api-contracts/`, `decisions/`, `design/`, `deployment/` y `tasks/`.
   El índice es `docs/README.md`; la fuente funcional del RF está en
   `docs/requerimiento.txt`
 
@@ -334,3 +334,4 @@ decisión que afecte cómo se trabaja en el repo.
 
 | 2026-10-31 | T25–T27 congelan matriz, horario y un intento por postulación en `exam/` | Banco/configuración nuevos son versiones inmutables; azar criptográfico y orden único por configuración con agotamiento explícito. El reloj PostgreSQL posterior a los bloqueos manda; cierre manual/worker comparten nota, PDF BYTEA inmutable, auditoría y outbox en un commit. No hay nota HTTP libre ni matriz correcta en rutas de postulante. |
 | 2026-10-31 | T28 requiere política aprobada y aceptación ID/hash dentro del sello; ninguna política se siembra | `privacy/` conserva cinco literales, vínculo inmutable, ventanas y restricciones por canal, gate de listas públicas y control antes de SMTP. Sin vínculo, las salidas del legado fallan cerradas; no se inventa aceptación ni se reescribe hash. La fecha de revisión solicita decisión humana, no autoriza borrar evidencia. Textos/plazos y disposición material requieren aprobación institucional. |
+| 2026-10-31 | La paleta sale del CSS del portal oficial del BIESS, no de una impresión | `docs/design/PALETA-BIESS.md` fija el origen, los hex y el contraste verificado: azul institucional `#0060A9`, navegación `#003A66`, botón `#005490`, celeste `#0097CC`. El amarillo `#FFD200` queda como token disponible, sin aplicarse a la interfaz: los encabezados usan el azul institucional. El frontend y los mockups declaran el mismo valor token por token en `oklch()`; el hex queda solo en el comentario. Los estados de éxito y advertencia se oscurecen porque los del portal son fondos de mensaje. El modo oscuro es derivación de la paleta, no inversión. La app es un simulacro: toma el color, no las marcas. |

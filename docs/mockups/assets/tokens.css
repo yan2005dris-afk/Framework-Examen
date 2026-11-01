@@ -5,12 +5,20 @@
  * declara las mismas variables en su `:root` y las expone a utilidades
  * Tailwind v4 con `@theme inline { --color-X: var(--X) }`.
  *
+ * PALETA INSTITUCIONAL (ver `docs/design/PALETA-BIESS.md`):
+ * - Origen: hoja de estilos del portal oficial del BIESS,
+ *   https://www.biess.fin.ec/css.axd?css=/common/themes/biess/style.css
+ * - Azul institucional #0060A9 (barras y cabeceras), navegación #003A66,
+ *   botón #005490, envío #0071C4, celeste #0097CC, amarillo #FFD200.
+ * - Los valores van en `oklch()`; el hex original solo aparece en los
+ *   comentarios, porque `check-contrato.mjs` rechaza colores literales.
+ * - El modo oscuro es una derivación de la misma paleta (azul #003A66 hacia
+ *   el negro): el portal oficial no publica una variante oscura.
+ *
  * INTEGRACIÓN CON EL FRONTEND (revisado, no es un copia y pega):
  * - Los 22 tokens base (superficies, marca, estados, bordes, forma) ya
  *   existen en el frontend; este set usa la paleta institucional del BIESS
- *   (#0A3871 / #072146) mientras el frontend sigue en la paleta neutral
- *   actual. Adoptar la paleta institucional es una decisión de marca de una
- *   sola edición, no de cada componente.
+ *   y el frontend ya la adopta (ver ADR-009).
  * - Estos 24 tokens NO existían en el frontend y hay que añadirlos:
  *   --primary-hover, --brand-900, --brand-100, --success, --success-soft,
  *   --warning, --warning-soft, --destructive-soft, --font-mono,
@@ -31,38 +39,46 @@
   --font-mono: ui-monospace, "JetBrains Mono", Consolas, monospace;
 
   /* Superficies */
-  --background: oklch(0.985 0.002 247);
-  --foreground: oklch(0.21 0.02 253);
-  --card: oklch(1 0 0);
+  --background: oklch(1 0 0); /* #FFFFFF */
+  --foreground: oklch(0.3211 0 0); /* #333333 */
+  --card: oklch(1 0 0); /* #FFFFFF */
   --card-foreground: var(--foreground);
-  --popover: oklch(1 0 0);
+  --popover: oklch(1 0 0); /* #FFFFFF */
   --popover-foreground: var(--foreground);
 
-  /* Marca institucional — origen: #0A3871 y #072146 del portal IESS/BIESS */
-  --primary: oklch(0.349 0.097 267);
-  --primary-foreground: oklch(0.99 0 0);
-  --primary-hover: oklch(0.3 0.09 267);
-  --brand-900: oklch(0.27 0.078 264);
-  --brand-100: oklch(0.95 0.02 250);
+  /* Marca institucional — origen: #0060A9 y #003A66 del portal BIESS */
+  --primary: oklch(0.483 0.139 250.6074); /* #0060A9 — barras y cabeceras de tabla */
+  --primary-foreground: oklch(0.99 0 0); /* #FFFFFF */
+  --primary-hover: oklch(0.4369 0.1201 248.8579); /* #005490 — botón principal */
+  --brand-900: oklch(0.3414 0.0937 248.8144); /* #003A66 — navegación del portal */
+  --brand-100: oklch(0.9392 0.0166 250.8453); /* #E3ECF6 — tinte 12% del azul */
+
+  /* Amarillo BIESS — origen: #FFD200; disponible, no aplicado a las pantallas */
+  --brand-yellow: oklch(0.8769 0.1796 93.1299); /* #FFD200 */
+  --brand-yellow-soft: oklch(0.9727 0.039 92.7278); /* #FFF6D9 — tinte 22% del amarillo */
+  --on-brand-yellow: oklch(0.15 0 0); /* #000000 — texto sobre la banda amarilla */
+
+  /* Celeste — origen: #0097CC (cifras destacadas y fechas del portal) */
+  --brand-cyan: oklch(0.6357 0.1303 232.3951); /* #0097CC */
 
   /* Estados */
-  --secondary: oklch(0.968 0.005 247);
-  --secondary-foreground: oklch(0.25 0.02 253);
-  --muted: oklch(0.968 0.005 247);
-  --muted-foreground: oklch(0.55 0.015 253);
-  --accent: oklch(0.95 0.02 250);
+  --secondary: oklch(0.9551 0 0); /* #F0F0F0 — paneles y filas alternas */
+  --secondary-foreground: oklch(0.3211 0 0); /* #333333 */
+  --muted: oklch(0.9581 0 0); /* #F1F1F1 */
+  --muted-foreground: oklch(0.5103 0 0); /* #666666 */
+  --accent: oklch(0.9484 0.0138 247.9725); /* #E7EFF7 — tinte 10% del azul */
   --accent-foreground: var(--primary);
-  --success: oklch(0.6 0.13 163);
-  --success-soft: oklch(0.96 0.03 163);
-  --warning: oklch(0.68 0.14 75);
-  --warning-soft: oklch(0.97 0.04 85);
-  --destructive: oklch(0.58 0.22 27);
-  --destructive-soft: oklch(0.96 0.02 27);
+  --success: oklch(0.4969 0.0847 126.2533); /* #566B33 — #B0D86E oscurecido (5.9:1) */
+  --success-soft: oklch(0.9583 0.0349 126.5009); /* #EBF6DD — tinte 25% del verde */
+  --warning: oklch(0.4753 0.0748 82.4822); /* #715826 — #FFC95F oscurecido (6.7:1) */
+  --warning-soft: oklch(0.9595 0.0412 83.876); /* #FFF0D3 — tinte 30% del ámbar */
+  --destructive: oklch(0.5769 0.2313 28.0545); /* #E20E15 — rojo de error */
+  --destructive-soft: oklch(0.9172 0.0425 17.953); /* #FFD9D9 — fondo de campo con error */
 
   /* Bordes y foco */
-  --border: oklch(0.9 0.01 253);
-  --input: oklch(0.9 0.01 253);
-  --ring: oklch(0.55 0.08 267);
+  --border: oklch(0.9067 0 0); /* #E0E0E0 */
+  --input: oklch(0.8452 0 0); /* #CCCCCC — borde de campos de formulario */
+  --ring: oklch(0.541 0.1543 250.2836); /* #0071C4 — botón de envío, foco */
 
   /* Forma */
   --radius: 0.625rem;
@@ -72,37 +88,37 @@
   --radius-xl: calc(var(--radius) * 1.4);
 
   /* Elevación */
-  --shadow-sm: 0 1px 2px oklch(0.21 0.02 253 / 8%);
-  --shadow-md: 0 4px 12px oklch(0.21 0.02 253 / 10%);
-  --shadow-lg: 0 12px 32px oklch(0.21 0.02 253 / 14%);
+  --shadow-sm: 0 1px 2px oklch(0.2 0.04 250 / 8%);
+  --shadow-md: 0 4px 12px oklch(0.2 0.04 250 / 10%);
+  --shadow-lg: 0 12px 32px oklch(0.2 0.04 250 / 14%);
 
   /* Texto sobre superficies de marca y de estado */
   --on-primary: oklch(0.99 0 0);
   --on-foreground: oklch(0.97 0 0);
-  --on-brand-900: oklch(0.98 0 0);
-  --on-foreground-muted: oklch(0.9 0.02 250);
-  --brand-200: oklch(0.92 0.02 250);
-  --brand-300: oklch(0.88 0.02 250);
-  --success-strong: oklch(0.42 0.1 163);
-  --success-on-dark: oklch(0.82 0.14 163);
-  --warning-strong: oklch(0.45 0.1 65);
-  --destructive-strong: oklch(0.45 0.18 27);
-  --destructive-hover: oklch(0.52 0.2 27);
-  --muted-foreground-strong: oklch(0.45 0.02 253);
-  --brand-ink: oklch(0.25 0.05 264);
+  --on-brand-900: oklch(0.99 0 0); /* texto blanco sobre el azul #003A66 */
+  --on-foreground-muted: oklch(0.9 0.02 244);
+  --brand-200: oklch(0.92 0.02 245);
+  --brand-300: oklch(0.88 0.02 245);
+  --success-strong: oklch(0.3745 0.0636 126.6014); /* #384720 */
+  --success-on-dark: oklch(0.8305 0.1413 126.332); /* #B0D86E */
+  --warning-strong: oklch(0.3882 0.0615 81.8203); /* #55411A */
+  --destructive-strong: oklch(0.45 0.18 28);
+  --destructive-hover: oklch(0.52 0.2 28);
+  --muted-foreground-strong: oklch(0.45 0.02 244);
+  --brand-ink: oklch(0.3414 0.0937 248.8144); /* #003A66 */
 
   /* Impresión */
   --print-ink: oklch(0.15 0 0);
   --print-ink-strong: oklch(0 0 0);
-  --print-heading: oklch(0.2 0.05 264);
-  --print-rule: oklch(0.8 0.01 253);
-  --print-table-head: oklch(0.96 0.005 250);
-  --print-table-foot: oklch(0.97 0.003 250);
+  --print-heading: oklch(0.3414 0.0937 248.8144); /* #003A66 */
+  --print-rule: oklch(0.8 0.01 244);
+  --print-table-head: oklch(0.96 0.005 245);
+  --print-table-foot: oklch(0.97 0.003 245);
   --print-paper: oklch(1 0 0);
-  --print-folio: oklch(0.45 0.01 253);
+  --print-folio: oklch(0.45 0.01 244);
 
   /* Superficies semitransparentes */
-  --overlay: oklch(0.21 0.02 253 / 45%);
+  --overlay: oklch(0.2 0.04 250 / 45%);
 
   /* Escala de espacio (múltiplos de 4px) */
   --space-1: 0.25rem;
@@ -120,58 +136,66 @@
 /*
  * Modo oscuro. El frontend usa `next-themes` y ya define un bloque `.dark`;
  * estas variantes son su equivalente para la paleta institucional del set.
+ * Es una derivación de la paleta BIESS (azul #003A66 hacia el negro), no una
+ * inversión de los tokens claros: el portal oficial no publica modo oscuro.
  * Forma (radios), tipografía y espaciado no cambian con el tema.
  */
 .dark {
   /* Superficies */
-  --background: oklch(0.18 0.015 253);
-  --foreground: oklch(0.96 0.005 250);
-  --card: oklch(0.22 0.018 253);
+  --background: oklch(0.1117 0.0292 246.6823); /* #00050E */
+  --foreground: oklch(0.8817 0.0112 243.6695); /* #D2D9DF */
+  --card: oklch(0.1554 0.0419 248.1057); /* #000D1D */
   --card-foreground: var(--foreground);
-  --popover: oklch(0.22 0.018 253);
+  --popover: oklch(0.1554 0.0419 248.1057); /* #000D1D */
   --popover-foreground: var(--foreground);
 
   /* Marca institucional */
-  --primary: oklch(0.72 0.11 267);
-  --primary-foreground: oklch(0.18 0.02 253);
-  --primary-hover: oklch(0.78 0.11 267);
-  --brand-900: oklch(0.92 0.03 250);
-  --brand-100: oklch(0.3 0.05 260);
+  --primary: oklch(0.6357 0.1303 232.3951); /* #0097CC */
+  --primary-foreground: oklch(0.1117 0.0292 246.6823); /* #00050E */
+  --primary-hover: oklch(0.6404 0.1868 251.1008); /* #008EF8 */
+  --brand-900: oklch(0.8883 0.0217 245.8764); /* #CFDCE8 */
+  --brand-100: oklch(0.4066 0.0845 249.2783); /* #204C75 */
+
+  /* Amarillo BIESS: disponible en la paleta, no se aplica a las pantallas */
+  --brand-yellow: oklch(0.8769 0.1796 93.1299); /* #FFD200 */
+  --brand-yellow-soft: oklch(0.1944 0.0398 92.7236); /* #1B1400 */
+  --on-brand-yellow: oklch(0.15 0 0); /* #000000 */
+
+  --brand-cyan: oklch(0.8121 0.1161 231.1786); /* #6ACFFF */
 
   /* Estados */
-  --secondary: oklch(0.27 0.02 253);
+  --secondary: oklch(0.1875 0.0518 249.0428); /* #001429 */
   --secondary-foreground: var(--foreground);
-  --muted: oklch(0.27 0.02 253);
-  --muted-foreground: oklch(0.72 0.015 253);
-  --accent: oklch(0.3 0.05 260);
+  --muted: oklch(0.1875 0.0518 249.0428); /* #001429 */
+  --muted-foreground: oklch(0.7317 0.0315 243.5698); /* #98ABBB */
+  --accent: oklch(0.4344 0.0802 248.5698); /* #2A547B */
   --accent-foreground: var(--foreground);
-  --success: oklch(0.75 0.14 163);
-  --success-soft: oklch(0.3 0.05 163);
-  --warning: oklch(0.8 0.14 75);
-  --warning-soft: oklch(0.32 0.05 80);
-  --destructive: oklch(0.7 0.19 25);
-  --destructive-soft: oklch(0.3 0.05 27);
+  --success: oklch(0.8305 0.1413 126.332); /* #B0D86E */
+  --success-soft: oklch(0.1666 0.0293 127.6946); /* #0B1104 */
+  --warning: oklch(0.8642 0.1368 81.9905); /* #FFC95F */
+  --warning-soft: oklch(0.1737 0.0276 83.1835); /* #160F03 */
+  --destructive: oklch(0.7512 0.1499 21.2729); /* #FF8484 */
+  --destructive-soft: oklch(0.15 0.0303 21.3295); /* #160606 */
 
   /* Bordes y foco */
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.7 0.1 267);
-
+  --ring: oklch(0.6404 0.1868 251.1008); /* #008EF8 */
 
   /* Variantes oscuras de los tokens de texto y marca */
-  --on-primary: oklch(0.18 0.02 253);
-  --on-foreground: oklch(0.18 0.02 253);
-  --on-brand-900: oklch(0.95 0.01 250);
-  --on-foreground-muted: oklch(0.8 0.02 250);
-  --brand-200: oklch(0.8 0.02 250);
-  --brand-300: oklch(0.72 0.02 250);
-  --success-strong: oklch(0.78 0.14 163);
-  --success-on-dark: oklch(0.78 0.14 163);
-  --warning-strong: oklch(0.82 0.13 75);
+  --on-primary: oklch(0.1117 0.0292 246.6823); /* #00050E */
+  --on-foreground: oklch(0.1117 0.0292 246.6823); /* #00050E */
+  --on-brand-900: oklch(0.95 0.01 245);
+  --on-foreground-muted: oklch(0.8 0.02 245);
+  --brand-200: oklch(0.8 0.02 245);
+  --brand-300: oklch(0.72 0.02 245);
+  --success-strong: oklch(0.78 0.14 126); /* #B0D86E */
+  --success-on-dark: oklch(0.78 0.14 126); /* #B0D86E */
+  --warning-strong: oklch(0.82 0.13 82); /* #FFC95F */
   --destructive-strong: oklch(0.78 0.16 25);
   --destructive-hover: oklch(0.74 0.18 25);
-  --muted-foreground-strong: oklch(0.78 0.02 253);
-  --brand-ink: oklch(0.92 0.03 250);
+  --muted-foreground-strong: oklch(0.78 0.02 245);
+  --brand-ink: oklch(0.8883 0.0217 245.8764); /* #CFDCE8 */
 
   /* Elevación */
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 30%);
