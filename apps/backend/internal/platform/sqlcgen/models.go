@@ -187,6 +187,18 @@ type EvaluationUploadIntent struct {
 	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
 }
 
+type MailDeliveryEvent struct {
+	ID        uuid.UUID          `json:"id"`
+	MailID    uuid.UUID          `json:"mail_id"`
+	Status    string             `json:"status"`
+	ErrorCode string             `json:"error_code"`
+	Attempt   int32              `json:"attempt"`
+	Cycle     int32              `json:"cycle"`
+	ActorID   pgtype.UUID        `json:"actor_id"`
+	Reason    *string            `json:"reason"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type MailOutbox struct {
 	ID            uuid.UUID          `json:"id"`
 	DedupKey      string             `json:"dedup_key"`
@@ -201,6 +213,8 @@ type MailOutbox struct {
 	LastErrorCode string             `json:"last_error_code"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	RetryCount    int32              `json:"retry_count"`
+	TotalAttempts int32              `json:"total_attempts"`
 }
 
 type MeritCalculation struct {
@@ -280,6 +294,50 @@ type Reconsideration struct {
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
+type ResultList struct {
+	ID            uuid.UUID          `json:"id"`
+	CompetitionID uuid.UUID          `json:"competition_id"`
+	Sector        string             `json:"sector"`
+	Version       int64              `json:"version"`
+	SourcesHash   string             `json:"sources_hash"`
+	Payload       []byte             `json:"payload"`
+	ActorID       uuid.UUID          `json:"actor_id"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+}
+
+type ResultListCommand struct {
+	ID          uuid.UUID `json:"id"`
+	ActorID     uuid.UUID `json:"actor_id"`
+	Operation   string    `json:"operation"`
+	Scope       string    `json:"scope"`
+	RequestHash string    `json:"request_hash"`
+	ResourceID  uuid.UUID `json:"resource_id"`
+}
+
+type ResultListPublication struct {
+	ID                uuid.UUID          `json:"id"`
+	ListID            uuid.UUID          `json:"list_id"`
+	CompetitionID     uuid.UUID          `json:"competition_id"`
+	Sector            string             `json:"sector"`
+	Version           int64              `json:"version"`
+	PreviousID        pgtype.UUID        `json:"previous_id"`
+	RequestHash       string             `json:"request_hash"`
+	ApprovalReference string             `json:"approval_reference"`
+	PrivacyReference  string             `json:"privacy_reference"`
+	IsPublic          bool               `json:"is_public"`
+	PublicPayload     []byte             `json:"public_payload"`
+	ActorID           uuid.UUID          `json:"actor_id"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+}
+
+type ResultListStream struct {
+	CompetitionID    uuid.UUID   `json:"competition_id"`
+	Sector           string      `json:"sector"`
+	Version          int64       `json:"version"`
+	PublishedVersion int64       `json:"published_version"`
+	PublishedID      pgtype.UUID `json:"published_id"`
+}
+
 type Session struct {
 	ID          uuid.UUID `json:"id"`
 	ApplicantID uuid.UUID `json:"applicant_id"`
@@ -288,6 +346,15 @@ type Session struct {
 	Ip          *string   `json:"ip"`
 	UserAgent   *string   `json:"user_agent"`
 	CreatedAt   time.Time `json:"created_at"`
+}
+
+type StageNotice struct {
+	ID              uuid.UUID          `json:"id"`
+	SubmissionID    uuid.UUID          `json:"submission_id"`
+	SourceID        uuid.UUID          `json:"source_id"`
+	Action          string             `json:"action"`
+	TemplateVersion string             `json:"template_version"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 }
 
 type Submission struct {

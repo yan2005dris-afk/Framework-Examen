@@ -1,5 +1,7 @@
 package submission
 
+import "time"
+
 const consentVersion = "v1.4"
 
 /** normalizeDeclarations publica los textos al guardar y elimina certificaciones del cliente.
@@ -24,4 +26,13 @@ var consentStatements = []string{
 	"3. Acepto expresamente cumplir con las normas aplicables al concurso de méritos y oposición para la selección de los Miembros Principales y Alternos del Directorio del Banco del Instituto Ecuatoriano de Seguridad Social (BIESS), en Representación de los Afiliados, Jubilados y Empleadores; así como las resoluciones y disposiciones impartidas por el Instituto Ecuatoriano de Seguridad Social. En caso de incumplimiento de requisitos o encontrarme inmerso/a en las prohibiciones o inhabilidades acepto mi descalificación del proceso.",
 	"4. Acepto que mi nombre como postulante al concurso de méritos y oposición para la selección de los Miembros Principales y Alternos del Directorio del Banco del Instituto Ecuatoriano de Seguridad Social (BIESS), en Representación de los Afiliados, Jubilados y Empleadores; sea publicado en la página web del IESS - BIESS.",
 	"5. El presente formulario, debe ser impreso y con firma manuscrita, entregado junto con los requisitos solicitados, en el lugar, fecha y horario establecido por el Instituto Ecuatoriano de Seguridad Social.",
+}
+
+/** AllowsNamePublication reconoce el literal de nombre efectivamente aceptado en el sello, sin extenderlo a contactos, notas o documentos. */
+func AllowsNamePublication(c *Consent) bool {
+	if c == nil || !c.NamePublication || c.Version != consentVersion || len(c.Statements) != len(consentStatements) || c.Statements[3] != consentStatements[3] {
+		return false
+	}
+	accepted, err := time.Parse(time.RFC3339Nano, c.AcceptedAt)
+	return err == nil && !accepted.IsZero()
 }

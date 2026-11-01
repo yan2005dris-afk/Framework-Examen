@@ -18,21 +18,41 @@ WITH candidates AS (
     WHERE status IN ('pending','processing') AND next_attempt_at<=now()
         AND expires_at>now() AND attempts<5
     ORDER BY created_at,id LIMIT 10 FOR UPDATE SKIP LOCKED
-)
+), claimed AS (
 UPDATE mail_outbox m SET status='processing',attempts=m.attempts+1,
-    next_attempt_at=now()+interval '5 minutes',lease_id=$1,updated_at=now()
-FROM candidates c WHERE m.id=c.id RETURNING m.id, m.dedup_key, m.kind, m.resource_id, m.ciphertext, m.status, m.attempts, m.next_attempt_at, m.expires_at, m.lease_id, m.last_error_code, m.created_at, m.updated_at
+    total_attempts=m.total_attempts+1,next_attempt_at=now()+interval '5 minutes',lease_id=$1,updated_at=now()
+FROM candidates c WHERE m.id=c.id RETURNING m.id, m.dedup_key, m.kind, m.resource_id, m.ciphertext, m.status, m.attempts, m.next_attempt_at, m.expires_at, m.lease_id, m.last_error_code, m.created_at, m.updated_at, m.retry_count, m.total_attempts
+), logged AS (INSERT INTO mail_delivery_events(mail_id,status,error_code,attempt,cycle) SELECT id,'processing','',attempts,retry_count FROM claimed)
+SELECT id, dedup_key, kind, resource_id, ciphertext, status, attempts, next_attempt_at, expires_at, lease_id, last_error_code, created_at, updated_at, retry_count, total_attempts FROM claimed
 `
 
-func (q *Queries) ClaimMail(ctx context.Context, leaseID pgtype.UUID) ([]MailOutbox, error) {
+type ClaimMailRow struct {
+	ID            uuid.UUID          `json:"id"`
+	DedupKey      string             `json:"dedup_key"`
+	Kind          string             `json:"kind"`
+	ResourceID    pgtype.UUID        `json:"resource_id"`
+	Ciphertext    []byte             `json:"ciphertext"`
+	Status        string             `json:"status"`
+	Attempts      int32              `json:"attempts"`
+	NextAttemptAt pgtype.Timestamptz `json:"next_attempt_at"`
+	ExpiresAt     pgtype.Timestamptz `json:"expires_at"`
+	LeaseID       pgtype.UUID        `json:"lease_id"`
+	LastErrorCode string             `json:"last_error_code"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	RetryCount    int32              `json:"retry_count"`
+	TotalAttempts int32              `json:"total_attempts"`
+}
+
+func (q *Queries) ClaimMail(ctx context.Context, leaseID pgtype.UUID) ([]ClaimMailRow, error) {
 	rows, err := q.db.Query(ctx, claimMail, leaseID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []MailOutbox{}
+	items := []ClaimMailRow{}
 	for rows.Next() {
-		var i MailOutbox
+		var i ClaimMailRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.DedupKey,
@@ -47,6 +67,8 @@ func (q *Queries) ClaimMail(ctx context.Context, leaseID pgtype.UUID) ([]MailOut
 			&i.LastErrorCode,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.RetryCount,
+			&i.TotalAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -89,10 +111,12 @@ func (q *Queries) EnqueueMail(ctx context.Context, arg EnqueueMailParams) error 
 }
 
 const expireMail = `-- name: ExpireMail :exec
+WITH finished AS (
 UPDATE mail_outbox SET status=CASE WHEN expires_at<=now() THEN 'expired' ELSE 'failed' END,
-    ciphertext=''::bytea,last_error_code=CASE WHEN expires_at<=now() THEN 'expired' ELSE 'attempts_exhausted' END,updated_at=now(),lease_id=NULL
-WHERE status IN ('pending','processing') AND
-    (expires_at<=now() OR (attempts>=5 AND next_attempt_at<=now()))
+    ciphertext=CASE WHEN expires_at<=now() THEN ''::bytea ELSE ciphertext END,last_error_code=CASE WHEN expires_at<=now() THEN 'expired' ELSE 'attempts_exhausted' END,updated_at=now(),lease_id=NULL
+WHERE (status IN ('pending','processing') AND (expires_at<=now() OR (attempts>=5 AND next_attempt_at<=now()))) OR (status='failed' AND expires_at<=now())
+RETURNING id, dedup_key, kind, resource_id, ciphertext, status, attempts, next_attempt_at, expires_at, lease_id, last_error_code, created_at, updated_at, retry_count, total_attempts
+) INSERT INTO mail_delivery_events(mail_id,status,error_code,attempt,cycle) SELECT f.id,f.status,f.last_error_code,f.attempts,f.retry_count FROM finished f
 `
 
 func (q *Queries) ExpireMail(ctx context.Context) error {
@@ -101,11 +125,13 @@ func (q *Queries) ExpireMail(ctx context.Context) error {
 }
 
 const finishMail = `-- name: FinishMail :execrows
-UPDATE mail_outbox SET status=$1::varchar,last_error_code=$2,
+WITH finished AS (
+UPDATE mail_outbox m SET status=$1::varchar,last_error_code=$2,
     next_attempt_at=$3,updated_at=now(),
-    ciphertext=CASE WHEN $1::varchar='pending' THEN ciphertext ELSE ''::bytea END,
+    ciphertext=CASE WHEN $1::varchar IN ('pending','failed') AND expires_at>now() THEN ciphertext ELSE ''::bytea END,
     lease_id=NULL
-WHERE id=$4 AND lease_id=$5 AND status='processing'
+WHERE m.id=$4 AND m.lease_id=$5 AND m.status='processing' RETURNING m.id, m.dedup_key, m.kind, m.resource_id, m.ciphertext, m.status, m.attempts, m.next_attempt_at, m.expires_at, m.lease_id, m.last_error_code, m.created_at, m.updated_at, m.retry_count, m.total_attempts
+) INSERT INTO mail_delivery_events(mail_id,status,error_code,attempt,cycle) SELECT f.id,f.status,f.last_error_code,f.attempts,f.retry_count FROM finished f
 `
 
 type FinishMailParams struct {
@@ -142,7 +168,7 @@ func (q *Queries) MailOutboxReady(ctx context.Context) (bool, error) {
 }
 
 const mailStatusByResource = `-- name: MailStatusByResource :one
-SELECT status,attempts,last_error_code,updated_at FROM mail_outbox
+SELECT status,total_attempts AS attempts,last_error_code,updated_at FROM mail_outbox
 WHERE resource_id=$1 ORDER BY created_at DESC,id DESC LIMIT 1
 `
 

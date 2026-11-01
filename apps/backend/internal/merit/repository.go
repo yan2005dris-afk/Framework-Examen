@@ -15,3 +15,8 @@ type Repository interface {
 	ReadCase(context.Context, uuid.UUID) (*Case, error)
 	MutateCase(context.Context, *identity.Applicant, uuid.UUID, func(*Case) error) (*Case, error)
 }
+
+/** Notifier confirma el aviso del resultado publicado dentro de su transacción. */
+type Notifier interface {
+	Enqueue(context.Context, uuid.UUID, uuid.UUID, string) error
+}
