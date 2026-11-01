@@ -46,6 +46,7 @@ import {
   usePublicarPsicotecnica,
   useRegistrarPsicotecnica,
 } from "./queries"
+import { HabilitacionExamenModal } from "./habilitacion-examen-modal"
 
 export interface EvaluacionOposicionProps {
   submissionId: string
@@ -85,6 +86,7 @@ export function EvaluacionOposicion({
   const [motivoPublicacion, setMotivoPublicacion] = useState("")
   const [motivoConsolidacion, setMotivoConsolidacion] = useState("")
   const [descargandoEvidencia, setDescargandoEvidencia] = useState(false)
+  const [modalHabilitarAbierto, setModalHabilitarAbierto] = useState(false)
 
   if (isLoading) {
     return <EstadoCargando mensaje="Cargando expediente de calificaciones…" />
@@ -335,9 +337,21 @@ export function EvaluacionOposicion({
                 </span>
               </p>
               {!teoricaPublicada && (
-                <p className="text-[10px] text-muted-foreground">
-                  Nota calculada en examen de conocimientos.
-                </p>
+                <div className="mt-2 space-y-1.5">
+                  <p className="text-[10px] text-muted-foreground">
+                    Nota calculada en examen de conocimientos.
+                  </p>
+                  {esAdmin && meritosPublicados?.habilitaAvance && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 w-full text-xs"
+                      onClick={() => setModalHabilitarAbierto(true)}
+                    >
+                      Habilitar examen
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
 
@@ -812,6 +826,14 @@ export function EvaluacionOposicion({
           )}
         </CardContent>
       </Card>
+      {/* Modal para habilitar examen técnico (FT25) */}
+      <HabilitacionExamenModal
+        submissionId={submissionId}
+        meritosPublicados={meritosPublicados}
+        abierto={modalHabilitarAbierto}
+        onOpenChange={setModalHabilitarAbierto}
+        onExito={() => void refetch()}
+      />
     </div>
   )
 }

@@ -581,11 +581,11 @@ Ver [entrega FT14/FT15](FT14-FT15.md).
 
 **Origen:** EF-14 1.1. **Prioridad:** P1-RF.
 
-- [ ] Permitir cargar y gestionar preguntas/opciones/respuestas correctas con el
+- [x] Permitir cargar y gestionar preguntas/opciones/respuestas correctas con el
       formato que se acuerde, mostrando validaciones de estructura y banco insuficiente.
-- [ ] Mostrar versiones del banco y advertir el efecto de editar solo futuras
+- [x] Mostrar versiones del banco y advertir el efecto de editar solo futuras
       evaluaciones; los exámenes iniciados conservan su versión.
-- [ ] Restringir esta interfaz al administrador y evitar incluir respuestas correctas
+- [x] Restringir esta interfaz al administrador y evitar incluir respuestas correctas
       en las vistas o peticiones de un postulante durante un examen activo.
 
 **Backend:** T6, T25. **Dependencias:** FT15.
@@ -594,12 +594,12 @@ Ver [entrega FT14/FT15](FT14-FT15.md).
 
 **Origen:** EF-14, apertura y punto 1.2. **Prioridad:** P1-RF.
 
-- [ ] Permitir al administrador definir fecha/hora, duración y cantidad de preguntas
+- [x] Permitir al administrador definir fecha/hora, duración y cantidad de preguntas
       y habilitar exclusivamente a quienes superaron la fase de méritos.
-- [ ] Mostrar elegibilidad y estados no habilitado/programado/disponible/vencido
+- [x] Mostrar elegibilidad y estados no habilitado/programado/disponible/vencido
       desde la API; mostrar «Evaluación Técnica» al habilitarse la fase. El módulo
       permanece oculto al público general.
-- [ ] Gestionar los rechazos por horario, fase o banco insuficiente antes de publicar
+- [x] Gestionar los rechazos por horario, fase o banco insuficiente antes de publicar
       la programación, sin inventar valores no acordados por la institución.
 
 **Backend:** T18, T20, T25–T26. **Dependencias:** FT15, FT19, FT24.
@@ -678,8 +678,8 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | EF-1 | Reconsideraciones y plazos exactos por actor | T22 | FT21 | Implementado: bandejas de recepción, análisis y resolución con plazos del servidor |
 | EF-1 | Notificar resultados de cada etapa | T23 | FT22 | Implementado: seguimiento de etapas para postulante, estados auditados y reintentos administrativos |
 | EF-1 | Reportes, listas de elegibles y trazabilidad completa | T8, T24 | FT7–FT8, FT23 | Implementado: matriz preliminar EF-13, generación reproducible de listas, CSV y nómina pública ciudadana |
-| EF-14, apertura/1.1 | Módulo restringido y banco de preguntas | T6, T25 | FT24–FT25 | Planificado |
-| EF-14 1.2 | Méritos aprobados, fecha/hora, azar, cantidad y orden distinto | T18, T20, T26 | FT25–FT26 | Planificado; parámetros pendientes |
+| EF-14, apertura/1.1 | Módulo restringido y banco de preguntas | T6, T25 | FT24–FT25 | Implementado: banco inmutable, matriz auditada, validaciones y configuración |
+| EF-14 1.2 | Méritos aprobados, fecha/hora, azar, cantidad y orden distinto | T18, T20, T26 | FT25–FT26 | Implementado: habilitación individual, programación y verificación de elegibilidad |
 | EF-14 1.3.1–1.3.4 | Pregunta individual, reloj, controles UI y cierre al vencer | T26–T27 | FT26 | Planificado |
 | EF-14 1.3.5–1.4 | Calificar, guardar nota, PDF, correo y copia administrativa | T21, T23, T27 | FT20, FT27 | Planificado; escala de nota pendiente |
 

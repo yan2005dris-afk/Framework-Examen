@@ -1,36 +1,12 @@
-import { Link } from "react-router"
-
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { RUTAS } from "@/lib/rutas"
+import { GestionBancoPreguntas } from "@/features/preguntas/gestion-banco-preguntas"
 
 /**
- * Banco de preguntas y ponderaciones para el examen EF-14.
- * Placeholder honesto: la tarea FT24 implementa la carga, taxonomía y validación de reactivos.
+ * Gestión del banco de preguntas y configuración de evaluación técnica (EF-14 / FT24-FT25).
  */
 export function AdminPreguntasView() {
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Banco de preguntas (EF-14)</CardTitle>
-          <CardDescription>
-            Administración de reactivos teóricos y psicotécnicos para la
-            Comisión de Selección. Se implementa en la tarea FT24.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link to={RUTAS.adminConvocatorias}>Volver a convocatorias</Link>
-          </Button>
-        </CardContent>
-      </Card>
+    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+      <GestionBancoPreguntas />
     </div>
   )
 }
