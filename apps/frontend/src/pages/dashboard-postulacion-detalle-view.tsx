@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ExpedienteSellado } from "@/features/revision/expediente-sellado"
 import { DocumentosRevision } from "@/features/revision/documentos-revision"
+import { EvaluacionMeritos } from "@/features/revision/evaluacion-meritos"
 import {
   useCuentaRevision,
   useEventosRevision,
@@ -159,6 +160,10 @@ function DetalleRevision({
         enviadoEn={expediente.submittedAt}
       />
       <DocumentosRevision id={id} />
+      <EvaluacionMeritos
+        submissionId={id}
+        convocatoriaId={expediente.convocatoriaId}
+      />
       <section className="space-y-4 border-t pt-6">
         <h2 className="text-lg font-semibold">
           Historial de acceso y acciones

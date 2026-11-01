@@ -31,6 +31,10 @@ export interface Seccion4CargoProps {
   disabled?: boolean
   /** Evidencia de elegibilidad devuelta por el servidor (FT17). */
   elegibilidad?: ElegibilidadEvidencia | null
+  onSubirRespaldo?: (archivo: File) => Promise<void>
+  onEliminarRespaldo?: () => Promise<void>
+  onDescargarRespaldo?: () => void
+  cargandoRespaldo?: boolean
 }
 
 const MENSAJES_SECTOR = {
@@ -47,6 +51,10 @@ export function Seccion4Cargo({
   onChange,
   disabled = false,
   elegibilidad,
+  onSubirRespaldo,
+  onEliminarRespaldo,
+  onDescargarRespaldo,
+  cargandoRespaldo = false,
 }: Seccion4CargoProps) {
   function actualizarSector(valor: "afiliados" | "jubilados" | "empleadores") {
     onChange({
@@ -249,18 +257,28 @@ export function Seccion4Cargo({
             label="Documento de Respaldo de la Organización (PDF) *"
             maxMB={4}
             valor={datos.documentoRespaldoPdf}
-            onArchivoSeleccionado={(adjunto) =>
-              onChange({
-                ...datos,
-                documentoRespaldoPdf: adjunto,
-              })
-            }
-            onEliminar={() =>
-              onChange({
-                ...datos,
-                documentoRespaldoPdf: null,
-              })
-            }
+            cargando={cargandoRespaldo}
+            onArchivoSeleccionado={(adjunto, archivo) => {
+              if (onSubirRespaldo && archivo) {
+                void onSubirRespaldo(archivo)
+              } else {
+                onChange({
+                  ...datos,
+                  documentoRespaldoPdf: adjunto,
+                })
+              }
+            }}
+            onEliminar={() => {
+              if (onEliminarRespaldo) {
+                void onEliminarRespaldo()
+              } else {
+                onChange({
+                  ...datos,
+                  documentoRespaldoPdf: null,
+                })
+              }
+            }}
+            onDescargar={onDescargarRespaldo}
             disabled={disabled}
             descripcion="Certificado, oficio o aval expedido por la directiva de la organización (límite 4 MB)."
           />

@@ -498,15 +498,15 @@ Ver [entrega FT14/FT15](FT14-FT15.md).
 
 **Origen:** EF-1 restricciones y EF-12 1.4–1.8. **Prioridad:** P1-RF.
 
-- [ ] Añadir cliente `documentos` con carga multipart, listado, baja y solicitud de
+- [x] Añadir cliente `documentos` con carga multipart, listado, baja y solicitud de
       URL temporal; guardar primero el registro con ID estable para asociar su PDF.
-- [ ] Integrar organización, títulos, experiencias, publicaciones y cursos: nombre,
+- [x] Integrar organización, títulos, experiencias, publicaciones y cursos: nombre,
       tamaño, estado de carga/error, reemplazo y descarga del respaldo correspondiente.
-- [ ] Mostrar límites 4/2 MiB y total 50 MiB, contabilizando lo que informa el servidor;
+- [x] Mostrar límites 4/2 MiB y total 50 MiB, contabilizando lo que informa el servidor;
       la validación local no reemplaza la cuota/MIME comprobados por la API.
-- [ ] Conservar referencias devueltas por la API y resolver archivos de registros
+- [x] Conservar referencias devueltas por la API y resolver archivos de registros
       retirados antes del envío; impedir borrados y cargas tras el sello.
-- [ ] Abrir URLs temporales sin guardarlas en almacenamiento persistente del navegador
+- [x] Abrir URLs temporales sin guardarlas en almacenamiento persistente del navegador
       y solicitar una nueva si expiraron. No descargar pasando el binario por la API.
 
 **Backend:** T4. **Dependencias:** FT1, FT5–FT6.
@@ -515,12 +515,12 @@ Ver [entrega FT14/FT15](FT14-FT15.md).
 
 **Origen:** EF-1, verificación y calificación de méritos. **Prioridad:** P1-RF.
 
-- [ ] Mostrar evidencia, trece declaraciones, observaciones y dictamen de revisión,
+- [x] Mostrar evidencia, trece declaraciones, observaciones y dictamen de revisión,
       con acciones solo para el rol y la fase autorizados.
-- [ ] Mostrar criterios/versiones aprobados y el cálculo del servidor con desglose;
+- [x] Mostrar criterios/versiones aprobados y el cálculo del servidor con desglose;
       no calcular la nota definitiva ni decidir aptitud solo desde la interfaz.
-- [ ] Gestionar avance o exclusión, motivación y publicación del resultado de méritos.
-- [ ] Explicar resultados y sus efectos sobre la habilitación de evaluación técnica.
+- [x] Gestionar avance o exclusión, motivación y publicación del resultado de méritos.
+- [x] Explicar resultados y sus efectos sobre la habilitación de evaluación técnica.
 
 **Backend:** T9, T20. **Dependencias:** FT7, FT15, FT18.
 
@@ -665,15 +665,15 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | EF-12 1.2 | Países completos, cascada, correo registrado y dirección | T3, T7 | FT5 | Catálogos backend completos; integración de vistas pendiente |
 | EF-12 1.3 | Familiares y opciones exactas de parentesco/institución | T3, T7 | FT5 | Opciones backend disponibles; integración visual pendiente |
 | EF-12 1.4 | Cargo, elegibilidad, mensajes, cierre y organización | T3–T4, T17–T18 | FT5, FT17–FT18 | Implementado: elegibilidad por sector del servidor, cierre automático y persistencia |
-| EF-12 1.5–1.8 | Títulos, experiencia/calculadora, publicaciones y capacitación | T3–T4, T7 | FT5, FT18 | Backend base; vistas y adjuntos integrados pendientes |
-| EF-12 1.9 | Trece respuestas, detalles de remoción y revisión | T3, T20 | FT5, FT19 | Declaraciones base; revisión administrativa pendiente |
-| EF-1, restricciones | PDF 2/4 MiB y total 50 MiB | T4 | FT18 | Backend disponible; consumo frontend pendiente |
+| EF-12 1.5–1.8 | Títulos, experiencia/calculadora, publicaciones y capacitación | T3–T4, T7 | FT5, FT18 | Implementado: vistas y adjuntos integrados con límites y cuotas |
+| EF-12 1.9 | Trece respuestas, detalles de remoción y revisión | T3, T20 | FT5, FT19 | Implementado: declaraciones, revisión técnica y dictamen administrativo |
+| EF-1, restricciones | PDF 2/4 MiB y total 50 MiB | T4 | FT18 | Implementado: cliente multipart, límites 4/2 MiB y cuota total 50 MiB |
 | EF-12, notas | Guardado parcial, CRUD de registros y código único | T3–T5 | FT5 | Backend base; interfaz funcional pendiente |
 | EF-12 1.10 | Literales al guardar, firma manuscrita, impresión y correo completo | T3, T19, T23 | FT6, FT28 | Sello y correo con JSON disponibles; presentación final pendiente |
 | EF-13.1–2 | Publicar fases y habilitar EF-12 | T6, T18 | FT15 | Planificado |
 | EF-13.3 | Conteos por cargo en tiempo real e históricos íntegros/certificados | T8–T9, T18 | FT7 | Integración FT7 disponible; pendientes T18/fases y validación integrada |
 | EF-13.3 | Matriz comparativa Excel/PDF | T9 | FT8 | Integración XLSX/PDF disponible; aprobación institucional y validación integrada pendientes |
-| EF-1 | Verificar requisitos y calcular méritos | T20 | FT19 | Planificado; falta matriz de calificación aprobada |
+| EF-1 | Verificar requisitos y calcular méritos | T20 | FT19 | Implementado: revisión técnica, cálculo oficial meritos-v1 y publicación de resolución |
 | EF-1 | Registrar oposición psicotécnica y consolidar expediente | T21 | FT20 | Planificado; falta instrumento/reglas |
 | EF-1 | Reconsideraciones y plazos exactos por actor | T22 | FT21 | Planificado; faltan términos y calendario aprobados |
 | EF-1 | Notificar resultados de cada etapa | T23 | FT22 | Correo base; flujo y reintentos persistentes pendientes |

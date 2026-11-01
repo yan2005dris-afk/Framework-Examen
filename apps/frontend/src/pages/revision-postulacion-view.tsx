@@ -1,4 +1,5 @@
 import {
+  AlertCircleIcon,
   ArrowLeftIcon,
   CheckCircle2Icon,
   CheckIcon,
@@ -87,15 +88,42 @@ export function RevisionPostulacionView() {
 
   // Desglose de contenido por sección
   const content = postulacion?.content || {}
-  const s1 = (content.seccion1 || {}) as Partial<Seccion1Data>
-  const s2 = (content.seccion2 || {}) as Partial<Seccion2Data>
-  const s3 = (content.seccion3 || {}) as Partial<Seccion3Data>
-  const s4 = (content.seccion4 || {}) as Partial<Seccion4Data>
-  const s5 = (content.seccion5 || {}) as Partial<Seccion5Data>
-  const s6 = (content.seccion6 || {}) as Partial<Seccion6Data>
-  const s7 = (content.seccion7 || {}) as Partial<Seccion7Data>
-  const s8 = (content.seccion8 || {}) as Partial<Seccion8Data>
-  const s9 = (content.seccion9 || {}) as Partial<Seccion9Data>
+  const s1 = useMemo(
+    () => (content.seccion1 || {}) as Partial<Seccion1Data>,
+    [content.seccion1],
+  )
+  const s2 = useMemo(
+    () => (content.seccion2 || {}) as Partial<Seccion2Data>,
+    [content.seccion2],
+  )
+  const s3 = useMemo(
+    () => (content.seccion3 || {}) as Partial<Seccion3Data>,
+    [content.seccion3],
+  )
+  const s4 = useMemo(
+    () => (content.seccion4 || {}) as Partial<Seccion4Data>,
+    [content.seccion4],
+  )
+  const s5 = useMemo(
+    () => (content.seccion5 || {}) as Partial<Seccion5Data>,
+    [content.seccion5],
+  )
+  const s6 = useMemo(
+    () => (content.seccion6 || {}) as Partial<Seccion6Data>,
+    [content.seccion6],
+  )
+  const s7 = useMemo(
+    () => (content.seccion7 || {}) as Partial<Seccion7Data>,
+    [content.seccion7],
+  )
+  const s8 = useMemo(
+    () => (content.seccion8 || {}) as Partial<Seccion8Data>,
+    [content.seccion8],
+  )
+  const s9 = useMemo(
+    () => (content.seccion9 || {}) as Partial<Seccion9Data>,
+    [content.seccion9],
+  )
 
   // Mapa de secciones completadas
   const mapaSecciones = useMemo(() => {
@@ -114,6 +142,55 @@ export function RevisionPostulacionView() {
   }, [mapaSecciones])
 
   const formularioCompleto = totalCompletadas === 9
+
+  // Comprobación de respaldos PDF pendientes (FT18 / Mockup 07b)
+  const documentosPendientes = useMemo(() => {
+    const pendientes: string[] = []
+    if (
+      s4.cuentaConRespaldoOrganizacion === "Sí" &&
+      !s4.documentoRespaldoPdf?.id &&
+      !s4.documentoRespaldoPdf?.referenciaId
+    ) {
+      pendientes.push("Respaldo de Organización o Gremio (Sección 4)")
+    }
+    if (s5.titulos) {
+      for (const t of s5.titulos) {
+        if (!t.documentoPdf?.id && !t.documentoPdf?.referenciaId) {
+          pendientes.push(
+            `Certificado de título «${t.titulo || t.nivel}» (Sección 5)`,
+          )
+        }
+      }
+    }
+    if (s6.experiencias) {
+      for (const e of s6.experiencias) {
+        if (!e.documentoPdf?.id && !e.documentoPdf?.referenciaId) {
+          pendientes.push(
+            `Certificado laboral en «${e.institucion || e.cargo}» (Sección 6)`,
+          )
+        }
+      }
+    }
+    if (s7.publicaciones && s7.cuentaConPublicaciones === "Sí") {
+      for (const p of s7.publicaciones) {
+        if (!p.documentoPdf?.id && !p.documentoPdf?.referenciaId) {
+          pendientes.push(
+            `Respaldo de publicación «${p.titulo || "sin título"}» (Sección 7)`,
+          )
+        }
+      }
+    }
+    if (s8.capacitaciones) {
+      for (const c of s8.capacitaciones) {
+        if (!c.documentoPdf?.id && !c.documentoPdf?.referenciaId) {
+          pendientes.push(
+            `Certificado de capacitación «${c.nombre || "sin nombre"}» (Sección 8)`,
+          )
+        }
+      }
+    }
+    return pendientes
+  }, [s4, s5, s6, s7, s8])
 
   const todosConsentimientosAceptados =
     Boolean(consentimiento.aceptacionTratamientoDatos) &&
@@ -144,6 +221,12 @@ export function RevisionPostulacionView() {
     if (!formularioCompleto) {
       toast.error(
         "Debe completar las 9 secciones del formulario antes de enviar.",
+      )
+      return
+    }
+    if (documentosPendientes.length > 0) {
+      toast.error(
+        `Faltan ${documentosPendientes.length} documentos obligatorios. Cargue todos los respaldos PDF antes de enviar.`,
       )
       return
     }
@@ -362,6 +445,41 @@ export function RevisionPostulacionView() {
                   botón de envío definitivo. Las secciones pendientes están
                   marcadas abajo.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Bloqueo de envío por documentos pendientes (Mockup 07b) */}
+          {documentosPendientes.length > 0 && (
+            <div
+              role="alert"
+              className="mt-4 flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-foreground dark:bg-destructive/20"
+            >
+              <AlertCircleIcon
+                className="mt-0.5 size-5 shrink-0 text-destructive"
+                aria-hidden="true"
+              />
+              <div className="flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-sm text-destructive">
+                    Envío bloqueado por documentos pendientes (
+                    {documentosPendientes.length})
+                  </p>
+                  <Badge variant="destructive" className="text-[10px]">
+                    Requerido
+                  </Badge>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Faltan documentos obligatorios. Cargue los respaldos PDF
+                  pendientes para poder enviar la postulación:
+                </p>
+                <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-muted-foreground">
+                  {documentosPendientes.map((d, i) => (
+                    <li key={i} className="font-medium text-foreground">
+                      {d}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           )}
@@ -1130,17 +1248,22 @@ export function RevisionPostulacionView() {
 
         {!yaEnviada ? (
           <div className="flex items-center gap-3">
-            {!todosConsentimientosAceptados && (
+            {documentosPendientes.length > 0 ? (
+              <span className="hidden text-xs font-medium text-destructive sm:inline">
+                {documentosPendientes.length} documentos obligatorios pendientes
+              </span>
+            ) : !todosConsentimientosAceptados ? (
               <span className="hidden text-xs font-medium text-amber-700 dark:text-amber-300 sm:inline">
                 Debe marcar los 5 puntos para habilitar el envío
               </span>
-            )}
+            ) : null}
             <Button
               type="button"
               onClick={handleEnviarPostulacion}
               disabled={
                 !todosConsentimientosAceptados ||
                 !formularioCompleto ||
+                documentosPendientes.length > 0 ||
                 sellarMutation.isPending ||
                 !disponibilidad.abierta
               }

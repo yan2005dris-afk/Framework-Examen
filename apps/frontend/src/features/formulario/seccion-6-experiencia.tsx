@@ -36,12 +36,20 @@ export interface Seccion6ExperienciaProps {
   datos: Seccion6Data
   onChange: (nuevosDatos: Seccion6Data) => void
   disabled?: boolean
+  onSubirRespaldo?: (expId: string, archivo: File) => Promise<void>
+  onEliminarRespaldo?: (expId: string) => Promise<void>
+  onDescargarRespaldo?: (documentId: string) => void
+  cargandoRespaldoId?: string | null
 }
 
 export function Seccion6Experiencia({
   datos,
   onChange,
   disabled = false,
+  onSubirRespaldo,
+  onEliminarRespaldo,
+  onDescargarRespaldo,
+  cargandoRespaldoId = null,
 }: Seccion6ExperienciaProps) {
   function agregarExperiencia() {
     const nuevo: ExperienciaItem = {
@@ -323,11 +331,25 @@ export function Seccion6Experiencia({
                   label="Certificado Laboral o Mecanizado IESS (PDF)"
                   maxMB={2}
                   valor={exp.documentoPdf}
-                  onArchivoSeleccionado={(adjunto) =>
-                    actualizarExperiencia(index, "documentoPdf", adjunto)
-                  }
-                  onEliminar={() =>
-                    actualizarExperiencia(index, "documentoPdf", null)
+                  cargando={cargandoRespaldoId === exp.id}
+                  onArchivoSeleccionado={(adjunto, archivo) => {
+                    if (onSubirRespaldo && archivo) {
+                      void onSubirRespaldo(exp.id, archivo)
+                    } else {
+                      actualizarExperiencia(index, "documentoPdf", adjunto)
+                    }
+                  }}
+                  onEliminar={() => {
+                    if (onEliminarRespaldo) {
+                      void onEliminarRespaldo(exp.id)
+                    } else {
+                      actualizarExperiencia(index, "documentoPdf", null)
+                    }
+                  }}
+                  onDescargar={
+                    exp.documentoPdf?.id && onDescargarRespaldo
+                      ? () => onDescargarRespaldo(exp.documentoPdf!.id!)
+                      : undefined
                   }
                   disabled={disabled}
                   descripcion="Certificado laboral membretado con fechas o mecanizado del IESS (máx. 2 MB)."

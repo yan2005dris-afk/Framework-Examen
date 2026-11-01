@@ -31,12 +31,20 @@ export interface Seccion8CapacitacionProps {
   datos: Seccion8Data
   onChange: (nuevosDatos: Seccion8Data) => void
   disabled?: boolean
+  onSubirRespaldo?: (capId: string, archivo: File) => Promise<void>
+  onEliminarRespaldo?: (capId: string) => Promise<void>
+  onDescargarRespaldo?: (documentId: string) => void
+  cargandoRespaldoId?: string | null
 }
 
 export function Seccion8Capacitacion({
   datos,
   onChange,
   disabled = false,
+  onSubirRespaldo,
+  onEliminarRespaldo,
+  onDescargarRespaldo,
+  cargandoRespaldoId = null,
 }: Seccion8CapacitacionProps) {
   function agregarCapacitacion() {
     const nueva: CapacitacionItem = {
@@ -248,11 +256,25 @@ export function Seccion8Capacitacion({
                 label="Certificado o Diploma de Aprobación (PDF)"
                 maxMB={2}
                 valor={cap.documentoPdf}
-                onArchivoSeleccionado={(adjunto) =>
-                  actualizarCapacitacion(index, "documentoPdf", adjunto)
-                }
-                onEliminar={() =>
-                  actualizarCapacitacion(index, "documentoPdf", null)
+                cargando={cargandoRespaldoId === cap.id}
+                onArchivoSeleccionado={(adjunto, archivo) => {
+                  if (onSubirRespaldo && archivo) {
+                    void onSubirRespaldo(cap.id, archivo)
+                  } else {
+                    actualizarCapacitacion(index, "documentoPdf", adjunto)
+                  }
+                }}
+                onEliminar={() => {
+                  if (onEliminarRespaldo) {
+                    void onEliminarRespaldo(cap.id)
+                  } else {
+                    actualizarCapacitacion(index, "documentoPdf", null)
+                  }
+                }}
+                onDescargar={
+                  cap.documentoPdf?.id && onDescargarRespaldo
+                    ? () => onDescargarRespaldo(cap.documentoPdf!.id!)
+                    : undefined
                 }
                 disabled={disabled}
                 descripcion="Certificado escaneado que indique número de horas y aprobación (máx. 2 MB)."
