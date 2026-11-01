@@ -34,6 +34,8 @@ docs/
 │   └── SCHEMA.md                 # modelo de datos, DDL, índices y semillas
 ├── api-contracts/
 │   └── API_CONTRACT.md           # contrato HTTP: endpoints, errores, paginación
+├── design/
+│   └── PALETA-BIESS.md             # paleta institucional: origen, tokens y contraste
 ├── decisions/
 │   ├── ADR-001-chi-en-vez-de-gin-fiber.md
 │   ├── ADR-002-bounded-contexts-y-hexagonal.md
@@ -42,7 +44,8 @@ docs/
 │   ├── ADR-005-paginacion-offset-y-cursor.md
 │   ├── ADR-006-sesiones-en-base-de-datos.md
 │   ├── ADR-007-postgresql-18-y-uuidv7.md
-│   └── ADR-008-registro-y-recuperacion-con-otp.md
+│   ├── ADR-008-registro-y-recuperacion-con-otp.md
+│   └── ADR-009-paleta-institucional-biess.md
 ├── deployment/
 │   ├── LOCAL_DEPLOYMENT.md       # entorno de desarrollo
 │   └── PRODUCTION_DEPLOYMENT.md  # entorno de producción
@@ -63,6 +66,7 @@ docs/
 | [`architecture/ARQUITECTURA.md`](architecture/ARQUITECTURA.md) | Diagramas C4 del sistema, reglas de dependencias, ciclo de una petición, guía para agregar un contexto | Ingeniería |
 | [`database/SCHEMA.md`](database/SCHEMA.md) | ER, DDL por tabla, índices, semillas de catálogos, flujo de migraciones | Ingeniería, DBA |
 | [`api-contracts/API_CONTRACT.md`](api-contracts/API_CONTRACT.md) | Envelope de errores, paginación, especificación de cada endpoint con ejemplos | Frontend, QA |
+| [`design/PALETA-BIESS.md`](design/PALETA-BIESS.md) | Paleta institucional: hex del portal oficial, uso, tokens y contraste WCAG | Frontend, Diseño |
 | [`api-contracts/IDENTITY_SECURITY.md`](api-contracts/IDENTITY_SECURITY.md) | Corrección OTP/Redis y notificación durable; configuración y límites | Backend, Frontend, Operaciones |
 | [`api-contracts/REVIEW_AUDIT.md`](api-contracts/REVIEW_AUDIT.md) | T8/T9: historial, períodos, nómina, conteos y propuesta de matriz XLSX/PDF | Backend, Frontend, QA |
 | [`api-contracts/COMPETITION_LIFECYCLE.md`](api-contracts/COMPETITION_LIFECYCLE.md) | T15–T18: contrato de correo, OTP, elegibilidad, convocatorias y fases para FT14–FT17 | Backend, Frontend, QA |
@@ -90,6 +94,7 @@ consecuencias. Son cortos y se leen en minutos.
 | [ADR-006](decisions/ADR-006-sesiones-en-base-de-datos.md) | Sesiones en PostgreSQL con cookie `HttpOnly` | Aceptada |
 | [ADR-007](decisions/ADR-007-postgresql-18-y-uuidv7.md) | PostgreSQL 18 y UUIDv7 como estrategia de identificadores | Aceptada |
 | [ADR-008](decisions/ADR-008-registro-y-recuperacion-con-otp.md) | Registro y recuperación con OTP por correo, sin Registro Civil | Aceptada |
+| [ADR-009](decisions/ADR-009-paleta-institucional-biess.md) | Paleta institucional extraída del CSS del portal oficial del BIESS | Aceptada |
 
 ---
 

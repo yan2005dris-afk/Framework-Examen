@@ -95,11 +95,11 @@ pantallas.
 
 ## Tokens
 
-`assets/tokens.css` declara **68 tokens** (`:root` + variante `.dark`). El frontend
+`assets/tokens.css` declara **72 tokens** (`:root` + variante `.dark`). El frontend
 (`apps/frontend/src/index.css`) usa los mismos nombres y los expone a utilidades
 Tailwind v4 con `@theme inline { --color-X: var(--X) }`.
 
-**Compartidos con el frontend (45):** `--background`, `--foreground`, `--card`,
+**Compartidos con el frontend (50):** `--background`, `--foreground`, `--card`,
 `--card-foreground`, `--popover`, `--popover-foreground`, `--primary`,
 `--primary-foreground`, `--primary-hover`, `--secondary`, `--secondary-foreground`,
 `--muted`, `--muted-foreground`, `--accent`, `--accent-foreground`, `--destructive`,
@@ -107,22 +107,27 @@ Tailwind v4 con `@theme inline { --color-X: var(--X) }`.
 `--radius-md`, `--radius-lg`, `--radius-xl`, `--font-sans`, `--font-mono`,
 `--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--space-1`, `--space-2`, `--space-3`,
 `--space-4`, `--space-5`, `--space-6`, `--space-8`, `--space-10`, `--space-12`,
-`--space-16`, `--brand-100`, `--brand-900`, `--success`, `--success-soft`,
-`--warning`, `--warning-soft`.
+`--space-16`, `--brand-100`, `--brand-900`, `--brand-yellow`,
+`--brand-yellow-soft`, `--on-brand-yellow`, `--brand-cyan`, `--success`,
+`--success-soft`, `--warning`, `--warning-soft`.
 
-**Solo en el set (23):** `--on-primary`, `--on-foreground`, `--on-foreground-muted`,
+**Solo en el set (22):** `--on-primary`, `--on-foreground`, `--on-foreground-muted`,
 `--on-brand-900`, `--brand-200`, `--brand-300`, `--brand-ink`, `--success-strong`,
 `--success-on-dark`, `--warning-strong`, `--destructive-strong`,
-`--destructive-hover`, `--muted-foreground-strong`, `--overlay` y los nueve de
+`--destructive-hover`, `--muted-foreground-strong`, `--overlay` y los ocho de
 impresión (`--print-ink`, `--print-ink-strong`, `--print-heading`, `--print-rule`,
 `--print-table-head`, `--print-table-foot`, `--print-paper`, `--print-folio`).
 Están declarados en `assets/tokens.css` y quedan pendientes de pasar al frontend:
 son los que usan las cabeceras oscuras, los estados "sobre fondo de color" y la
 hoja imprimible.
 
-Este set usa la paleta institucional del BIESS (`#0A3871` / `#072146`); el frontend
-sigue en la paleta neutral actual. Adoptar la paleta institucional es una decisión
-de marca de una sola edición, no de cada componente.
+Este set usa la paleta institucional del BIESS extraída del CSS del portal oficial
+(`https://www.biess.fin.ec/css.axd?css=/common/themes/biess/style.css`): azul
+institucional `#0060A9`, navegación `#003A66`, botón `#005490`, celeste `#0097CC` y
+amarillo `#FFD200`. El frontend ya adopta la misma paleta (ver ADR-009), así que
+ambos archivos declaran el mismo valor token por token. La tabla completa, con el
+uso de cada color en el portal y el contraste verificado, está en
+[`../design/PALETA-BIESS.md`](../design/PALETA-BIESS.md).
 
 ## Verificación
 
