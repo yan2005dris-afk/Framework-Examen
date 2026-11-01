@@ -35,6 +35,7 @@ export const RUTAS = {
   adminConvocatorias: "/admin/convocatorias",
   adminFases: "/admin/fases",
   adminPreguntas: "/admin/preguntas",
+  resultadosPublicos: "/resultados",
 } as const
 
 /**
@@ -61,6 +62,7 @@ export const ACCESO_POR_RUTA: Record<string, TipoAcceso> = {
   [RUTAS.adminConvocatorias]: "con-rol-admin",
   [RUTAS.adminFases]: "con-rol-admin",
   [RUTAS.adminPreguntas]: "con-rol-admin",
+  [RUTAS.resultadosPublicos]: "publico",
 }
 
 /** Ruta del formulario para una sección concreta del EF-12. */

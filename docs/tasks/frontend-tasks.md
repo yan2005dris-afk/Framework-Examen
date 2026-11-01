@@ -556,11 +556,11 @@ Ver [entrega FT14/FT15](FT14-FT15.md).
 
 **Origen:** EF-1, comunicaciones automáticas por etapa. **Prioridad:** P1-RF.
 
-- [ ] Mostrar al postulante el estado real de cada fase y las resoluciones publicadas,
+- [x] Mostrar al postulante el estado real de cada fase y las resoluciones publicadas,
       con acceso a su reporte, convocatoria y próximos pasos disponibles.
-- [ ] Distinguir operación confirmada, notificación pendiente, entregada o fallida
+- [x] Distinguir operación confirmada, notificación pendiente, entregada o fallida
       según el backend; no deducir entrega del correo a partir de un toast de éxito.
-- [ ] Proporcionar al personal autorizado consulta/reintento de notificaciones
+- [x] Proporcionar al personal autorizado consulta/reintento de notificaciones
       fallidas cuando T23 lo permita, sin exponer destinatarios a otros postulantes.
 
 **Backend:** T21–T23. **Dependencias:** FT4, FT15.
@@ -569,11 +569,11 @@ Ver [entrega FT14/FT15](FT14-FT15.md).
 
 **Origen:** EF-1 reportes/listas; EF-12 1.10.1.4. **Prioridad:** P1-RF.
 
-- [ ] Mostrar listas por convocatoria/cargo y versión publicada con el orden del
+- [x] Mostrar listas por convocatoria/cargo y versión publicada con el orden del
       servidor, y permitir al rol competente revisar/publicar según su autorización.
-- [ ] Separar vista interna de publicación pública, respetando consentimiento y
+- [x] Separar vista interna de publicación pública, respetando consentimiento y
       campos autorizados; no exponer certificados o contactos del expediente.
-- [ ] Permitir consultar versiones históricas y los reportes correspondientes.
+- [x] Permitir consultar versiones históricas y los reportes correspondientes.
 
 **Backend:** T24. **Dependencias:** FT8, FT15, FT19–FT22, FT28.
 
@@ -674,10 +674,10 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | EF-13.3 | Conteos por cargo en tiempo real e históricos íntegros/certificados | T8–T9, T18 | FT7 | Integración FT7 disponible; pendientes T18/fases y validación integrada |
 | EF-13.3 | Matriz comparativa Excel/PDF | T9 | FT8 | Integración XLSX/PDF disponible; aprobación institucional y validación integrada pendientes |
 | EF-1 | Verificar requisitos y calcular méritos | T20 | FT19 | Implementado: revisión técnica, cálculo oficial meritos-v1 y publicación de resolución |
-| EF-1 | Registrar oposición psicotécnica y consolidar expediente | T21 | FT20 | Planificado; falta instrumento/reglas |
-| EF-1 | Reconsideraciones y plazos exactos por actor | T22 | FT21 | Planificado; faltan términos y calendario aprobados |
-| EF-1 | Notificar resultados de cada etapa | T23 | FT22 | Correo base; flujo y reintentos persistentes pendientes |
-| EF-1 | Reportes, listas de elegibles y trazabilidad completa | T8, T24 | FT7–FT8, FT23 | Planificado sobre auditoría base de T5 |
+| EF-1 | Registrar oposición psicotécnica y consolidar expediente | T21 | FT20 | Implementado: registro psicotécnico y consolidación de expediente con notas oficiales |
+| EF-1 | Reconsideraciones y plazos exactos por actor | T22 | FT21 | Implementado: bandejas de recepción, análisis y resolución con plazos del servidor |
+| EF-1 | Notificar resultados de cada etapa | T23 | FT22 | Implementado: seguimiento de etapas para postulante, estados auditados y reintentos administrativos |
+| EF-1 | Reportes, listas de elegibles y trazabilidad completa | T8, T24 | FT7–FT8, FT23 | Implementado: matriz preliminar EF-13, generación reproducible de listas, CSV y nómina pública ciudadana |
 | EF-14, apertura/1.1 | Módulo restringido y banco de preguntas | T6, T25 | FT24–FT25 | Planificado |
 | EF-14 1.2 | Méritos aprobados, fecha/hora, azar, cantidad y orden distinto | T18, T20, T26 | FT25–FT26 | Planificado; parámetros pendientes |
 | EF-14 1.3.1–1.3.4 | Pregunta individual, reloj, controles UI y cierre al vencer | T26–T27 | FT26 | Planificado |

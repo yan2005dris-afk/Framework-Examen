@@ -22,6 +22,7 @@ import { PostulacionView } from "@/pages/postulacion-view"
 import { ReconsideracionView } from "@/pages/reconsideracion-view"
 import { RecuperarContrasenaView } from "@/pages/recuperar-contrasena-view"
 import { RegistroView } from "@/pages/registro-view"
+import { ResultadosPublicosView } from "@/pages/resultados-publicos-view"
 import { RevisionPostulacionView } from "@/pages/revision-postulacion-view"
 import { SeguimientoView } from "@/pages/seguimiento-view"
 import { ACCESO_POR_RUTA, RUTAS } from "@/lib/rutas"
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
       { path: RUTAS.registro, element: <RegistroView /> },
       { path: RUTAS.login, element: <LoginView /> },
       { path: RUTAS.recuperarContrasena, element: <RecuperarContrasenaView /> },
+      { path: RUTAS.resultadosPublicos, element: <ResultadosPublicosView /> },
       { path: "*", element: <NoEncontradoView /> },
     ],
   },

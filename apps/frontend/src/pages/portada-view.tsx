@@ -3,6 +3,7 @@ import {
   CalendarDaysIcon,
   ExternalLinkIcon,
   FileCheck2Icon,
+  GlobeIcon,
   InfoIcon,
   LockKeyholeIcon,
   ShieldCheckIcon,
@@ -91,11 +92,24 @@ export function PortadaView() {
           </p>
           <div className="flex flex-wrap gap-3">
             {sesion === "autenticado" && rutaCuenta ? (
-              <Button asChild size="lg" variant="secondary">
-                <Link to={rutaCuenta}>
-                  Ir a mi espacio <ArrowRightIcon aria-hidden="true" />
-                </Link>
-              </Button>
+              <>
+                <Button asChild size="lg" variant="secondary">
+                  <Link to={rutaCuenta}>
+                    Ir a mi espacio <ArrowRightIcon aria-hidden="true" />
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="border-current/50 bg-transparent text-inherit hover:bg-background/10 hover:text-inherit"
+                >
+                  <Link to={RUTAS.resultadosPublicos}>
+                    <GlobeIcon className="mr-1.5 size-4" />
+                    Resultados de elegibles
+                  </Link>
+                </Button>
+              </>
             ) : (
               <>
                 {abierta ? (
@@ -118,6 +132,17 @@ export function PortadaView() {
                   className="border-current/50 bg-transparent text-inherit hover:bg-background/10 hover:text-inherit"
                 >
                   <Link to={construirRutaLogin(destino)}>Ya tengo cuenta</Link>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="border-current/50 bg-transparent text-inherit hover:bg-background/10 hover:text-inherit"
+                >
+                  <Link to={RUTAS.resultadosPublicos}>
+                    <GlobeIcon className="mr-1.5 size-4" />
+                    Resultados oficiales
+                  </Link>
                 </Button>
               </>
             )}
