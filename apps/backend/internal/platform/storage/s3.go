@@ -65,6 +65,8 @@ func (s *S3) Delete(ctx context.Context, key string) error {
 }
 
 func (s *S3) request(ctx context.Context, method, key string, body io.Reader) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 	u, err := s.presign(s.config.Endpoint, method, key, nil, 5*time.Minute)
 	if err != nil {
 		return err

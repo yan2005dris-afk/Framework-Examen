@@ -3,13 +3,16 @@ package httpx
 import (
 	"context"
 	"encoding/json"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/shared/domain"
 	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/telemetry"
 )
 
 /**
@@ -74,12 +77,14 @@ func RespondError(writer http.ResponseWriter, request *http.Request, status int,
 func RequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID := strings.TrimSpace(r.Header.Get("X-Request-ID"))
-		if requestID == "" {
+		if parsed, e := uuid.Parse(requestID); e != nil || parsed == uuid.Nil {
 			requestID = uuid.NewString()
 		}
 
 		w.Header().Set("X-Request-ID", requestID)
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), requestIDKey, requestID)))
+		id, _ := uuid.Parse(requestID)
+		ctx := domain.WithAuditRequest(context.WithValue(r.Context(), requestIDKey, requestID), id)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
@@ -110,8 +115,8 @@ func Recover(next http.Handler) http.Handler {
 		defer func() {
 			if cause := recover(); cause != nil {
 				slog.ErrorContext(r.Context(), "panic recuperado en la petición",
-					"error", cause,
-					"ruta", r.URL.Path,
+					"error", "panic",
+					"ruta", "panic",
 					"request_id", GetRequestID(r.Context()),
 				)
 				RespondError(w, r, http.StatusInternalServerError, "error_interno", "Ocurrió un error al procesar la solicitud.")
@@ -131,13 +136,33 @@ func Recover(next http.Handler) http.Handler {
 func Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+		rc := chi.NewRouteContext()
+		r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rc))
+		parent, trace, span := telemetry.TraceParent()
+		w.Header().Set("Traceparent", parent)
 		wrapped := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
 		next.ServeHTTP(wrapped, r)
 
+		telemetry.Default.Observe("http", "request", telemetry.HTTPClass(wrapped.Status()), time.Since(start))
+		pattern := rc.RoutePattern()
+		if strings.Contains(pattern, "/register/request") || strings.Contains(pattern, "/password/forgot") {
+			telemetry.Default.Observe("otp", "issue", telemetry.HTTPClass(wrapped.Status()), time.Since(start))
+		}
+		if strings.Contains(pattern, "/register/verify") || strings.Contains(pattern, "/password/reset") {
+			telemetry.Default.Observe("otp", "verify", telemetry.HTTPClass(wrapped.Status()), time.Since(start))
+		}
+		if strings.Contains(pattern, "export") {
+			telemetry.Default.Observe("exports", "request", telemetry.HTTPClass(wrapped.Status()), time.Since(start))
+		}
+		if wrapped.Status() == 429 {
+			telemetry.Default.Observe("rate_limit", "request", "denied", time.Since(start))
+		}
+
 		slog.InfoContext(r.Context(), "petición atendida",
 			"metodo", r.Method,
-			"ruta", r.URL.Path,
+			"ruta", telemetry.SafeRoute(rc.RoutePattern()),
+			"trace_id", trace, "span_id", span,
 			"estado", wrapped.Status(),
 			"bytes", wrapped.BytesWritten(),
 			"duracion_ms", time.Since(start).Milliseconds(),
@@ -240,5 +265,14 @@ func MaxBodySize(next http.Handler, maxBytes int64) http.Handler {
 
 		r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
 		next.ServeHTTP(w, r)
+	})
+}
+
+/** Deadline propaga un plazo a DB, Redis y almacenamiento; el servidor conserva límites de lectura/escritura. */
+func Deadline(next http.Handler, timeout time.Duration) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

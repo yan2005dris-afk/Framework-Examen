@@ -2,6 +2,7 @@ package mail
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"github.com/google/uuid"
@@ -79,5 +80,24 @@ func TestMIMERejectsUnsafeOrUnpreparedContent(t *testing.T) {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+type markerCapture struct{ message Message }
+
+func (c *markerCapture) Send(_ context.Context, m Message) error { c.message = m; return nil }
+func TestSyntheticMarkerIsExplicitAndPreservesAttachments(t *testing.T) {
+	c := &markerCapture{}
+	m := Message{Subject: "Prueba", Body: "Contenido", Attachments: []Attachment{{Name: "test.pdf", Data: []byte("%PDF-")}}}
+	s := &MarkedSender{Next: c, Mark: "DATOS SINTÉTICOS - NO VÁLIDO"}
+	if err := s.Send(context.Background(), m); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(c.message.Subject, s.Mark) || !strings.HasPrefix(c.message.Body, s.Mark) || len(c.message.Attachments) != 1 {
+		t.Fatal("marca ausente o adjunto alterado")
+	}
+	s.Mark = ""
+	if err := s.Send(context.Background(), m); err != nil || c.message.Subject != m.Subject || c.message.Body != m.Body {
+		t.Fatal("se marcó correo normal", err)
 	}
 }

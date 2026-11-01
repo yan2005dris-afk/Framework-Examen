@@ -54,7 +54,7 @@ services:
       S3_SECRET_KEY: rustfsadmin
       S3_REGION: us-east-1
       # Correo: Mailpit captura todo lo que envía la API.
-      MAIL_OUTBOX_KEY: ${MAIL_OUTBOX_KEY:-}
+      MAIL_OUTBOX_KEY: ${MAIL_OUTBOX_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
       OTP_RESEND_DELAY: ${OTP_RESEND_DELAY:-1m}
       OTP_MAX_SENDS: ${OTP_MAX_SENDS:-3}
       ELIGIBILITY_SIMULATION_FILE: ${ELIGIBILITY_SIMULATION_FILE:-}
@@ -109,7 +109,7 @@ services:
       # y no en .../data, que es lo que exige la imagen desde la 18.
       - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d biess"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d biess" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -124,7 +124,6 @@ services:
     volumes:
       - mailpit-data:/data
 
-
   redis:
     image: redis:7-alpine
     container_name: biess-redis
@@ -134,7 +133,7 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 10

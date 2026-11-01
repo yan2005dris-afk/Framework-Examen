@@ -379,3 +379,23 @@ func TestSealRejectsFakeReferencesAndNormalizesMetadata(t *testing.T) {
 	}
 	_ = repo
 }
+
+func (r *memoryRepo) QueueDeletion(_ context.Context, key string) error {
+	r.queued = append(r.queued, key)
+	return nil
+}
+func TestFailedStorageUploadReturnsUnavailableAndRetainsCompensation(t *testing.T) {
+	s, r, store, in := fixture(t)
+	store.failSave = true
+	store.failDelete = true
+	if _, err := s.Upload(context.Background(), in); !errors.Is(err, ErrStorageUnavailable) {
+		t.Fatal(err)
+	}
+	if len(r.docs) != 0 || len(r.queued) != 1 {
+		t.Fatal("se confirmó un documento inexistente o se perdió su compensación")
+	}
+	store.failDelete = false
+	if err := s.Cleanup(context.Background()); err != nil || len(r.queued) != 0 {
+		t.Fatal("compensación no recuperada", err)
+	}
+}

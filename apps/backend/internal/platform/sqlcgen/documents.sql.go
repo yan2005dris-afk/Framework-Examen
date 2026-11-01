@@ -159,6 +159,15 @@ func (q *Queries) PendingDocumentDeletions(ctx context.Context) ([]string, error
 	return items, nil
 }
 
+const queueDocumentDeletion = `-- name: QueueDocumentDeletion :exec
+INSERT INTO document_deletions(storage_key) VALUES($1) ON CONFLICT DO NOTHING
+`
+
+func (q *Queries) QueueDocumentDeletion(ctx context.Context, storageKey string) error {
+	_, err := q.db.Exec(ctx, queueDocumentDeletion, storageKey)
+	return err
+}
+
 const totalDocumentBytes = `-- name: TotalDocumentBytes :one
 SELECT (COALESCE((SELECT sum(d.size_bytes) FROM documents d JOIN submissions s ON s.id=d.submission_id WHERE s.applicant_id=$1),0)+COALESCE((SELECT sum(e.size_bytes) FROM evaluation_evidence e WHERE e.applicant_id=$1 AND e.applicant_upload),0))::bigint
 `

@@ -49,6 +49,23 @@ type ApplicantRoleEvent struct {
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
+type AuditStateEvent struct {
+	ID            uuid.UUID          `json:"id"`
+	SourceTable   string             `json:"source_table"`
+	ResourceID    uuid.UUID          `json:"resource_id"`
+	RecordID      uuid.UUID          `json:"record_id"`
+	SubmissionID  pgtype.UUID        `json:"submission_id"`
+	ActorID       pgtype.UUID        `json:"actor_id"`
+	ActorRole     string             `json:"actor_role"`
+	Action        string             `json:"action"`
+	Phase         string             `json:"phase"`
+	PreviousState []byte             `json:"previous_state"`
+	NextState     []byte             `json:"next_state"`
+	Reason        string             `json:"reason"`
+	RequestID     pgtype.UUID        `json:"request_id"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+}
+
 type Catalog struct {
 	ID        uuid.UUID   `json:"id"`
 	Kind      string      `json:"kind"`

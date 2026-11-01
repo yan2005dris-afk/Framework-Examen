@@ -54,11 +54,11 @@ func (r OppositionRules) Validate() error {
 		return ErrInvalid
 	}
 	if r.PsychometricMode == "puntaje" {
-		if r.PsychometricMaximum == nil || *r.PsychometricMaximum < 1 || *r.PsychometricMaximum > 1e9 {
+		if r.PsychometricMaximum == nil || *r.PsychometricMaximum < 1 || *r.PsychometricMaximum > 1e9 || (r.PsychometricMinimum != nil && (*r.PsychometricMinimum < 0 || *r.PsychometricMinimum > *r.PsychometricMaximum)) {
 			return ErrInvalid
 		}
 	} else if r.PsychometricMode == "concepto" {
-		if r.PsychometricMaximum != nil || r.PsychometricWeight != 0 {
+		if r.PsychometricMaximum != nil || r.PsychometricMinimum != nil || r.PsychometricWeight != 0 {
 			return ErrInvalid
 		}
 	} else {
@@ -141,4 +141,12 @@ func Consolidate(c *Case, r OppositionRules) ([]Component, int64, bool, error) {
 		advance = advance && source.CanAdvance
 	}
 	return parts, sum, advance && sum >= r.Threshold, nil
+}
+
+/** AcceptsPsychometric exige conclusión admitida y el umbral de la versión aprobada, si fue definido. */
+func (r OppositionRules) AcceptsPsychometric(score *int64, conclusion string) bool {
+	if !slices.Contains(r.AcceptedConclusions, conclusion) {
+		return false
+	}
+	return r.PsychometricMinimum == nil || (score != nil && *score >= *r.PsychometricMinimum)
 }

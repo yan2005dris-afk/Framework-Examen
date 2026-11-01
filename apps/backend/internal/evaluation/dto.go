@@ -15,6 +15,7 @@ type OppositionRules struct {
 	Instrument          string   `json:"instrumento"`
 	InstrumentVersion   string   `json:"versionInstrumento"`
 	PsychometricMode    string   `json:"modoPsicotecnico"`
+	PsychometricMinimum *int64   `json:"umbralPsicotecnico,omitempty"`
 	PsychometricMaximum *int64   `json:"maximoPsicotecnico"`
 	Conclusions         []string `json:"conclusiones"`
 	AcceptedConclusions []string `json:"conclusionesAdmitidas"`

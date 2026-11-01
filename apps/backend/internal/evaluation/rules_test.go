@@ -193,3 +193,21 @@ func TestConsolidationConceptAndRounding(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestPsychometricMinimumCannotBeOverriddenByConclusion(t *testing.T) {
+	r := syntheticOpposition()
+	minimum := int64(60)
+	r.PsychometricMinimum = &minimum
+	for value, want := range map[int64]bool{59: false, 60: true, 100: true} {
+		if r.AcceptsPsychometric(&value, "acredita") != want {
+			t.Fatal("umbral no aplicado", value)
+		}
+	}
+	if r.AcceptsPsychometric(nil, "acredita") {
+		t.Fatal("umbral sin puntaje")
+	}
+	minimum = 101
+	if r.Validate() == nil {
+		t.Fatal("umbral fuera de escala")
+	}
+}

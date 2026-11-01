@@ -106,3 +106,13 @@ func Status(ctx context.Context, databaseURL string) error {
 
 	return nil
 }
+
+/** RunTo permite preparar un fixture histórico de QA antes de las restricciones nuevas; nunca revierte migraciones. */
+func RunTo(ctx context.Context, databaseURL string, version int64) error {
+	database, err := open(databaseURL)
+	if err != nil {
+		return err
+	}
+	defer database.Close()
+	return goose.UpToContext(ctx, database, ".", version)
+}

@@ -10,12 +10,15 @@ import (
 	"time"
 )
 
-type Renderer struct{}
+type Renderer struct{ mark string }
 
 func NewRenderer() *Renderer { return &Renderer{} }
 
+/** WithMark agrega la advertencia explícita del entorno sintético. */
+func (r *Renderer) WithMark(mark string) *Renderer { r.mark = mark; return r }
+
 /** Render no revela la matriz correcta: el reporte conserva nota y trazabilidad con bytes reproducibles. */
-func (*Renderer) Render(ctx context.Context, a *exam.Attempt) ([]byte, error) {
+func (r *Renderer) Render(ctx context.Context, a *exam.Attempt) ([]byte, error) {
 	if e := ctx.Err(); e != nil {
 		return nil, e
 	}
@@ -38,6 +41,9 @@ func (*Renderer) Render(ctx context.Context, a *exam.Attempt) ([]byte, error) {
 		advance = "Sí"
 	}
 	lines := []string{"Evaluación teórica — reporte de resultado", "Versión del reporte: examen-reporte-v1", "Postulación: " + a.SubmissionID.String(), "Intento: " + a.ID.String(), "Resultado definitivo: " + a.Result.ID.String(), "Hash del envío: " + a.SnapshotHash, "Banco: " + a.Config.BankID.String(), "Hash del banco: " + a.BankHash, "Reglas: " + a.Config.ID.String(), "Hash de reglas: " + a.Config.Hash, "Inicio: " + a.StartedAt.Format(time.RFC3339Nano), "Vencimiento: " + a.ExpiresAt.Format(time.RFC3339Nano), "Cierre: " + a.FinishedAt.Format(time.RFC3339Nano), "Motivo: " + a.Reason, fmt.Sprintf("Preguntas: %d | Respondidas: %d | Aciertos: %d", len(a.Questions), len(a.Answers), a.CorrectCount), fmt.Sprintf("Puntaje: %d / %d", *a.Result.Score, *a.Result.Maximum), fmt.Sprintf("Umbral aprobado: %d | Puede avanzar: %s", a.Config.Rules.Threshold, advance), "Fórmula: máximo × aciertos / cantidad de preguntas.", "Redondeo: " + a.Config.Rules.Rounding, "No es una firma electrónica ni adjudicación de cargo. La matriz de respuestas no se publica en este reporte."}
+	if r.mark != "" {
+		lines = append([]string{r.mark}, lines...)
+	}
 	for _, line := range lines {
 		pdf.MultiCell(174, 7, line, "", "L", false)
 	}

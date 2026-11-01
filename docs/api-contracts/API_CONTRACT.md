@@ -972,3 +972,19 @@ No añade notas teóricas simuladas ni aprobación de privacidad por defecto.
 su PDF/adjunto, horarios/intentos/asignación finita y políticas de tratamiento.
 Los nuevos envíos requieren aceptar ID/hash de política vigente; no se fabrica
 aceptación para el legado ni se precargan textos legales o parámetros académicos.
+
+
+### Extensiones optativas verificadas para QA sintético
+
+- En un criterio de méritos, `unidadesCompletas: true` redondea la cantidad hacia
+  abajo a bloques de `tamanoUnidad` antes del cálculo. Ausente/false conserva el
+  cálculo proporcional histórico. No se precarga una duración legal del año.
+- En reglas de oposición de modo puntaje, `umbralPsicotecnico` opcional debe estar
+  entre cero y el máximo. Si se define, exige puntaje igual/superior **y** una
+  conclusión admitida para habilitar avance. Ausente conserva versiones previas;
+  no se permite en modo concepto. Usar otra versión aprobada, no editar la vigente.
+- Un fallo de escritura del almacén de documentos responde **503** con código
+  `almacenamiento_no_disponible`, sin confirmar metadatos ni exponer error remoto.
+  La compensación se encola si el borrado inmediato tampoco está disponible.
+- `X-Request-ID` sólo conserva UUID válido no nulo; otros valores se reemplazan.
+  `Traceparent` identifica una traza local nueva, no garantiza propagación OTLP.

@@ -264,3 +264,47 @@ func TestSupportedMetricsIgnoreUnverifiedRecords(t *testing.T) {
 		t.Fatal("horas inválidas", err)
 	}
 }
+
+func TestChecklistOnlyScoresConfirmedRequirementsAndDisqualifications(t *testing.T) {
+	for _, blocked := range []string{"", "requirement", "question"} {
+		t.Run(blocked, func(t *testing.T) {
+			c, r := fixture(t)
+			def := &c.ActiveRules.Definition
+			def.Criteria[0].Metric = "requirements_approved"
+			def.Criteria[0].PointsPerUnit = 10000
+			c.ActiveRules.Hash, _ = definitionHash(*def)
+			if blocked == "requirement" {
+				r.Input.Requirements[0].Satisfied = false
+				r.Input.Requirements[0].Observation = "Sintético: no cumple"
+			}
+			if blocked == "question" {
+				r.Input.Questions[0].Confirmed = false
+				r.Input.Questions[0].Observation = "Sintético: pendiente"
+			}
+			value, err := Evaluate(c, r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := int64(10000)
+			if blocked != "" {
+				want = 0
+			}
+			if value.Total != want {
+				t.Fatalf("checklist=%d, esperado=%d", value.Total, want)
+			}
+		})
+	}
+}
+
+func TestCompleteExperienceUnitsDoNotPayFractionalYears(t *testing.T) {
+	c := Criterion{UnitSize: 365, PointsPerUnit: 2500, MaximumPoints: 10000, Weight: 3000, WholeUnits: true}
+	for days, want := range map[int64]int64{0: 0, 364: 0, 365: 750, 729: 750, 730: 1500, 1461: 3000} {
+		if got := score(days, c, "mas_cercano"); got != want {
+			t.Fatalf("días=%d, puntaje=%d, esperado=%d", days, got, want)
+		}
+	}
+	c.WholeUnits = false
+	if got := score(364, c, "mas_cercano"); got == 0 {
+		t.Fatal("se alteró el comportamiento histórico proporcional")
+	}
+}

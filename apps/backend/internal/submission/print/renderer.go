@@ -24,12 +24,15 @@ import (
 const Version = "ef12-print-v1"
 const maxPages = 200
 
-type Renderer struct{}
+type Renderer struct{ mark string }
 
 func NewRenderer() *Renderer { return &Renderer{} }
 
+/** WithMark agrega una marca visible sólo cuando el operador habilita la demostración. */
+func (r *Renderer) WithMark(mark string) *Renderer { r.mark = mark; return r }
+
 /** Render devuelve PDF reproducible: los metadatos temporales proceden del envío y no del reloj actual. */
-func (*Renderer) Render(ctx context.Context, item *submission.Submission) ([]byte, error) {
+func (r *Renderer) Render(ctx context.Context, item *submission.Submission) ([]byte, error) {
 	if err := submission.ValidateSeal(item); err != nil {
 		return nil, err
 	}
@@ -61,6 +64,10 @@ func (*Renderer) Render(ctx context.Context, item *submission.Submission) ([]byt
 		pdf.CellFormat(176, 5, "EF-12 | Copia del formulario enviado", "", 1, "L", false, 0, "")
 		pdf.SetDrawColor(180, 185, 195)
 		pdf.Line(17, 18, 193, 18)
+		if r.mark != "" {
+			pdf.SetY(17)
+			pdf.CellFormat(176, 5, r.mark, "", 1, "C", false, 0, "")
+		}
 		pdf.SetY(24)
 	})
 	pdf.SetFooterFunc(func() {

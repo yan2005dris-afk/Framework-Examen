@@ -18,13 +18,17 @@ type PrivacyGate interface {
 }
 
 type Service struct {
+	mark    string
 	privacy PrivacyGate
 	repo    Repository
 	auditor audit.Recorder
 }
 
 func NewService(r Repository, a audit.Recorder) *Service { return &Service{repo: r, auditor: a} }
-func (s *Service) WithPrivacy(p PrivacyGate) *Service    { s.privacy = p; return s }
+
+/** WithMark rotula las exportaciones de una demostración explícita. */
+func (s *Service) WithMark(mark string) *Service      { s.mark = mark; return s }
+func (s *Service) WithPrivacy(p PrivacyGate) *Service { s.privacy = p; return s }
 
 func (s *Service) record(ctx context.Context, a *identity.Applicant, id uuid.UUID, action string, err error) error {
 	return audit.Record(ctx, s.auditor, audit.Event{ActorID: a.ID, Role: a.Role, ResourceID: id, ResourceType: "convocatoria", Action: action, CreatedAt: time.Now().UTC()}, err)
@@ -216,6 +220,11 @@ func (s *Service) Export(ctx context.Context, a *identity.Applicant, id uuid.UUI
 	}
 	var b strings.Builder
 	w := csv.NewWriter(&b)
+	if s.mark != "" {
+		if err = w.Write([]string{s.mark}); err != nil {
+			return nil, err
+		}
+	}
 	if err = w.Write([]string{"version_lista", "convocatoria_id", "sector", "postulacion_id", "codigo", "hash_envio", "apellidos", "nombres", "elegible", "puesto", "empate", "resultado_meritos_id", "resultado_teorico_id", "resultado_psicotecnico_id", "resultado_consolidado_id", "puntaje_meritos", "maximo_meritos", "puntaje_teorico", "maximo_teorico", "puntaje_psicotecnico", "maximo_psicotecnico", "puntaje_consolidado", "maximo_consolidado", "hash_fuentes"}); err != nil {
 		return nil, err
 	}

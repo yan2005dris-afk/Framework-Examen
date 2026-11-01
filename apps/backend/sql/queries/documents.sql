@@ -22,3 +22,6 @@ SELECT storage_key FROM document_deletions ORDER BY created_at, storage_key LIMI
 
 -- name: CompleteDocumentDeletion :exec
 DELETE FROM document_deletions WHERE storage_key = $1;
+
+-- name: QueueDocumentDeletion :exec
+INSERT INTO document_deletions(storage_key) VALUES($1) ON CONFLICT DO NOTHING;

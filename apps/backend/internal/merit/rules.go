@@ -81,6 +81,8 @@ func validMetric(metric, filter string) bool {
 		return filter == "" || filter == "General" || filter == "Dirección"
 	case "publication_count":
 		return filter == "" || filter == "Publicación" || filter == "Trabajo de investigación"
+	case "requirements_approved":
+		return filter == ""
 	case "training_hours":
 		return filter == "" || filter == "Curso" || filter == "Seminario" || filter == "Taller"
 	}
@@ -96,6 +98,9 @@ func quotient(n, d *big.Int, rounding string) int64 {
 	return n.Div(n, d).Int64()
 }
 func score(units int64, c Criterion, rounding string) int64 {
+	if c.WholeUnits {
+		units = (units / c.UnitSize) * c.UnitSize
+	}
 	n := new(big.Int).Mul(big.NewInt(units), big.NewInt(c.PointsPerUnit))
 	d := big.NewInt(c.UnitSize)
 	cap := new(big.Int).Mul(big.NewInt(c.MaximumPoints), d)

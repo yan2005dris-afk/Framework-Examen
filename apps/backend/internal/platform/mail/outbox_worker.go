@@ -7,12 +7,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/telemetry"
 	"log/slog"
 	"time"
 )
 
 /** Dispatch reclama con lease para varios workers y reintenta sin copiar errores SMTP sensibles. */
-func (o *Outbox) Dispatch(ctx context.Context, sender Sender, active func(context.Context, string, string) (bool, error)) error {
+func (o *Outbox) Dispatch(ctx context.Context, sender Sender, active func(context.Context, string, string) (bool, error)) (err error) {
+	start := time.Now()
+	defer func() { telemetry.Default.Observe("outbox", "dispatch", telemetry.Result(err), time.Since(start)) }()
 	if o == nil || o.queries == nil {
 		return ErrQueueUnavailable
 	}
@@ -34,6 +37,7 @@ func (o *Outbox) Dispatch(ctx context.Context, sender Sender, active func(contex
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		deliveryStarted := time.Now()
 		status, code := "smtp_accepted", ""
 		var message Message
 		if len(job.Ciphertext) < o.box.NonceSize() {
@@ -74,6 +78,11 @@ func (o *Outbox) Dispatch(ctx context.Context, sender Sender, active func(contex
 			}
 		}
 		cancel()
+		result := "ok"
+		if status == "pending" || status == "failed" {
+			result = "error"
+		}
+		telemetry.Default.Observe("outbox", "delivery", result, time.Since(deliveryStarted))
 		if status == "pending" && job.Attempts >= 5 {
 			status = "failed"
 		}

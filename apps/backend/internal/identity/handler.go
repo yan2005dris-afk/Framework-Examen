@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/shared/domain"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -319,6 +320,7 @@ func RequireSession(service *Service) func(http.Handler) http.Handler {
 			}
 
 			ctx := context.WithValue(r.Context(), applicantContextKey, applicant)
+			ctx = domain.WithAuditActor(ctx, applicant.ID, applicant.Role)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
