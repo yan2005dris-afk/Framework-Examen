@@ -42,6 +42,8 @@ import {
   useSellarPostulacion,
 } from "@/features/postulaciones/queries"
 import { useDisponibilidadEF12 } from "@/features/convocatorias/use-disponibilidad"
+import { usePoliticaVigente } from "@/features/privacidad/queries"
+import { esErrorApi } from "@/lib/api-error"
 import { RUTAS, rutaSeccion } from "@/lib/rutas"
 import { calcularDuracionExperiencia } from "@/utils/validators"
 import type {
@@ -74,6 +76,9 @@ export function RevisionPostulacionView() {
   const postulacion = postulacionesData?.items?.[0]
   const yaEnviada = postulacion?.status !== "draft"
   const disponibilidad = useDisponibilidadEF12(postulacion?.convocatoriaId)
+  const { data: politicaVigente } = usePoliticaVigente(
+    postulacion?.convocatoriaId,
+  )
 
   // Estado local para los cinco consentimientos si no están guardados previamente
   const [consentimiento, setConsentimiento] = useState<ConsentimientoEF12Data>(
@@ -236,17 +241,53 @@ export function RevisionPostulacionView() {
       )
       return
     }
+    if (politicaVigente?.restringido) {
+      toast.error(
+        "La política de privacidad está temporalmente restringida. No es posible enviar postulaciones.",
+      )
+      return
+    }
+
+    const payloadConsentimiento: ConsentimientoEF12Data = {
+      ...consentimiento,
+      ...(politicaVigente
+        ? {
+            politicaPrivacidadId: politicaVigente.id,
+            hashPoliticaPrivacidad: politicaVigente.hash,
+            versionPolitica: politicaVigente.version,
+            referenciaAprobacion:
+              politicaVigente.definicion.referenciaAprobacion,
+          }
+        : {}),
+    }
 
     sellarMutation.mutate(
       {
         id: postulacion.id,
-        consentimiento,
+        consentimiento: payloadConsentimiento,
       },
       {
         onSuccess: (postulacionSellada) => {
           toast.success(
             `¡Postulación sellada y enviada exitosamente! Código: ${postulacionSellada.code || "registrado"}.`,
           )
+        },
+        onError: (err: unknown) => {
+          if (esErrorApi(err)) {
+            if (err.codigo === "version_privacidad_conflicto") {
+              toast.error(
+                "La política de privacidad ha sido actualizada. Por favor revise la nueva versión y confirme su aceptación.",
+              )
+            } else if (err.codigo === "privacidad_pendiente") {
+              toast.error(
+                "No se pudo confirmar la política de privacidad activa. Verifique los términos institucionales.",
+              )
+            } else {
+              toast.error(`Error al enviar la postulación: ${err.mensaje}`)
+            }
+          } else {
+            toast.error("Error al enviar la postulación definitiva.")
+          }
         },
       },
     )
@@ -1216,7 +1257,12 @@ export function RevisionPostulacionView() {
         <ConsentimientoEF12
           datos={consentimiento}
           onChange={setConsentimiento}
-          disabled={yaEnviada || !disponibilidad.abierta}
+          politica={politicaVigente}
+          disabled={
+            yaEnviada ||
+            !disponibilidad.abierta ||
+            Boolean(politicaVigente?.restringido)
+          }
         />
       </div>
 
@@ -1265,7 +1311,8 @@ export function RevisionPostulacionView() {
                 !formularioCompleto ||
                 documentosPendientes.length > 0 ||
                 sellarMutation.isPending ||
-                !disponibilidad.abierta
+                !disponibilidad.abierta ||
+                Boolean(politicaVigente?.restringido)
               }
               className="flex items-center gap-2 bg-emerald-700 text-white hover:bg-emerald-800"
             >

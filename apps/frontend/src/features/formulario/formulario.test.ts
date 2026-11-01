@@ -5,6 +5,7 @@ import {
   PREGUNTAS_INHABILIDADES,
   PUNTOS_CONSENTIMIENTO_EF12,
   SECCIONES_EF12_INFO,
+  type ConsentimientoEF12Data,
 } from "./constantes"
 import { validarSeccionEF12 } from "@/utils/validar-formulario"
 import { calcularDuracionExperiencia } from "@/utils/validators"
@@ -173,6 +174,36 @@ describe("Formulario EF-12 (FT5 / FT6)", () => {
       expect(p3.texto).toContain("descalificación del proceso")
       expect(p4.texto).toContain("página web del IESS - BIESS")
       expect(p5.texto).toContain("firma manuscrita")
+    })
+
+    it("admite la vinculación de política de privacidad institucional sin sustituir los 5 puntos (FT28)", () => {
+      const consentimientoConPolitica: ConsentimientoEF12Data = {
+        ...CONSENTIMIENTO_DEFAULT,
+        aceptacionTratamientoDatos: true,
+        declaracionVeracidad: true,
+        aceptacionNormasConcurso: true,
+        autorizacionPublicacionNombre: true,
+        constanciaEntregaFisica: true,
+        politicaPrivacidadId: "pol-12345",
+        hashPoliticaPrivacidad: "hash-sha256-abc",
+        versionPolitica: 2,
+        referenciaAprobacion: "Resolución CD-BIESS-2026-004",
+      }
+
+      expect(consentimientoConPolitica.politicaPrivacidadId).toBe("pol-12345")
+      expect(consentimientoConPolitica.hashPoliticaPrivacidad).toBe(
+        "hash-sha256-abc",
+      )
+      expect(consentimientoConPolitica.versionPolitica).toBe(2)
+      // Mantiene exactamente los cinco literales evaluables
+      const literales = [
+        consentimientoConPolitica.aceptacionTratamientoDatos,
+        consentimientoConPolitica.declaracionVeracidad,
+        consentimientoConPolitica.aceptacionNormasConcurso,
+        consentimientoConPolitica.autorizacionPublicacionNombre,
+        consentimientoConPolitica.constanciaEntregaFisica,
+      ]
+      expect(literales.every(Boolean)).toBe(true)
     })
   })
 

@@ -107,12 +107,23 @@ export const PREGUNTAS_INHABILIDADES = [
   },
 ] as const
 
+export type ClavePuntoConsentimiento =
+  | "aceptacionTratamientoDatos"
+  | "declaracionVeracidad"
+  | "aceptacionNormasConcurso"
+  | "autorizacionPublicacionNombre"
+  | "constanciaEntregaFisica"
+
 export interface ConsentimientoEF12Data {
   aceptacionTratamientoDatos: boolean
   declaracionVeracidad: boolean
   aceptacionNormasConcurso: boolean
   autorizacionPublicacionNombre: boolean
   constanciaEntregaFisica: boolean
+  politicaPrivacidadId?: string
+  hashPoliticaPrivacidad?: string
+  versionPolitica?: number
+  referenciaAprobacion?: string
 }
 
 export const CONSENTIMIENTO_DEFAULT: ConsentimientoEF12Data = {
@@ -124,7 +135,7 @@ export const CONSENTIMIENTO_DEFAULT: ConsentimientoEF12Data = {
 }
 
 export interface PuntoConsentimiento {
-  id: keyof ConsentimientoEF12Data
+  id: ClavePuntoConsentimiento
   numero: number
   titulo: string
   texto: string

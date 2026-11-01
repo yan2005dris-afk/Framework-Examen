@@ -638,11 +638,11 @@ Ver [entrega FT14/FT15](FT14-FT15.md).
 
 **Origen:** EF-1 precondiciones y EF-12 1.10. **Prioridad:** P1-RF.
 
-- [ ] Presentar la política institucional vigente con versión y fecha desde registro
+- [x] Presentar la política institucional vigente con versión y fecha desde registro
       y formulario, utilizando el contenido aprobado de T28.
-- [ ] Mantener los cinco literales del RF en revisión e impresión; no reemplazarlos
+- [x] Mantener los cinco literales del RF en revisión e impresión; no reemplazarlos
       por un único checkbox genérico ni añadir autorizaciones obligatorias no definidas.
-- [ ] Limitar la presentación de datos en listados, reportes y comunicaciones al
+- [x] Limitar la presentación de datos en listados, reportes y comunicaciones al
       destinatario y rol correspondientes, conforme a la política aprobada.
 
 **Backend:** T28. **Dependencias:** FT3, FT6.
@@ -657,7 +657,7 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | Fuente del RF | Requisito o adaptación | Backend | Frontend | Situación |
 |---|---|---|---|---|
 | EF-1, actores | Postulante, Analista TH y Administrador/Comisión | T6 | FT2, FT15 | Tres roles y permisos backend disponibles; integración administrativa de interfaz pendiente |
-| EF-1, privacidad | Política, tratamiento y consentimiento informado | T28, T3 | FT28, FT6 | Consentimientos base; política e integración pendientes |
+| EF-1, privacidad | Política, tratamiento y consentimiento informado | T28, T3 | FT28, FT6 | Implementado: política versionada/hash vinculada al sello, 5 literales de consentimiento preservados, modal y consulta en registro, formulario y portal |
 | EF-11.1–3 | Fase aprobada, portal institucional, nueva pestaña y acceso | T18 | FT14–FT15 | Planificado |
 | EF-11.4–6, ADR-008 | Registro, login y recuperación con OTP por correo | T1–T2, T16 | FT3, FT16 | Implementado: ciclo completo OTP con cooldown, desafío del servidor y bloqueo |
 | EF-12, primer ingreso | Entrada obligatoria al formulario | T2, T18 | FT2–FT3 | Guard base; cerrar flujo funcional |
@@ -669,7 +669,7 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | EF-12 1.9 | Trece respuestas, detalles de remoción y revisión | T3, T20 | FT5, FT19 | Implementado: declaraciones, revisión técnica y dictamen administrativo |
 | EF-1, restricciones | PDF 2/4 MiB y total 50 MiB | T4 | FT18 | Implementado: cliente multipart, límites 4/2 MiB y cuota total 50 MiB |
 | EF-12, notas | Guardado parcial, CRUD de registros y código único | T3–T5 | FT5 | Backend base; interfaz funcional pendiente |
-| EF-12 1.10 | Literales al guardar, firma manuscrita, impresión y correo completo | T3, T19, T23 | FT6, FT28 | Sello y correo con JSON disponibles; presentación final pendiente |
+| EF-12 1.10 | Literales al guardar, firma manuscrita, impresión y correo completo | T3, T19, T23 | FT6, FT28 | Implementado: 5 literales sellados con hash, firma manuscrita en impresión e información de política vinculada |
 | EF-13.1–2 | Publicar fases y habilitar EF-12 | T6, T18 | FT15 | Planificado |
 | EF-13.3 | Conteos por cargo en tiempo real e históricos íntegros/certificados | T8–T9, T18 | FT7 | Integración FT7 disponible; pendientes T18/fases y validación integrada |
 | EF-13.3 | Matriz comparativa Excel/PDF | T9 | FT8 | Integración XLSX/PDF disponible; aprobación institucional y validación integrada pendientes |
