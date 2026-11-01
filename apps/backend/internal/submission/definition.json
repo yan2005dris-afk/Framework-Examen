@@ -918,6 +918,8 @@
       }
     },
     "Consent": {
+      "politicaPrivacidadId": { "tipo": "texto" },
+      "hashPoliticaPrivacidad": { "tipo": "texto" },
       "version": {
         "tipo": "texto"
       },

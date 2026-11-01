@@ -26,10 +26,15 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/evaluation"
 	evaluationnotification "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/evaluation/notification"
 	evaluationpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/evaluation/postgres"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/exam"
+	exampostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/exam/postgres"
+	examreport "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/exam/report"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/merit"
 	meritpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/merit/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/notice"
 	noticepostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/notice/postgres"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/privacy"
+	privacypostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/privacy/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/results"
 	resultspostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/results/postgres"
 
@@ -160,7 +165,7 @@ func main() {
 		if smtpSender != nil {
 			deliverySender = &submissionnotification.PrintingSender{Next: smtpSender, Printer: printer}
 		}
-		go outbox.Run(ctx, deliverySender, otpStore.Active)
+
 		var identityMailer identity.Mailer
 		if smtpSender != nil && outboxErr == nil {
 			identityMailer = outbox
@@ -169,8 +174,15 @@ func main() {
 		// Contexto de identidad (EF-11: registro, login, sesión, OTP)
 		identityRepo := identitypostgres.NewRepository(queries, db.NewTxManager(pool))
 		auditor := auditpostgres.NewRepository(queries)
+		privacyRepository := privacypostgres.NewRepository(queries, db.NewTxManager(pool), auditor)
+		privacyHandler := privacy.NewHandler(privacyRepository, auditor)
+		privacyHandler.RegisterPublic(router)
+		if deliverySender != nil {
+			deliverySender = &privacypostgres.Sender{Gate: privacyRepository, Next: deliverySender}
+		}
+		go outbox.Run(ctx, deliverySender, otpStore.Active)
 		stageQueue := &noticepostgres.Queue{Outbox: outbox, Queries: queries}
-		resultsHandler := results.NewHandler(results.NewService(resultspostgres.NewRepository(queries, db.NewTxManager(pool), auditor, stageQueue), auditor))
+		resultsHandler := results.NewHandler(results.NewService(resultspostgres.NewRepository(queries, db.NewTxManager(pool), auditor, stageQueue), auditor).WithPrivacy(privacyRepository))
 		resultsHandler.RegisterPublic(router)
 		identityService := identity.NewService(identity.ServiceDependencies{
 			Applicants: identityRepo,
@@ -211,11 +223,16 @@ func main() {
 		documentService := document.NewService(documentpostgres.NewRepository(pool, db.NewTxManager(pool)), objects).WithAudit(auditor).WithEligibility(eligibilityService)
 		evaluationService := evaluation.NewService(evaluationpostgres.NewRepository(queries, db.NewTxManager(pool), auditor, &evaluationnotification.Outbox{Queue: outbox, Queries: queries}), objects, auditor)
 		go cleanupEvaluationUploads(ctx, evaluationService)
+		examRepository := exampostgres.NewRepository(queries, db.NewTxManager(pool), auditor, evaluationpostgres.NewRepository(queries, db.NewTxManager(pool), auditor, &evaluationnotification.Outbox{Queue: outbox, Queries: queries}), examreport.NewRenderer(), privacyRepository)
+		go expireExams(ctx, examRepository)
 		submissionService := submission.NewService(submissionRepository).WithConfirmationQueue(confirmations).
-			WithDocuments(documentService).WithApplicants(identityRepo).WithAudit(auditor).WithEligibility(eligibilityService).WithPrinter(printer)
+			WithDocuments(documentService).WithApplicants(identityRepo).WithAudit(auditor).WithEligibility(eligibilityService).WithPrinter(printer).WithPrivacy(privacyRepository)
 		router.Group(func(r chi.Router) {
 			r.Use(identity.RequireSession(identityService))
 			r.Use(identity.ProtectAdministration)
+			r.Use(privacyRepository.Guard)
+			privacyHandler.RegisterAdministration(r)
+			exam.NewHandler(examRepository, auditor).RegisterRoutes(r)
 			competitionHandler.RegisterAdministration(r)
 			resultsHandler.RegisterAdministration(r)
 			notice.NewHandler(notice.NewService(noticepostgres.NewRepository(queries, db.NewTxManager(pool), auditor), auditor)).RegisterRoutes(r)
@@ -313,6 +330,25 @@ func cleanupEvaluationUploads(ctx context.Context, service *evaluation.Service) 
 	for {
 		if err := service.CleanupUploads(ctx); err != nil && ctx.Err() == nil {
 			slog.WarnContext(ctx, "no se pudieron retirar intentos de respaldo vencidos")
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+/** expireExams recupera cierres vencidos tras reinicio; el plazo lo aplica PostgreSQL aunque el navegador esté cerrado. */
+func expireExams(ctx context.Context, r exam.Repository) {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for {
+		run, cancel := context.WithTimeout(ctx, 20*time.Second)
+		err := r.Expire(run)
+		cancel()
+		if err != nil && ctx.Err() == nil {
+			slog.WarnContext(ctx, "no se pudieron confirmar cierres de evaluación pendientes")
 		}
 		select {
 		case <-ctx.Done():

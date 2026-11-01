@@ -7,6 +7,7 @@ import "errors"
  * respuestas con código y mensaje; nunca deben filtrar detalles técnicos.
  */
 var (
+	ErrPrivacyPending     = errors.New("debe aceptar la política de privacidad vigente")
 	ErrInvalidCompetition = errors.New("la convocatoria no existe o no admite postulaciones")
 	ErrNotFound           = errors.New("la postulación no existe")
 	ErrNotEditable        = errors.New("la postulación ya fue enviada y no admite cambios")

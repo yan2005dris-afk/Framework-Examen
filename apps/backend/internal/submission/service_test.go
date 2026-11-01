@@ -380,3 +380,44 @@ func TestSectionPatchMergesNestedDetailsAndCanClearThem(t *testing.T) {
 		t.Fatal("no se eliminaron los detalles")
 	}
 }
+
+type privacyBinderStub struct {
+	err   error
+	calls int
+	hash  string
+}
+
+func (p *privacyBinderStub) Bind(_ context.Context, item *Submission, c *Consent) error {
+	p.calls++
+	if ValidateSeal(item) != nil || c == nil || len(c.Statements) != 5 {
+		return ErrInvalidSeal
+	}
+	p.hash = item.Hash
+	return p.err
+}
+func TestPrivacyBindingParticipatesInSealCommit(t *testing.T) {
+	for _, name := range []string{"missing_acceptance", "storage_failure", "accepted"} {
+		t.Run(name, func(t *testing.T) {
+			s, repo, mail := serviceFixture(t, true)
+			binder := &privacyBinderStub{}
+			switch name {
+			case "missing_acceptance":
+				binder.err = ErrPrivacyPending
+			case "storage_failure":
+				binder.err = errors.New("base no disponible QA")
+			}
+			s.WithPrivacy(binder)
+			item, e := s.Submit(context.Background(), repo.item.ID, nil)
+			if name == "accepted" {
+				if e != nil || item.Status != StatusSubmitted || binder.hash != item.Hash || mail.calls != 1 {
+					t.Fatal("vínculo no comparte sello", e)
+				}
+			} else if e == nil || repo.item.Status != StatusDraft || repo.item.Hash != "" || mail.calls != 0 {
+				t.Fatal("efectos pese a fallo de privacidad", e)
+			}
+			if binder.calls != 1 {
+				t.Fatal("no consultó puerto de privacidad")
+			}
+		})
+	}
+}

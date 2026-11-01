@@ -50,7 +50,7 @@ func ValidWorkflow(e Event) bool {
 	actions := map[string]bool{"convocatoria.creada": true, "convocatoria.configurada": true, "fase.publicada": true, "fase.habilitada": true, "fase.cerrada": true,
 		"elegibilidad.verificada": true, "meritos.reglas_creadas": true, "meritos.reglas_aprobadas": true, "meritos.revisados": true, "meritos.calificados": true,
 		"evaluacion.iniciada": true, "evaluacion.finalizada": true, "reconsideracion.presentada": true,
-		"reconsideracion.resuelta": true, "resultado.publicado": true, "evaluacion.reglas_creadas": true, "evaluacion.reglas_aprobadas": true, "psicotecnica.registrada": true, "psicotecnica.publicada": true, "expediente.consolidado": true, "reconsideracion.atendida": true, "notificacion.reintentada": true, "lista.generada": true, "lista.publicada": true}
+		"reconsideracion.resuelta": true, "resultado.publicado": true, "evaluacion.reglas_creadas": true, "evaluacion.reglas_aprobadas": true, "psicotecnica.registrada": true, "psicotecnica.publicada": true, "expediente.consolidado": true, "reconsideracion.atendida": true, "notificacion.reintentada": true, "lista.generada": true, "lista.publicada": true, "banco.versionado": true, "examen.configurado": true, "evaluacion.habilitada": true, "privacidad.publicada": true, "privacidad.restringida": true}
 	resources := map[string]bool{"postulacion": true, "convocatoria": true, "evaluacion": true, "reconsideracion": true, "notificacion": true}
 	return actions[e.Action] && resources[e.ResourceType] && e.ResourceID != uuid.Nil && !e.CreatedAt.IsZero() &&
 		(e.Result == "permitido" || e.Result == "rechazado") &&

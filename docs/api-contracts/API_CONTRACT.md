@@ -965,3 +965,10 @@ la fuente definitiva debe producirla T27. No incluye valores oficiales por defec
 entrega, reintento administrativo, generación/exportación de listas, controles de
 fuentes/reconsideraciones y versiones públicas mínimas con consentimiento.
 No añade notas teóricas simuladas ni aprobación de privacidad por defecto.
+
+## Banco, evaluación y privacidad (T25–T28)
+
+[EXAMS_AND_PRIVACY.md](EXAMS_AND_PRIVACY.md) define el productor real de nota T27,
+su PDF/adjunto, horarios/intentos/asignación finita y políticas de tratamiento.
+Los nuevos envíos requieren aceptar ID/hash de política vigente; no se fabrica
+aceptación para el legado ni se precargan textos legales o parámetros académicos.

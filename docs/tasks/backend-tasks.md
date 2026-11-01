@@ -643,7 +643,7 @@ no fijar valores inventados en código.
 
 - [x] Registrar resultados psicotécnicos según el instrumento/formato aprobado,
       con responsable, fecha y evidencia; el RF no detalla su instrumento de aplicación.
-- [ ] Incorporar la nota teórica calculada por T27, sin sustituirla por una nota
+- [x] Incorporar la nota teórica calculada por T27, sin sustituirla por una nota
       ingresada libremente desde la interfaz.
 - [x] Consolidar méritos y oposición conforme a reglas aprobadas, con historial
       y correcciones autorizadas; evitar contar dos veces el mismo resultado.
@@ -651,8 +651,8 @@ no fijar valores inventados en código.
 
 **Estado técnico:** registro/publicación psicotécnica, consolidación y expediente implementados
 con políticas aprobadas y fuentes versionadas. El puerto transaccional de resultado
-teórico está disponible, pero su productor real T27 aún no existe: la incorporación
-real de esa nota permanece pendiente y no se sustituye por una nota manual.
+teórico está conectado al motor real T27, con cierre, PDF y correo transaccionales;
+no se sustituye por una nota manual.
 Instrumento, escalas, pesos y umbral requieren aprobación institucional.
 Ver [contrato T21/T22](../api-contracts/EVALUATION_RECONSIDERATION.md).
 
@@ -694,7 +694,7 @@ están detallados en este RF; requieren parámetros aprobados.
 
 **Estado técnico:** cola transaccional y avisos de las etapas implementadas,
 metadatos propios/administrativos, historial y reintento autorizado disponibles.
-El productor real de nota/PDF de examen sigue en T27; no se simula su entrega.
+El productor real de nota/PDF de examen T27 está conectado al cierre transaccional.
 Ver [contrato T23/T24](../api-contracts/NOTIFICATIONS_AND_RESULTS.md).
 
 **Dependencias:** T5, T8, correo existente. **Frontend:** FT6, FT22, FT27.
@@ -714,7 +714,7 @@ Ver [contrato T23/T24](../api-contracts/NOTIFICATIONS_AND_RESULTS.md).
 adjudicar empates, publicación versionada y proyección pública de nombres
 implementados y probados con datos sintéticos. Valores oficiales de orden y
 aprobación de privacidad pendientes; T28 no se declara implementada. Los casos
-sin resultado teórico real siguen bloqueados por T27.
+sin resultado teórico definitivo siguen bloqueados, nunca se completan con ceros.
 
 **Dependencias:** T6, T9, T18, T20–T23, T28. **Frontend:** FT8, FT23.
 
@@ -722,12 +722,12 @@ sin resultado teórico real siguen bloqueados por T27.
 
 **Origen:** EF-14 1.1. **Prioridad:** P1-RF.
 
-- [ ] Permitir al administrador cargar y gestionar preguntas de opción múltiple,
+- [x] Permitir al administrador cargar y gestionar preguntas de opción múltiple,
       opciones, respuestas correctas y versiones del banco.
-- [ ] Validar estructura, opciones válidas y disponibilidad de preguntas suficientes
+- [x] Validar estructura, opciones válidas y disponibilidad de preguntas suficientes
       para la cantidad parametrizada; definir el formato de carga con el responsable.
-- [ ] Mantener respuestas correctas fuera de las respuestas HTTP del examen activo.
-- [ ] Congelar la versión de preguntas/respuestas empleada en cada evaluación,
+- [x] Mantener respuestas correctas fuera de las respuestas HTTP del examen activo.
+- [x] Congelar la versión de preguntas/respuestas empleada en cada evaluación,
       aunque después se edite el banco, y auditar la gestión administrativa.
 
 **Dependencias:** T6, T8, T18. **Frontend:** FT24.
@@ -736,52 +736,66 @@ sin resultado teórico real siguen bloqueados por T27.
 
 **Origen:** EF-14, apertura y puntos 1.2–1.3.4. **Prioridad:** P1-RF.
 
-- [ ] Admitir solo a quienes superaron méritos y están habilitados por el administrador
+- [x] Admitir solo a quienes superaron méritos y están habilitados por el administrador
       en fecha/hora programadas; reflejar la fase «Evaluación Técnica» en el expediente.
       El público general no puede consultar el examen.
-- [ ] Parametrizar cantidad de preguntas y duración. Al iniciar, seleccionar al azar
+- [x] Parametrizar cantidad de preguntas y duración. Al iniciar, seleccionar al azar
       preguntas y orden, persistir la asignación y el vencimiento antes de responder.
-- [ ] Validar que banco y parámetros permiten la unicidad de exámenes solicitada;
+- [x] Validar que banco y parámetros permiten la unicidad de exámenes solicitada;
       definir cómo resolver agotamiento de combinaciones sin prometer unicidad imposible.
-- [ ] Al reintentar inicio o recuperar sesión, mantener el mismo intento, orden,
+- [x] Al reintentar inicio o recuperar sesión, mantener el mismo intento, orden,
       respuestas y tiempo restante, según la política de intentos aprobada.
-- [ ] Guardar respuestas por pregunta y exigir que pertenezcan al intento vigente;
+- [x] Guardar respuestas por pregunta y exigir que pertenezcan al intento vigente;
       no confiar en tiempo, elegibilidad, puntaje o IDs arbitrarios del navegador.
-- [ ] Cerrar al vencer el reloj del servidor y conservar respuestas hasta el plazo,
+- [x] Cerrar al vencer el reloj del servidor y conservar respuestas hasta el plazo,
       incluso si se pierde la conexión o se cierra la pantalla; rechazar respuestas tardías.
 
 **Dependencias:** T18, T20, T25. **Frontend:** FT25–FT26.
-**Definición pendiente:** número de preguntas, duración y política de intentos.
+**Estado técnico:** banco/versiones, configuración aprobada, habilitación, asignación
+persistida con unicidad finita y reloj servidor implementados. Un intento por
+postulación; no hay valores académicos oficiales precargados.
+**Definición pendiente:** aprobación institucional de número de preguntas, duración
+y la política explícita de intento/agotamiento soportada.
 
 ### T27 · Finalización, calificación, PDF y correo de la evaluación
 
 **Origen:** EF-14 1.3.3–1.4. **Prioridad:** P1-RF.
 
-- [ ] Unificar «Finalizar y Calificar» y vencimiento automático en una operación
+- [x] Unificar «Finalizar y Calificar» y vencimiento automático en una operación
       idempotente; una carrera entre ambos produce una única nota definitiva.
-- [ ] Comparar respuestas con la matriz congelada y calcular la nota conforme a
+- [x] Comparar respuestas con la matriz congelada y calcular la nota conforme a
       la escala/ponderación aprobadas, sin aceptar la calificación del cliente.
-- [ ] Confirmar cierre, respuestas finales, nota, expediente, auditoría y evento de
+- [x] Confirmar cierre, respuestas finales, nota, expediente, auditoría y evento de
       notificación en una transacción; conservar el desglose de cálculo.
-- [ ] Generar reporte PDF, almacenarlo para administración y habilitar su consulta
+- [x] Generar reporte PDF, almacenarlo para administración y habilitar su consulta
       por el postulante; notificar automáticamente al correo registrado mediante T23.
 
 **Dependencias:** T5, T8, T23, T25–T26. **Frontend:** FT20, FT27.
-**Definición pendiente:** escala y regla de cálculo de la nota no detalladas en el RF.
+**Estado técnico:** cierre único manual/automático, calificación por matriz congelada,
+PDF almacenado inmutable, adjunto cifrado y productor transaccional T21 implementados.
+**Definición pendiente:** aprobación institucional de escala, umbral y cálculo
+soportado (pesos iguales, incorrecta/no respondida cero, sin penalización).
 
 ### T28 · Políticas de privacidad y tratamiento de datos
 
 **Origen:** EF-1, precondiciones y restricciones; EF-12 1.10. **Prioridad:** P1-RF.
 
-- [ ] Publicar la política de privacidad y la información de tratamiento aprobadas
+- [x] Publicar la política de privacidad y la información de tratamiento aprobadas
       por la institución, con versión/fecha, sin inventar textos jurídicos o plazos.
-- [ ] Vincular la versión aplicable al expediente y conservar los cinco consentimientos
+- [x] Vincular la versión aplicable al expediente y conservar los cinco consentimientos
       literales ya implementados; no sustituirlos por una aceptación genérica.
 - [ ] Definir con el responsable acceso, conservación y eliminación de datos,
       documentos y reportes, preservando los registros que deban mantenerse.
-- [ ] Aplicar esas reglas a exportación, correo, URLs temporales y listas públicas.
+- [x] Aplicar esas reglas a exportación, correo, URLs temporales y listas públicas.
 
 **Dependencias:** T3–T4, T6, T8. **Frontend:** FT6, FT28.
+
+**Estado técnico T28:** versiones de política, vinculación al sello, restricciones,
+ventanas por canal y bandeja de revisión implementadas. Textos/plazos reales y
+procedimiento institucional de disposición/eliminación siguen pendientes: no hay
+texto jurídico precargado, aceptación retroactiva ni purga automática de evidencia.
+
+**Contrato T25–T28:** [EXAMS_AND_PRIVACY.md](../api-contracts/EXAMS_AND_PRIVACY.md).
 
 ---
 
@@ -793,7 +807,7 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | Fuente del RF | Requisito o adaptación | Backend | Frontend | Situación |
 |---|---|---|---|---|
 | EF-1, actores | Postulante, Analista TH y Administrador/Comisión | T6 | FT2, FT15 | Tres roles y permisos backend disponibles; integración administrativa de interfaz pendiente |
-| EF-1, privacidad | Política, tratamiento y consentimiento informado | T28, T3 | FT28, FT6 | Consentimientos base; política e integración pendientes |
+| EF-1, privacidad | Política, tratamiento y consentimiento informado | T28, T3 | FT28, FT6 | Política versionada/binding y controles técnicos; texto y disposición institucional pendientes |
 | EF-11.1–3 | Fase aprobada, portal institucional, nueva pestaña y acceso | T18 | FT14–FT15 | Planificado |
 | EF-11.4–6, ADR-008 | Registro, login y recuperación con OTP por correo | T1–T2, T16 | FT3, FT16 | Base OTP y vistas disponibles; consolidación T16/FT16 pendiente |
 | EF-12, primer ingreso | Entrada obligatoria al formulario | T2, T18 | FT2–FT3 | Guard base; cerrar flujo funcional |
@@ -810,14 +824,14 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | EF-13.3 | Conteos por cargo en tiempo real e históricos íntegros/certificados | T8–T9, T18 | FT7 | Parcial: shell/mock; falta administración real |
 | EF-13.3 | Matriz comparativa Excel/PDF | T9 | FT8 | Planificado, obligatorio para RF completo |
 | EF-1 | Verificar requisitos y calcular méritos | T20 | FT19 | Motor configurable y revisión backend disponibles; falta matriz institucional aprobada |
-| EF-1 | Registrar oposición psicotécnica y consolidar expediente | T21 | FT20 | Motor/expediente disponibles; faltan instrumento/reglas aprobados y productor T27 |
+| EF-1 | Registrar oposición psicotécnica y consolidar expediente | T21 | FT20 | Motor/expediente disponibles; faltan instrumento/reglas aprobados |
 | EF-1 | Reconsideraciones y plazos exactos por actor | T22 | FT21 | Flujo y cómputo implementados; faltan términos y calendario institucionales aprobados |
-| EF-1 | Notificar resultados de cada etapa | T23 | FT22 | Avisos de etapas implementadas y reintento autorizado disponibles; productor de examen depende de T27 |
+| EF-1 | Notificar resultados de cada etapa | T23 | FT22 | Avisos de etapas implementadas y reintento autorizado disponibles; productor de examen T27 conectado |
 | EF-1 | Reportes, listas de elegibles y trazabilidad completa | T8, T24 | FT7–FT8, FT23 | Listas/versiones y trazabilidad disponibles; orden y privacidad institucional pendientes |
-| EF-14, apertura/1.1 | Módulo restringido y banco de preguntas | T6, T25 | FT24–FT25 | Planificado |
-| EF-14 1.2 | Méritos aprobados, fecha/hora, azar, cantidad y orden distinto | T18, T20, T26 | FT25–FT26 | Planificado; parámetros pendientes |
-| EF-14 1.3.1–1.3.4 | Pregunta individual, reloj, controles UI y cierre al vencer | T26–T27 | FT26 | Planificado |
-| EF-14 1.3.5–1.4 | Calificar, guardar nota, PDF, correo y copia administrativa | T21, T23, T27 | FT20, FT27 | Planificado; escala de nota pendiente |
+| EF-14, apertura/1.1 | Módulo restringido y banco de preguntas | T6, T25 | FT24–FT25 | Banco/versiones y matriz restringida implementados |
+| EF-14 1.2 | Méritos aprobados, fecha/hora, azar, cantidad y orden distinto | T18, T20, T26 | FT25–FT26 | Motor/habilitación implementados; parámetros institucionales pendientes |
+| EF-14 1.3.1–1.3.4 | Pregunta individual, reloj, controles UI y cierre al vencer | T26–T27 | FT26 | Backend de pregunta/reloj/cierre implementado; controles visuales son frontend |
+| EF-14 1.3.5–1.4 | Calificar, guardar nota, PDF, correo y copia administrativa | T21, T23, T27 | FT20, FT27 | Nota/PDF/correo implementados; aprobación de escala pendiente |
 
 ### Definiciones que el RF no permite resolver por suposición
 
