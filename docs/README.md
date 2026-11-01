@@ -134,3 +134,9 @@ del proyecto. Las matrices de las tareas separan planificación de implementaci�
 
 - [Contrato de impresión y méritos](api-contracts/MERITS_AND_PRINTING.md): rutas,
   permisos, reglas sin puntajes oficiales por defecto y correcciones versionadas.
+
+
+### Entrega frontend FT14/FT15
+
+- [Portal y gestión de convocatorias](tasks/FT14-FT15.md): pantallas, límites del
+  contrato T18, confirmaciones y evidencia local de escritorio/móvil.

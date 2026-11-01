@@ -724,7 +724,7 @@ export function AdminFasesView() {
                                   cambiarFase(i, {
                                     [campo]:
                                       fechaControlEcuadorAISO(e.target.value) ??
-                                      e.target.value,
+                                      "",
                                   })
                                 }
                               />

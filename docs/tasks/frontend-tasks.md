@@ -431,13 +431,17 @@ por feature al implementarlas; esta lista define comportamientos y dependencias.
 
 **Origen:** EF-11.1–3 y EF-1 restricciones temporales. **Prioridad:** P0-RF.
 
-- [ ] Mostrar convocatoria y fases publicadas, fechas y estado abierto/cerrado,
+- [x] Mostrar convocatoria y fases publicadas, fechas y estado abierto/cerrado,
       utilizando los datos del servidor y la zona horaria definida por T18.
-- [ ] Ofrecer iniciar sesión y registrarse. Proporcionar el enlace para integración
+- [x] Ofrecer iniciar sesión y registrarse. Proporcionar el enlace para integración
       en portales IESS/BIESS con apertura en nueva pestaña; la publicación externa
       requiere coordinación institucional y no se presume realizada desde este repo.
-- [ ] Ante cierre o deshabilitación, actualizar la pantalla y explicar por qué no
+- [x] Ante cierre o deshabilitación, actualizar la pantalla y explicar por qué no
       se puede postular, incluso si el usuario dejó abierto el formulario.
+
+**Estado técnico (2026-10-31):** implementado y verificado localmente.
+Publicación en sitios externos y despliegue institucional no realizados.
+Ver [entrega FT14/FT15](FT14-FT15.md).
 
 **Backend:** T18. **Dependencias:** FT2–FT3.
 
@@ -445,13 +449,18 @@ por feature al implementarlas; esta lista define comportamientos y dependencias.
 
 **Origen:** EF-1 actores; EF-13.1–2. **Prioridad:** P0-RF.
 
-- [ ] Incorporar el rol administrador junto con analista y postulante; menús y rutas
+- [x] Incorporar el rol administrador junto con analista y postulante; menús y rutas
       deben reflejar permisos del servidor, sin permitir asignarse un rol en registro.
-- [ ] Permitir al rol autorizado publicar fases, aprobar/programar apertura y cierre
+- [x] Permitir al rol autorizado publicar fases, aprobar/programar apertura y cierre
       y habilitar EF-12, con confirmación de cambios y estado de publicación.
-- [ ] Separar calendario/fase, estado del formulario y resultados de evaluación;
+- [x] Separar calendario/fase, estado del formulario y resultados de evaluación;
       mostrar histórico y no mezclar convocatorias activas y cerradas.
-- [ ] Presentar rechazos de autorización/plazo de la API y conservar su trazabilidad.
+- [x] Presentar rechazos de autorización/plazo de la API y conservar su trazabilidad.
+
+**Estado técnico (2026-10-31):** implementado sobre contrato T18.
+Las fechas generales se programan al crear el período; sus fases se editan con
+confirmación y versión. No se inventa un endpoint para modificar las fechas base.
+Ver [entrega FT14/FT15](FT14-FT15.md).
 
 **Backend:** T6, T18. **Dependencias:** FT2, FT4.
 
