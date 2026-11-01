@@ -5,7 +5,7 @@
 DATABASE_URL ?= postgres://postgres@localhost:5432/biess?sslmode=disable
 MIGRATE_RUN := DATABASE_URL="$(DATABASE_URL)" go run ./cmd/migrate
 
-.PHONY: help run build test vet fmt tidy sqlc-generate catalog-seed db-schema db-migrate db-status db-down db-reset docker-up docker-down
+.PHONY: help run build test vet fmt tidy sqlc-generate catalog-seed user-seed db-schema db-migrate db-status db-down db-reset docker-up docker-down
 
 help:
 	@echo "run             Arranca la API en modo desarrollo"
@@ -17,6 +17,7 @@ help:
 	@echo "sqlc-generate   Regenera el código de sqlc"
 	@echo "db-schema       Regenera sql/queries/schema.sql desde las migraciones"
 	@echo "catalog-seed    Regenera la migración y el SQL autónomo de catálogos"
+	@echo "user-seed       Inyecta las cuentas de prueba (postulante, analista, admin)"
 	@echo "db-migrate      Aplica las migraciones pendientes"
 	@echo "db-status       Muestra el estado de las migraciones"
 	@echo "db-down         Revierte la última migración aplicada"
@@ -47,6 +48,9 @@ sqlc-generate:
 
 catalog-seed:
 	go run ./cmd/catalog-seed
+
+user-seed:
+	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/user-seed
 
 db-schema:
 	@printf '%s\n' '-- Esquema que consume sqlc. Se regenera desde las migraciones con `make db-schema`.' > sql/queries/schema.sql
