@@ -17,7 +17,7 @@ import { AlertaBloqueo } from "@/features/auth/alerta-bloqueo"
 import { useSesion } from "@/features/auth/sesion-context"
 import { esErrorApi } from "@/lib/api-error"
 import { iniciarSesion } from "@/lib/clientes/auth"
-import { leerDestinoLogin, rutaInicial, RUTAS } from "@/lib/rutas"
+import { leerDestinoLogin, resolverDestinoLogin, RUTAS } from "@/lib/rutas"
 import { validarCedulaEcuatoriana } from "@/utils/validators"
 
 export function LoginView() {
@@ -102,7 +102,7 @@ export function LoginView() {
       })
 
       iniciarSesionCon(respuesta.postulante)
-      const rutaDestino = destino || rutaInicial(respuesta.postulante)
+      const rutaDestino = resolverDestinoLogin(destino, respuesta.postulante)
       navegar(rutaDestino, { replace: true })
     } catch (err: unknown) {
       if (esErrorApi(err)) {
