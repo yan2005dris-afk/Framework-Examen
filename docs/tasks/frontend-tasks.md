@@ -608,15 +608,15 @@ Ver [entrega FT14/FT15](FT14-FT15.md).
 
 **Origen:** EF-14 1.2–1.3.4. **Prioridad:** P1-RF.
 
-- [ ] Mostrar «Iniciar Evaluación» solo cuando la API lo permita; recuperar el intento
+- [x] Mostrar «Iniciar Evaluación» solo cuando la API lo permita; recuperar el intento
       y su orden persistido, con una pregunta a la vez y guardado de respuestas.
-- [ ] Mostrar cuenta regresiva superior calculada desde el vencimiento del servidor;
+- [x] Mostrar cuenta regresiva superior calculada desde el vencimiento del servidor;
       recargar o cambiar el reloj local no reinicia el tiempo.
-- [ ] Aplicar los controles de navegación Atrás y copiar/pegar solicitados por el RF
+- [x] Aplicar los controles de navegación Atrás y copiar/pegar solicitados por el RF
       dentro de la pantalla; la autorización y el vencimiento se siguen imponiendo en servidor.
-- [ ] Incluir «Finalizar y Calificar» y al llegar a 00:00 cerrar el flujo y solicitar
+- [x] Incluir «Finalizar y Calificar» y al llegar a 00:00 cerrar el flujo y solicitar
       su finalización con las respuestas guardadas; el servidor también cierra sin navegador.
-- [ ] Resolver desconexión y reconexión sin crear otro examen ni reordenar preguntas;
+- [x] Resolver desconexión y reconexión sin crear otro examen ni reordenar preguntas;
       mostrar qué respuestas quedaron confirmadas y no admitir envíos posteriores al plazo.
 
 **Backend:** T26–T27. **Dependencias:** FT4, FT25.
@@ -625,11 +625,11 @@ Ver [entrega FT14/FT15](FT14-FT15.md).
 
 **Origen:** EF-14 1.3.5–1.4. **Prioridad:** P1-RF.
 
-- [ ] Tras cierre manual o automático, mostrar la nota calculada por el servidor y
+- [x] Tras cierre manual o automático, mostrar la nota calculada por el servidor y
       su incorporación al expediente; la SPA no manda una nota definitiva.
-- [ ] Mostrar generación/disponibilidad/error del reporte PDF y descargar la copia
+- [x] Mostrar generación/disponibilidad/error del reporte PDF y descargar la copia
       autorizada; el módulo administrativo conserva acceso al mismo resultado.
-- [ ] Informar estado de la notificación automática al correo registrado y tratar
+- [x] Informar estado de la notificación automática al correo registrado y tratar
       reintentos de finalización como consulta del mismo resultado, sin duplicar notas.
 
 **Backend:** T23, T27. **Dependencias:** FT22, FT26.
@@ -680,8 +680,8 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | EF-1 | Reportes, listas de elegibles y trazabilidad completa | T8, T24 | FT7–FT8, FT23 | Implementado: matriz preliminar EF-13, generación reproducible de listas, CSV y nómina pública ciudadana |
 | EF-14, apertura/1.1 | Módulo restringido y banco de preguntas | T6, T25 | FT24–FT25 | Implementado: banco inmutable, matriz auditada, validaciones y configuración |
 | EF-14 1.2 | Méritos aprobados, fecha/hora, azar, cantidad y orden distinto | T18, T20, T26 | FT25–FT26 | Implementado: habilitación individual, programación y verificación de elegibilidad |
-| EF-14 1.3.1–1.3.4 | Pregunta individual, reloj, controles UI y cierre al vencer | T26–T27 | FT26 | Planificado |
-| EF-14 1.3.5–1.4 | Calificar, guardar nota, PDF, correo y copia administrativa | T21, T23, T27 | FT20, FT27 | Planificado; escala de nota pendiente |
+| EF-14 1.3.1–1.3.4 | Pregunta individual, reloj, controles UI y cierre al vencer | T26–T27 | FT26 | Implementado: sala de examen interactiva, reloj sincronizado con servidor y guardado persistente por pregunta |
+| EF-14 1.3.5–1.4 | Calificar, guardar nota, PDF, correo y copia administrativa | T21, T23, T27 | FT20, FT27 | Implementado: calificación automática, vista de resultados, descarga de acta PDF y retroalimentación |
 
 ### Definiciones que el RF no permite resolver por suposición
 
