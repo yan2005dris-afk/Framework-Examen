@@ -58,7 +58,9 @@ export function LayoutAdmin() {
   const rutas = Object.fromEntries(
     Object.entries(RUTA_POR_VISTA).map(([vista, ruta]) => [
       vista,
-      `${ruta}${busquedaRevision(filtros)}`,
+      vista === "convocatorias" || vista === "fases"
+        ? ruta
+        : `${ruta}${busquedaRevision(filtros)}`,
     ]),
   )
   const vistaActual = vistaDesdeRuta(pathname)

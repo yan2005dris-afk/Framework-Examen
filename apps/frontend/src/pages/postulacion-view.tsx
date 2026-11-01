@@ -8,7 +8,7 @@ import {
   SaveIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { Link, useNavigate, useParams } from "react-router"
+import { Link, useNavigate, useParams, useSearchParams } from "react-router"
 import { toast } from "sonner"
 
 import { EstadoCargando, EstadoError } from "@/components/estados"
@@ -47,7 +47,7 @@ import {
   useGuardarSeccion,
   useListarPostulaciones,
 } from "@/features/postulaciones/queries"
-import { useConvocatoriaPublica } from "@/features/convocatorias/queries"
+import { useDisponibilidadEF12 } from "@/features/convocatorias/use-disponibilidad"
 import { esErrorApi } from "@/lib/api-error"
 import { RUTAS, rutaSeccion } from "@/lib/rutas"
 import { validarSeccionEF12 } from "@/utils/validar-formulario"
@@ -129,6 +129,7 @@ const FORMULARIO_BASE_DEFAULT: FormularioPostulacionState = {
 export function PostulacionView() {
   const { seccion } = useParams<{ seccion: string }>()
   const navegar = useNavigate()
+  const [parametros] = useSearchParams()
 
   const numeroSeccion = seccion ? Number(seccion) : 1
   const esSeccionValida =
@@ -142,12 +143,14 @@ export function PostulacionView() {
     refetch: recargarPostulaciones,
   } = useListarPostulaciones({ limit: 1 })
 
-  const { data: convocatoria } = useConvocatoriaPublica()
-
   const crearPostulacionMutation = useCrearPostulacion()
   const guardarSeccionMutation = useGuardarSeccion()
 
   const postulacionActiva = postulacionesData?.items?.[0]
+  const periodo =
+    postulacionActiva?.convocatoriaId ?? parametros.get("convocatoria")
+  const disponibilidad = useDisponibilidadEF12(periodo)
+  const abiertaConvocatoria = disponibilidad.abierta
 
   // Crear borrador automático si el postulante aún no tiene ninguno
   useEffect(() => {
@@ -156,11 +159,20 @@ export function PostulacionView() {
       postulacionesData &&
       postulacionesData.items.length === 0 &&
       !crearPostulacionMutation.isPending &&
-      !crearPostulacionMutation.isSuccess
+      !crearPostulacionMutation.isSuccess &&
+      !crearPostulacionMutation.isError &&
+      Boolean(periodo) &&
+      abiertaConvocatoria
     ) {
-      crearPostulacionMutation.mutate({})
+      crearPostulacionMutation.mutate({ convocatoriaId: periodo! })
     }
-  }, [cargandoPostulaciones, postulacionesData, crearPostulacionMutation])
+  }, [
+    cargandoPostulaciones,
+    postulacionesData,
+    crearPostulacionMutation,
+    periodo,
+    abiertaConvocatoria,
+  ])
 
   // Contenido local del formulario sincronizado con la postulación
   const [formData, setFormData] = useState<FormularioPostulacionState>(
@@ -193,6 +205,53 @@ export function PostulacionView() {
     }
     return mapa
   }, [postulacionActiva])
+
+  if (
+    !cargandoPostulaciones &&
+    !postulacionActiva &&
+    crearPostulacionMutation.isError
+  ) {
+    return (
+      <EstadoError
+        error={crearPostulacionMutation.error}
+        titulo="No se pudo abrir el borrador"
+        onReintentar={() => {
+          crearPostulacionMutation.reset()
+          void disponibilidad.refetch()
+        }}
+      />
+    )
+  }
+  if (
+    !cargandoPostulaciones &&
+    !postulacionActiva &&
+    !abiertaConvocatoria &&
+    !crearPostulacionMutation.isPending
+  ) {
+    return (
+      <div className="mx-auto w-full max-w-3xl px-4 py-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {disponibilidad.isPending && periodo
+                ? "Confirmando disponibilidad…"
+                : "La recepción no está disponible"}
+            </CardTitle>
+            <CardDescription>
+              {periodo
+                ? "No se ha confirmado una convocatoria abierta y habilitada. No se crea un borrador ni se envían cambios mientras no se confirme el período."
+                : "Seleccione una convocatoria publicada antes de comenzar su postulación."}
+            </CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button asChild variant="outline">
+              <Link to={RUTAS.inicio}>Consultar convocatorias</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
+  }
 
   if (seccion && !esSeccionValida) {
     return (
@@ -241,15 +300,15 @@ export function PostulacionView() {
   const yaEnviada =
     postulacionActiva && postulacionActiva.status === "submitted"
   const estaCerrada = postulacionActiva && postulacionActiva.status === "closed"
-  const noModificable = yaEnviada || Boolean(estaCerrada)
+  const noModificable =
+    yaEnviada || Boolean(estaCerrada) || !abiertaConvocatoria
 
   // La disponibilidad real del formulario EF-12 la define el servidor mediante ef12Disponible (T18)
-  const abiertaConvocatoria = Boolean(convocatoria?.ef12Disponible)
 
   async function guardarSeccionActual(irSiguiente = false): Promise<boolean> {
     if (!postulacionActiva?.id) return false
 
-    if (estaCerrada) {
+    if (estaCerrada || yaEnviada) {
       toast.error(
         "La postulación se encuentra cerrada y no admite modificaciones.",
       )
@@ -285,7 +344,9 @@ export function PostulacionView() {
 
       if (irSiguiente) {
         if (numeroSeccion < 9) {
-          navegar(rutaSeccion(numeroSeccion + 1))
+          navegar(
+            `${rutaSeccion(numeroSeccion + 1)}${periodo ? `?convocatoria=${encodeURIComponent(periodo)}` : ""}`,
+          )
         } else {
           navegar(RUTAS.postulacionRevision)
         }
@@ -313,6 +374,8 @@ export function PostulacionView() {
           )
           return false
         }
+        if (err.codigo === "convocatoria_no_disponible")
+          void disponibilidad.refetch()
         toast.error(err.mensaje || "Error al guardar la sección.")
       }
       return false
@@ -429,10 +492,10 @@ export function PostulacionView() {
         </div>
       )}
 
-      {!abiertaConvocatoria && !noModificable && (
+      {!abiertaConvocatoria && !yaEnviada && !estaCerrada && (
         <div
           role="alert"
-          className="flex items-center gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive-foreground dark:bg-destructive/20"
+          className="flex items-center gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-foreground dark:bg-destructive/20"
         >
           <LockIcon
             className="size-5 shrink-0 text-destructive"
@@ -440,12 +503,13 @@ export function PostulacionView() {
           />
           <div>
             <h4 className="font-semibold text-destructive">
-              Recepción de postulaciones cerrada
+              Recepción no disponible o sin confirmar
             </h4>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              El plazo oficial para el envío de formularios EF-12 ha concluido o
-              se encuentra deshabilitado. No es posible guardar modificaciones
-              ni remitir nuevos expedientes.
+              No se ha confirmado una recepción abierta para el período de
+              origen. El plazo puede haber concluido, estar deshabilitado o no
+              haberse podido consultar el servidor. Su borrador se conserva; por
+              ahora no se envían modificaciones ni nuevos expedientes.
             </p>
           </div>
         </div>
@@ -612,7 +676,7 @@ export function PostulacionView() {
                 disabled={
                   guardarSeccionMutation.isPending ||
                   bloqueadoNacionalidad ||
-                  (!abiertaConvocatoria && !noModificable)
+                  !abiertaConvocatoria
                 }
                 className="flex items-center gap-1.5"
               >
@@ -627,7 +691,7 @@ export function PostulacionView() {
                 disabled={
                   guardarSeccionMutation.isPending ||
                   bloqueadoNacionalidad ||
-                  (!abiertaConvocatoria && !noModificable)
+                  !abiertaConvocatoria
                 }
                 className="flex items-center gap-1.5 bg-emerald-700 text-white hover:bg-emerald-800"
               >

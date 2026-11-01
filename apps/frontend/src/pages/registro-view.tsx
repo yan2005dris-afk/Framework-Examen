@@ -10,7 +10,7 @@ import {
   ShieldCheckIcon,
   UserPlusIcon,
 } from "lucide-react"
-import { Link, useNavigate } from "react-router"
+import { Link, useNavigate, useSearchParams } from "react-router"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -51,6 +51,8 @@ type PasoRegistro = 1 | 2 | 3 | 4
 
 export function RegistroView() {
   const navegar = useNavigate()
+  const [parametros] = useSearchParams()
+  const periodo = parametros.get("convocatoria")
   const { iniciarSesionCon } = useSesion()
 
   const [paso, setPaso] = useState<PasoRegistro>(1)
@@ -894,7 +896,12 @@ export function RegistroView() {
 
             <div className="flex flex-col gap-2 pt-2">
               <Button
-                onClick={() => navegar(RUTAS.postulacion, { replace: true })}
+                onClick={() =>
+                  navegar(
+                    `${RUTAS.postulacion}${periodo ? `?convocatoria=${encodeURIComponent(periodo)}` : ""}`,
+                    { replace: true },
+                  )
+                }
                 className="w-full"
               >
                 Comenzar postulación (EF-12)
