@@ -230,7 +230,7 @@ que consumen estas capacidades se implementan en FT5/FT6.
       devuelve el progreso (9 secciones, con cuáles están completas).
 - [x] `POST /api/v1/submissions/{id}/submit` sella: hash, `submittedAt`,
       estado `submitted` y correo de confirmación.
-- [x] Validador puro del frontend en `src/utils/validar-formulario.ts` y reglas Go
+- [x] Validador puro del frontend en `src/features/formulario/validacion.ts` y reglas Go
       contrastados con 67 casos de negocio compartidos de las nueve secciones.
       La conexión de ese validador a las vistas corresponde a FT5.
 - [x] Los 5 puntos de consentimiento se guardan y son verificables.
