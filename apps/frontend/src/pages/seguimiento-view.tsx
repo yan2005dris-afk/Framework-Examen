@@ -83,7 +83,7 @@ export function SeguimientoView() {
           <div className="rounded-lg border p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-sm">
-                1. Postulación y Entrega EF-12
+                1. Postulación y Entrega
               </span>
               {postulacion?.status === "submitted" ? (
                 <Badge variant="default">Sellada y Enviada</Badge>
@@ -412,7 +412,7 @@ export function SeguimientoView() {
             <div className="flex items-center justify-between">
               <span className="font-semibold text-sm flex items-center gap-1.5">
                 <MailIcon className="size-4 text-primary" />
-                Comunicaciones y Notificaciones de Etapa (FT22)
+                Comunicaciones y Notificaciones de Etapa
               </span>
               <Badge variant="outline">
                 {notificacionesData?.pages.flatMap((p) => p.items).length ?? 0}{" "}

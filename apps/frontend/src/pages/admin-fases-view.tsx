@@ -186,7 +186,7 @@ export function AdminFasesView() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="mb-2 font-mono text-xs text-muted-foreground">
-            ADMINISTRACIÓN · EF-13
+            ADMINISTRACIÓN
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">
             Fases y publicación
@@ -334,7 +334,7 @@ export function AdminFasesView() {
                 "Visibilidad de esta convocatoria y sus fases publicadas.",
               ],
               [
-                "Formulario EF-12",
+                "Formulario de postulación",
                 detalle.ef12Habilitado
                   ? "Recepción habilitada"
                   : "Recepción deshabilitada",
@@ -523,7 +523,7 @@ export function AdminFasesView() {
                       edicion.config.publicada ? "Sí" : "No",
                     ],
                     [
-                      "EF-12 habilitado",
+                      "Formulario habilitado",
                       edicion.config.ef12Habilitado ? "Sí" : "No",
                     ],
                     [
@@ -614,7 +614,7 @@ export function AdminFasesView() {
                         ],
                         [
                           "ef12Habilitado",
-                          "Habilitar recepción EF-12",
+                          "Habilitar recepción de postulaciones",
                           "Requiere fase de postulación publicada y habilitada; el plazo se verifica en cada operación.",
                         ],
                       ] as const

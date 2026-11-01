@@ -134,9 +134,9 @@ export function ImprimirView() {
               Formulario sellado con Hash Criptográfico
             </p>
             <p className="mt-1">
-              Imprima este documento completo. Conforme a las bases del concurso
-              (HU-11 / EF-12 1.10.2), debe firmarlo a mano de forma manuscrita y
-              entregarlo con los requisitos físicos solicitados.
+              Imprima este documento completo. Conforme a las bases del
+              concurso, debe firmarlo a mano y entregarlo con los requisitos
+              físicos solicitados.
             </p>
           </div>
         ) : (
@@ -173,7 +173,6 @@ export function ImprimirView() {
           </h2>
           <div className="mt-3 inline-block rounded border border-neutral-900 px-3 py-1 text-xs font-bold uppercase">
             Concurso de Méritos y Oposición · Formulario Oficial de Postulación
-            EF-12
           </div>
         </header>
 
@@ -596,7 +595,7 @@ export function ImprimirView() {
         {/* 10. CONSENTIMIENTOS Y DECLARACIONES JURADAS (EF-12 1.10.1) */}
         <section className="mb-6 border border-neutral-300 break-inside-avoid">
           <div className="bg-neutral-200 px-3 py-1 text-xs font-bold text-neutral-900 uppercase print:bg-neutral-200">
-            10. Consentimientos y Declaración Juramentada (EF-12 1.10.1)
+            10. Consentimientos y Declaración Juramentada
           </div>
           <div className="text-2xs flex flex-col gap-2 p-3 leading-tight text-neutral-800">
             {PUNTOS_CONSENTIMIENTO_EF12.map((punto) => {
@@ -648,8 +647,8 @@ export function ImprimirView() {
           </div>
 
           <div className="text-3xs mt-6 rounded border border-neutral-400 bg-neutral-50 p-2.5 text-center text-neutral-700 print:bg-transparent">
-            <strong>Nota Obligatoria (EF-12 1.10.2):</strong> El presente
-            formulario debe ser impreso íntegramente y contar con la{" "}
+            <strong>Nota Obligatoria:</strong> El presente formulario debe ser
+            impreso íntegramente y contar con la{" "}
             <strong>firma manuscrita original</strong> del postulante, para ser
             entregado físicamente junto con los requisitos solicitados en el
             lugar, fecha y horario establecido por el Instituto Ecuatoriano de

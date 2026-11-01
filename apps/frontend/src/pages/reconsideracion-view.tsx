@@ -192,7 +192,7 @@ export function ReconsideracionView() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <ScaleIcon className="size-5 text-primary" />
-              <CardTitle>Solicitudes de Reconsideración (FT21)</CardTitle>
+              <CardTitle>Solicitudes de Reconsideración</CardTitle>
             </div>
             <Badge variant="outline" className="font-mono text-xs">
               Expediente: {postulacion.code}
@@ -330,7 +330,7 @@ export function ReconsideracionView() {
               {documentos.length > 0 && (
                 <div className="space-y-2 border-t pt-3">
                   <Label className="text-xs font-semibold">
-                    Vincular documentos ya aportados en su postulación EF-12
+                    Vincular documentos ya aportados en su postulación
                     (opcional)
                   </Label>
                   <p className="text-[11px] text-muted-foreground">

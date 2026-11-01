@@ -326,7 +326,8 @@ export function RevisionPostulacionView() {
               Revisión y Envío de la Postulación
             </h1>
             <p className="text-sm text-muted-foreground">
-              Formulario EF-12 · Concurso de Méritos y Oposición BIESS / IESS
+              Formulario de postulación · Concurso de Méritos y Oposición BIESS
+              / IESS
             </p>
           </div>
 
@@ -350,7 +351,7 @@ export function RevisionPostulacionView() {
             >
               <Link to={RUTAS.postulacionImprimir}>
                 <PrinterIcon className="size-4" aria-hidden="true" />
-                <span>Imprimir (HU-11)</span>
+                <span>Imprimir</span>
               </Link>
             </Button>
           </div>
@@ -440,7 +441,7 @@ export function RevisionPostulacionView() {
             >
               <Link to={RUTAS.postulacionImprimir}>
                 <PrinterIcon className="size-4" aria-hidden="true" />
-                <span>Imprimir Formulario con Firma Manuscrita (HU-11)</span>
+                <span>Imprimir Formulario con Firma Manuscrita</span>
               </Link>
             </Button>
           </CardFooter>
@@ -1331,7 +1332,7 @@ export function RevisionPostulacionView() {
           >
             <Link to={RUTAS.postulacionImprimir}>
               <PrinterIcon className="size-4" aria-hidden="true" />
-              <span>Imprimir Formulario Firmado (HU-11)</span>
+              <span>Imprimir Formulario Firmado</span>
             </Link>
           </Button>
         )}

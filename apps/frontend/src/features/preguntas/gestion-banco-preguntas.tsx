@@ -310,7 +310,7 @@ export function GestionBancoPreguntas() {
             <div>
               <CardTitle className="flex items-center gap-2 text-base font-semibold">
                 <HelpCircleIcon className="size-5 text-primary" />
-                Banco de Preguntas y Evaluación Técnica (EF-14 / FT24)
+                Banco de Preguntas y Evaluación Técnica
               </CardTitle>
               <CardDescription>
                 Administración oficial de reactivos, opciones y matrices
@@ -478,7 +478,7 @@ export function GestionBancoPreguntas() {
                                   ),
                                 }))
                               }}
-                              title="Configurar y aprobar parámetros de evaluación (FT25)"
+                              title="Configurar y aprobar parámetros de evaluación"
                             >
                               <SettingsIcon className="mr-1 size-3.5" />
                               Configurar
@@ -673,7 +673,7 @@ export function GestionBancoPreguntas() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <SlidersIcon className="size-5 text-primary" />
-              Configurar Evaluación Técnica (FT25)
+              Configurar Evaluación Técnica
             </DialogTitle>
             <DialogDescription>
               Apruebe la cantidad de preguntas, duración, umbral mínimo y

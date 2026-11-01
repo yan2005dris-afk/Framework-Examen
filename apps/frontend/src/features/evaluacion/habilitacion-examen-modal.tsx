@@ -58,7 +58,7 @@ export function HabilitacionExamenModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserCheckIcon className="size-5 text-primary" />
-            Habilitar para Evaluación Técnica (FT25)
+            Habilitar para Evaluación Técnica
           </DialogTitle>
           <DialogDescription>
             Habilite individualmente al postulante para rendir el examen
@@ -101,8 +101,7 @@ export function HabilitacionExamenModal({
               onChange={(e) => setConfiguracionId(e.target.value)}
             />
             <p className="text-[11px] text-muted-foreground">
-              Obtenga el ID desde la administración del banco de preguntas
-              (EF-14).
+              Obtenga el ID desde la administración del banco de preguntas.
             </p>
           </div>
         </div>

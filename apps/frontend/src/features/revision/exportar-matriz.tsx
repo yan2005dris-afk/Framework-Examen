@@ -42,7 +42,7 @@ export function ExportarMatriz({ filtros }: { filtros: FiltrosRevision }) {
       try {
         const enlace = document.createElement("a")
         enlace.href = url
-        enlace.download = `matriz-ef13-${filtros.periodo}-${filtros.sector || "todos"}.${tipo}`
+        enlace.download = `matriz-comparativa-${filtros.periodo}-${filtros.sector || "todos"}.${tipo}`
         document.body.append(enlace)
         try {
           enlace.click()
@@ -73,9 +73,8 @@ export function ExportarMatriz({ filtros }: { filtros: FiltrosRevision }) {
           Matriz comparativa interna
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          EF13-TECNICA-v1 · Propuesta pendiente de aprobación institucional. No
-          es una lista pública de elegibles ni contiene calificaciones de
-          méritos.
+          Propuesta pendiente de aprobación institucional. No es una lista
+          pública de elegibles ni contiene calificaciones de méritos.
         </p>
       </div>
       <p className="text-sm text-muted-foreground">

@@ -75,7 +75,7 @@ export function validarConfiguracion(
         (f) => f.codigo === "postulacion" && f.publicada && f.habilitada,
       ))
   )
-    return "EF-12 requiere convocatoria aprobada y publicada, y una fase de postulación publicada y habilitada."
+    return "El formulario de postulación requiere una convocatoria aprobada y publicada, y una fase de postulación publicada y habilitada."
   const codigos = new Set<string>()
   for (const fase of config.fases) {
     const inicio = Date.parse(fase.apertura),

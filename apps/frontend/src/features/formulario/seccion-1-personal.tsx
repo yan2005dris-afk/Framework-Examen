@@ -98,7 +98,7 @@ export function Seccion1Personal({
         >
           <AlertTriangleIcon className="size-5 shrink-0" aria-hidden="true" />
           <div>
-            <h4 className="font-semibold">Nacionalidad no admitida (HU-06)</h4>
+            <h4 className="font-semibold">Nacionalidad no admitida</h4>
             <p className="mt-0.5">
               De acuerdo con las bases del concurso, la postulación está
               restringida a ciudadanos de nacionalidad ecuatoriana. El

@@ -134,7 +134,7 @@ export function ConsentimientoEF12({
           />
           <div>
             <h3 className="text-base font-semibold text-foreground">
-              Declaración y Consentimiento Legal (EF-12 1.10.1)
+              Declaración y Consentimiento Legal
             </h3>
             <p className="text-xs text-muted-foreground">
               Es requisito legal aceptar explícitamente los 5 puntos antes de

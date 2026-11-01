@@ -543,8 +543,8 @@ export function PostulacionView() {
           <CardHeader>
             <CardTitle>Sección no encontrada</CardTitle>
             <CardDescription>
-              El formulario EF-12 tiene 9 secciones numeradas del 1 al 9. La
-              sección «{seccion}» no existe.
+              El formulario de postulación tiene 9 secciones numeradas del 1 al
+              9. La sección «{seccion}» no existe.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -700,7 +700,7 @@ export function PostulacionView() {
               <Link to={RUTAS.postulacionRevision}>Ver revisión</Link>
             </Button>
             <Button asChild size="sm">
-              <Link to={RUTAS.postulacionImprimir}>Imprimir (HU-11)</Link>
+              <Link to={RUTAS.postulacionImprimir}>Imprimir</Link>
             </Button>
           </div>
         </div>

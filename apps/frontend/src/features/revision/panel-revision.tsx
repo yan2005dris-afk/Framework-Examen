@@ -108,7 +108,7 @@ function NominaRevision({ filtros }: { filtros: FiltrosRevision }) {
                       to={`${rutaDetallePostulacion(fila.id)}${busquedaRevision(filtros)}`}
                       aria-label={`Ver expediente ${fila.codigo}`}
                     >
-                      Ver EF-12
+                      Ver formulario
                       <ArrowRightIcon />
                     </Link>
                   </Button>
@@ -188,7 +188,7 @@ export function PanelRevision({
                   ruta: RUTAS.dashboardPostulaciones,
                   titulo: "Revisar la nómina",
                   texto:
-                    "EF-12 íntegro, certificados y duración de las experiencias al momento del envío.",
+                    "Formulario íntegro, certificados y duración de las experiencias al momento del envío.",
                   icono: FolderSearchIcon,
                 },
                 {

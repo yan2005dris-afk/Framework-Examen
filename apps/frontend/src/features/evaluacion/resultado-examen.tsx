@@ -124,7 +124,7 @@ export function ResultadoExamen() {
           </span>
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Resultado de Evaluación Técnica (EF-14)
+          Resultado de Evaluación Técnica
         </h1>
         <p className="text-sm text-muted-foreground sm:text-base">
           Calificación definitiva calculada por el servidor e incorporada al
@@ -264,7 +264,7 @@ export function ResultadoExamen() {
             <p>
               • <strong>Inmutabilidad:</strong> Este resultado se incorpora
               directamente a la fase de oposición para consolidarse con el
-              resultado de méritos y psicotécnica (FT20).
+              resultado de méritos y psicotécnica.
             </p>
             <p>
               • <strong>Reporte PDF firmado:</strong> Un acta inmutable con

@@ -19,7 +19,7 @@ import { RUTAS } from "@/lib/rutas"
 
 const titulos: Record<VistaId, string> = {
   dashboard: "Inicio",
-  formulario: "Formulario EF-12",
+  formulario: "Formulario de postulación",
   revision: "Revisión y envío",
   imprimir: "Imprimir",
   postulaciones: "Postulaciones",

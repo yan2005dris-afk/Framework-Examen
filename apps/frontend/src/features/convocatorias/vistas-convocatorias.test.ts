@@ -179,7 +179,7 @@ describe("FT15 administración", () => {
       "Versión 7",
       "Inicio del concurso",
       "Portal público",
-      "Formulario EF-12",
+      "Formulario de postulación",
       "Editar configuración",
       "Cronograma de fases",
       "Enlace para portales",
