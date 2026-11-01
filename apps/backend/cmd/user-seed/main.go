@@ -49,4 +49,3 @@ func main() {
 	fmt.Println("  - Analista:      1710034016 / analista@biess.local   (Password.2026*)")
 	fmt.Println("  - Administrador: 0910034008 / admin@biess.local      (Password.2026*)")
 }
-
