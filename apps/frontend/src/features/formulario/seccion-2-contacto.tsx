@@ -13,7 +13,7 @@ import {
 import { PROVINCIAS_ECUADOR } from "@/data/ecuadorGeo"
 import { useSesion } from "@/features/auth/sesion-context"
 import { useCatalogosPaises } from "@/features/postulaciones/queries"
-import { validarEmail } from "@/utils/validators"
+import { validarCorreoSecundario } from "./validacion"
 
 export interface Seccion2Data {
   pais: string
@@ -98,8 +98,7 @@ export function Seccion2Contacto({
     })
   }
 
-  const errorCorreo2 =
-    datos.correo2 && !validarEmail(datos.correo2) ? "Correo inválido" : null
+  const errorCorreo2 = validarCorreoSecundario(datos.correo2)
 
   return (
     <div className="flex flex-col gap-6">

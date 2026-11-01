@@ -7,8 +7,8 @@ import {
   SECCIONES_EF12_INFO,
   type ConsentimientoEF12Data,
 } from "./constantes"
-import { validarSeccionEF12 } from "@/utils/validar-formulario"
-import { calcularDuracionExperiencia } from "@/utils/validators"
+import { validarSeccionEF12 } from "./validacion"
+import { calcularDuracionExperiencia } from "@/helpers/experiencia"
 
 describe("Formulario EF-12 (FT5 / FT6)", () => {
   describe("BarraProgresoSecciones", () => {

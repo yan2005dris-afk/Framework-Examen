@@ -21,7 +21,8 @@ import {
   fechaRevision,
   leerFiltrosRevision,
 } from "@/features/revision/modelo"
-import { esUuidRevision, type FiltrosRevision } from "@/lib/clientes/revision"
+import type { FiltrosRevision } from "@/lib/clientes/revision"
+import { esUuid } from "@/lib/uuid"
 import { RUTAS } from "@/lib/rutas"
 import { esErrorApi } from "@/lib/api-error"
 
@@ -205,7 +206,7 @@ export function DashboardPostulacionDetalleView() {
           Volver a la nómina
         </Link>
       </Button>
-      {!esUuidRevision(id) || error ? (
+      {!esUuid(id) || error ? (
         <EstadoError
           titulo="Enlace de expediente no válido"
           mensaje={error ?? "El identificador de la postulación no es válido."}

@@ -36,7 +36,7 @@ import {
   PREGUNTAS_INHABILIDADES,
   type ConsentimientoEF12Data,
 } from "@/features/formulario/constantes"
-import { ConsentimientoEF12 } from "@/features/postulacion/consentimiento"
+import { ConsentimientoEF12 } from "@/features/formulario/consentimiento"
 import {
   useListarPostulaciones,
   useSellarPostulacion,
@@ -45,7 +45,7 @@ import { useDisponibilidadEF12 } from "@/features/convocatorias/use-disponibilid
 import { usePoliticaVigente } from "@/features/privacidad/queries"
 import { esErrorApi } from "@/lib/api-error"
 import { RUTAS, rutaSeccion } from "@/lib/rutas"
-import { calcularDuracionExperiencia } from "@/utils/validators"
+import { calcularDuracionExperiencia } from "@/helpers/experiencia"
 import type {
   Seccion1Data,
   Seccion2Data,
