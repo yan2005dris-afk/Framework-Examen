@@ -1,15 +1,8 @@
-import {
-  CalendarDaysIcon,
-  CheckCircle2Icon,
-  ClockIcon,
-  LockIcon,
-  PlusIcon,
-} from "lucide-react"
-import { useMemo, useState } from "react"
-import { Link } from "react-router"
-import { toast } from "sonner"
-
+import { CalendarDaysIcon, PlusIcon } from "lucide-react"
+import { useState, type FormEvent } from "react"
+import { Link, useNavigate } from "react-router"
 import { EstadoCargando, EstadoError } from "@/components/estados"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -37,415 +30,435 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   useConvocatoriasAdmin,
   useCrearConvocatoria,
 } from "@/features/convocatorias/queries"
+import {
+  SECTORES,
+  detalleErrorConvocatoria,
+} from "@/features/convocatorias/modelo"
+import { useAhora } from "@/features/convocatorias/use-ahora"
 import { RUTAS } from "@/lib/rutas"
-import type { ResumenConvocatoriaAdmin } from "@/types/convocatoria"
-import { formatearFechaEcuador, obtenerEstadoTemporal } from "@/utils/fechas"
+import type {
+  CrearConvocatoriaPayload,
+  SectorConvocatoria,
+} from "@/types/convocatoria"
+import { fechaControlEcuadorAISO, formatearFechaEcuador } from "@/utils/fechas"
 
-type TabFiltro = "todas" | "activas" | "cerradas"
+type Filtro = "todas" | "programadas" | "en_plazo" | "cerradas"
+const VACIO = {
+  codigo: "",
+  titulo: "",
+  apertura: "",
+  cierre: "",
+  sectores: [] as SectorConvocatoria[],
+}
 
-/**
- * Panel de administración y programación de convocatorias (FT15).
- * Permite a la Comisión Especial de Selección registrar y supervisar períodos oficiales.
- * Respeta el contrato T18 sin fabricar fechas ni estados ficticios.
- */
+/** FT15: listado histórico y alta sin fechas precargadas; no confunde ventana temporal con publicación o resultados. */
 export function AdminConvocatoriasView() {
-  const {
-    data: paginaConvocatorias,
-    isLoading,
-    error,
-    refetch,
-  } = useConvocatoriasAdmin()
-  const mutacionCrear = useCrearConvocatoria()
-
-  const [tabActual, setTabActual] = useState<TabFiltro>("todas")
-  const [modalCrearAbierto, setModalCrearAbierto] = useState(false)
-
-  // Estado del formulario de nueva convocatoria
-  const [nuevoCodigo, setNuevoCodigo] = useState("")
-  const [nuevoTitulo, setNuevoTitulo] = useState("")
-  const [nuevaApertura, setNuevaApertura] = useState("2026-11-01T08:00")
-  const [nuevoCierre, setNuevoCierre] = useState("2026-11-30T23:59")
-
-  const items = useMemo(
-    () => paginaConvocatorias?.items ?? [],
-    [paginaConvocatorias],
+  const lista = useConvocatoriasAdmin()
+  const crear = useCrearConvocatoria()
+  const navegar = useNavigate()
+  const ahora = useAhora()
+  const [filtro, setFiltro] = useState<Filtro>("todas")
+  const [abierto, setAbierto] = useState(false)
+  const [form, setForm] = useState(VACIO)
+  const [propuesta, setPropuesta] = useState<CrearConvocatoriaPayload | null>(
+    null,
+  )
+  const [error, setError] = useState("")
+  const items = lista.data?.pages.flatMap((p) => p.items) ?? []
+  const estado = (c: { apertura: string; cierre: string }) =>
+    ahora < Date.parse(c.apertura)
+      ? "programadas"
+      : ahora >= Date.parse(c.cierre)
+        ? "cerradas"
+        : "en_plazo"
+  const visibles = items.filter(
+    (c) => filtro === "todas" || estado(c) === filtro,
   )
 
-  const itemsFiltrados = useMemo(() => {
-    if (tabActual === "activas") {
-      return items.filter((c) => !c.cerrada)
-    }
-    if (tabActual === "cerradas") {
-      return items.filter((c) => c.cerrada)
-    }
-    return items
-  }, [items, tabActual])
-
-  const totalConvocatorias = items.length
-  const activasCount = items.filter((c) => !c.cerrada).length
-  const cerradasCount = items.filter((c) => c.cerrada).length
-
-  async function handleGuardarNuevaConvocatoria(e: React.FormEvent) {
+  function revisar(e: FormEvent) {
     e.preventDefault()
-    if (!nuevoCodigo.trim() || !nuevoTitulo.trim()) {
-      toast.error("El código y el título oficial son obligatorios.")
-      return
-    }
-
-    const aperturaIso = new Date(nuevaApertura).toISOString()
-    const cierreIso = new Date(nuevoCierre).toISOString()
-
-    if (new Date(cierreIso) <= new Date(aperturaIso)) {
-      toast.error(
-        "La fecha de cierre debe ser posterior a la fecha de apertura.",
+    const apertura = fechaControlEcuadorAISO(form.apertura),
+      cierre = fechaControlEcuadorAISO(form.cierre)
+    if (!apertura || !cierre || apertura >= cierre) {
+      setError(
+        "Indique fechas válidas: el cierre debe ser posterior a la apertura, en hora de Ecuador.",
       )
       return
     }
-
+    if (!form.codigo.trim() || !form.titulo.trim() || !form.sectores.length) {
+      setError(
+        "Complete código, título y al menos un sector de representación.",
+      )
+      return
+    }
+    setError("")
+    setPropuesta({
+      codigo: form.codigo.trim(),
+      titulo: form.titulo.trim(),
+      apertura,
+      cierre,
+      sectores: [...form.sectores],
+      fases: [],
+    })
+  }
+  async function confirmar() {
+    if (!propuesta || crear.isPending) return
     try {
-      await mutacionCrear.mutateAsync({
-        codigo: nuevoCodigo.trim().toUpperCase(),
-        titulo: nuevoTitulo.trim(),
-        apertura: aperturaIso,
-        cierre: cierreIso,
-        sectores: ["afiliados", "jubilados", "empleadores"],
-        fases: [],
-      })
-      toast.success(
-        "Convocatoria creada en estado deshabilitado según contrato T18.",
+      const creada = await crear.mutateAsync(propuesta)
+      setAbierto(false)
+      setPropuesta(null)
+      setForm(VACIO)
+      navegar(
+        `${RUTAS.adminFases}?convocatoria=${encodeURIComponent(creada.id)}`,
       )
-      setModalCrearAbierto(false)
-      setNuevoCodigo("")
-      setNuevoTitulo("")
     } catch (err) {
-      toast.error(
-        err instanceof Error
-          ? err.message
-          : "Error al registrar la convocatoria en el servidor.",
-      )
+      setError(detalleErrorConvocatoria(err))
+      setPropuesta(null)
     }
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-8">
-        <EstadoCargando mensaje="Cargando convocatorias institucionales…" />
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-1 flex-col p-6">
-        <EstadoError
-          error={error}
-          onReintentar={() => void refetch()}
-          titulo="Error al cargar convocatorias"
-          mensaje="No se pudo obtener el listado oficial de convocatorias desde el servidor."
-        />
-      </div>
-    )
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6">
-      {/* Cabecera y acciones */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Gestión de Convocatorias
-            </h1>
-            <Badge variant="outline" className="border-primary/50 text-primary">
-              Comisión de Selección
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Configuración oficial, programación de cronogramas y control de
-            apertura del Directorio del BIESS.
+          <p className="mb-2 font-mono text-xs text-muted-foreground">
+            ADMINISTRACIÓN · EF-13
+          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Convocatorias del concurso
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Consulte períodos y configure su publicación. Los expedientes y
+            resultados pertenecen siempre a su convocatoria de origen.
           </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            onClick={() => setModalCrearAbierto(true)}
-            className="flex items-center gap-1.5"
-          >
-            <PlusIcon className="size-4" />
-            <span>Nueva convocatoria</span>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            className="flex items-center gap-1.5"
-          >
-            <Link to={RUTAS.adminFases}>
-              <ClockIcon className="size-4" />
-              <span>Ver cronograma y fases</span>
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      {/* KPI Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs font-semibold uppercase">
-              Total Convocatorias
-            </CardDescription>
-            <CardTitle className="text-2xl font-bold">
-              {totalConvocatorias}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
-            Registradas en el servidor
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs font-semibold uppercase">
-              Convocatorias Activas
-            </CardDescription>
-            <CardTitle className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {activasCount}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
-            En período vigente según [apertura, cierre)
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs font-semibold uppercase">
-              Cerradas / Históricas
-            </CardDescription>
-            <CardTitle className="text-2xl font-bold text-muted-foreground">
-              {cerradasCount}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
-            Concluidas o no admiten postulaciones
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filtros de pestaña */}
-      <div className="flex items-center justify-between border-b pb-2">
-        <Tabs
-          value={tabActual}
-          onValueChange={(v) => setTabActual(v as TabFiltro)}
-          className="w-full"
+        <Button
+          onClick={() => {
+            setForm(VACIO)
+            setPropuesta(null)
+            setError("")
+            setAbierto(true)
+          }}
         >
-          <TabsList>
-            <TabsTrigger value="todas">
-              Todas ({totalConvocatorias})
-            </TabsTrigger>
-            <TabsTrigger value="activas">Activas ({activasCount})</TabsTrigger>
-            <TabsTrigger value="cerradas">
-              Cerradas / Históricas ({cerradasCount})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+          <PlusIcon aria-hidden="true" />
+          Nueva convocatoria
+        </Button>
       </div>
-
-      {/* Tabla de convocatorias */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {[
+          ["Períodos cargados", items.length],
+          [
+            "Dentro de fechas",
+            items.filter((c) => estado(c) === "en_plazo").length,
+          ],
+          [
+            "Períodos cerrados",
+            items.filter((c) => estado(c) === "cerradas").length,
+          ],
+        ].map(([nombre, valor]) => (
+          <Card key={nombre}>
+            <CardHeader>
+              <CardDescription>{nombre}</CardDescription>
+              <CardTitle className="text-3xl tabular-nums">{valor}</CardTitle>
+            </CardHeader>
+          </Card>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Resumen de los períodos cargados, no un total global. Estar dentro de
+        fechas no implica aprobación ni habilitación de EF-12.
+      </p>
       <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[180px]">Código</TableHead>
-                <TableHead>Título Oficial</TableHead>
-                <TableHead>Apertura y Cierre (ECT)</TableHead>
-                <TableHead className="w-[130px]">Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {itemsFiltrados.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="h-32 text-center text-muted-foreground"
-                  >
-                    No se encontraron convocatorias en esta categoría.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                itemsFiltrados.map((c: ResumenConvocatoriaAdmin) => {
-                  const temporal = obtenerEstadoTemporal(
-                    c.apertura,
-                    c.cierre,
-                    c.cerrada,
-                  )
-                  return (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-medium">
-                        <span className="font-mono text-sm font-bold text-primary">
-                          {c.codigo}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-semibold text-foreground line-clamp-2">
-                          {c.titulo}
-                        </p>
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        <div className="space-y-1">
-                          <p>
-                            <span className="text-muted-foreground">
-                              Desde:
-                            </span>{" "}
-                            {formatearFechaEcuador(c.apertura, {
-                              incluirHora: true,
-                            })}
-                          </p>
-                          <p>
-                            <span className="text-muted-foreground">
-                              Hasta:
-                            </span>{" "}
-                            {formatearFechaEcuador(c.cierre, {
-                              incluirHora: true,
-                            })}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {c.cerrada ? (
-                          <Badge variant="destructive" className="gap-1">
-                            <LockIcon className="size-3" />
-                            <span>Cerrada</span>
-                          </Badge>
-                        ) : temporal === "programada" ? (
-                          <Badge
-                            variant="outline"
-                            className="border-amber-500 text-amber-700 dark:text-amber-400 gap-1"
-                          >
-                            <CalendarDaysIcon className="size-3" />
-                            <span>Programada</span>
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-emerald-600 hover:bg-emerald-700 gap-1">
-                            <CheckCircle2Icon className="size-3" />
-                            <span>En curso</span>
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs"
-                          >
-                            <Link
-                              to={`${RUTAS.adminFases}?convocatoria=${c.id}`}
-                            >
-                              Fases y configuración
-                            </Link>
-                          </Button>
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs"
-                          >
-                            <Link
-                              to={`${RUTAS.dashboardPostulaciones}?convocatoriaId=${c.id}`}
-                            >
-                              Postulaciones
-                            </Link>
-                          </Button>
-                        </div>
-                      </TableCell>
+        <CardHeader className="gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle>Histórico de convocatorias</CardTitle>
+              <CardDescription className="mt-1">
+                Apertura y cierre en America/Guayaquil (UTC−5).
+              </CardDescription>
+            </div>
+            <div>
+              <Label htmlFor="filtro-periodos">Mostrar períodos</Label>
+              <select
+                id="filtro-periodos"
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value as Filtro)}
+                className="mt-1 h-10 rounded-md border bg-background px-3 text-sm"
+              >
+                <option value="todas">Todos los cargados</option>
+                <option value="programadas">Programados</option>
+                <option value="en_plazo">Dentro de fechas</option>
+                <option value="cerradas">Cerrados</option>
+              </select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {lista.isPending ? (
+            <EstadoCargando mensaje="Cargando convocatorias…" />
+          ) : lista.error ? (
+            <EstadoError
+              error={lista.error}
+              onReintentar={() => void lista.refetch()}
+            />
+          ) : (
+            <>
+              {visibles.length ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead scope="col">Convocatoria</TableHead>
+                      <TableHead scope="col">Apertura</TableHead>
+                      <TableHead scope="col">Cierre</TableHead>
+                      <TableHead scope="col">Calendario</TableHead>
+                      <TableHead scope="col" className="text-right">
+                        Acciones
+                      </TableHead>
                     </TableRow>
-                  )
-                })
+                  </TableHeader>
+                  <TableBody>
+                    {visibles.map((c) => (
+                      <TableRow key={c.id}>
+                        <TableCell className="max-w-sm whitespace-normal">
+                          <p className="font-mono text-xs">{c.codigo}</p>
+                          <p className="mt-1 text-sm font-medium">{c.titulo}</p>
+                        </TableCell>
+                        <TableCell className="whitespace-normal text-xs">
+                          {formatearFechaEcuador(c.apertura, {
+                            incluirHora: true,
+                          })}
+                        </TableCell>
+                        <TableCell className="whitespace-normal text-xs">
+                          {formatearFechaEcuador(c.cierre, {
+                            incluirHora: true,
+                          })}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {estado(c) === "programadas"
+                              ? "Programada"
+                              : estado(c) === "cerradas"
+                                ? "Cerrada"
+                                : "Dentro de fechas"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <Button asChild variant="outline" size="sm">
+                              <Link
+                                to={`${RUTAS.adminFases}?convocatoria=${encodeURIComponent(c.id)}`}
+                              >
+                                Configurar fases
+                              </Link>
+                            </Button>
+                            <Button asChild variant="ghost" size="sm">
+                              <Link
+                                to={`${RUTAS.dashboardPostulaciones}?convocatoria=${encodeURIComponent(c.id)}`}
+                              >
+                                Expedientes
+                              </Link>
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="space-y-3 py-10 text-center">
+                  <CalendarDaysIcon
+                    className="mx-auto size-8 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <h3 className="font-medium">
+                    {items.length
+                      ? "No hay períodos con este filtro"
+                      : "Aún no hay convocatorias registradas"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {items.length
+                      ? "Cambie el filtro o cargue más períodos del histórico."
+                      : "Cree el período y después revise su configuración antes de publicarlo."}
+                  </p>
+                </div>
               )}
-            </TableBody>
-          </Table>
+            </>
+          )}
+          {lista.hasNextPage && (
+            <Button
+              className="mt-5"
+              variant="outline"
+              disabled={lista.isFetchingNextPage}
+              onClick={() => void lista.fetchNextPage()}
+            >
+              {lista.isFetchingNextPage ? "Cargando…" : "Cargar más períodos"}
+            </Button>
+          )}
         </CardContent>
       </Card>
-
-      {/* Modal Crear Convocatoria */}
-      <Dialog open={modalCrearAbierto} onOpenChange={setModalCrearAbierto}>
-        <DialogContent className="max-w-xl">
+      <Alert>
+        <CalendarDaysIcon aria-hidden="true" />
+        <AlertTitle>
+          Publicación, recepción y evaluación son estados distintos
+        </AlertTitle>
+        <AlertDescription>
+          Desde «Configurar fases» puede revisar la aprobación, la visibilidad y
+          la recepción. Aquí no se presentan puntajes ni resultados de
+          evaluación.
+        </AlertDescription>
+      </Alert>
+      <Dialog
+        open={abierto}
+        onOpenChange={(v) => {
+          if (!crear.isPending) setAbierto(v)
+        }}
+      >
+        <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Nueva Convocatoria Oficial</DialogTitle>
+            <DialogTitle>
+              {propuesta
+                ? "Confirmar nueva convocatoria"
+                : "Nueva convocatoria"}
+            </DialogTitle>
             <DialogDescription>
-              Crea un período inicial deshabilitado (T18). La aprobación y
-              publicación posterior se configuran en el panel de fases.
+              El período se crea sin aprobar, sin publicar y con EF-12
+              deshabilitado. No se publica automáticamente en portales externos.
             </DialogDescription>
           </DialogHeader>
-
-          <form onSubmit={handleGuardarNuevaConvocatoria} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="codigo">Código oficial *</Label>
-              <Input
-                id="codigo"
-                placeholder="ej. BIESS-DIR-2027"
-                value={nuevoCodigo}
-                onChange={(e) => setNuevoCodigo(e.target.value)}
-                required
-              />
+          {error && (
+            <Alert variant="destructive">
+              <AlertTitle>No se pudo registrar</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {propuesta ? (
+            <div className="space-y-5">
+              <dl className="space-y-3 text-sm">
+                <div>
+                  <dt className="text-muted-foreground">Código y título</dt>
+                  <dd className="font-medium">
+                    {propuesta.codigo} · {propuesta.titulo}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Apertura</dt>
+                  <dd>
+                    {formatearFechaEcuador(propuesta.apertura, {
+                      incluirHora: true,
+                    })}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Cierre</dt>
+                  <dd>
+                    {formatearFechaEcuador(propuesta.cierre, {
+                      incluirHora: true,
+                    })}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Sectores</dt>
+                  <dd>
+                    {propuesta.sectores.map((s) => SECTORES[s]).join(", ")}
+                  </dd>
+                </div>
+              </dl>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  disabled={crear.isPending}
+                  onClick={() => setPropuesta(null)}
+                >
+                  Volver a editar
+                </Button>
+                <Button
+                  disabled={crear.isPending}
+                  onClick={() => void confirmar()}
+                >
+                  {crear.isPending ? "Registrando…" : "Confirmar creación"}
+                </Button>
+              </DialogFooter>
             </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="titulo">Título oficial del concurso *</Label>
-              <Input
-                id="titulo"
-                placeholder="Concurso Público de Méritos y Oposición…"
-                value={nuevoTitulo}
-                onChange={(e) => setNuevoTitulo(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="apertura">Fecha de apertura (ECT) *</Label>
+          ) : (
+            <form className="space-y-5" onSubmit={revisar}>
+              <div className="space-y-2">
+                <Label htmlFor="codigo">Código del período</Label>
                 <Input
-                  id="apertura"
-                  type="datetime-local"
-                  value={nuevaApertura}
-                  onChange={(e) => setNuevaApertura(e.target.value)}
+                  id="codigo"
                   required
+                  maxLength={64}
+                  value={form.codigo}
+                  onChange={(e) => setForm({ ...form, codigo: e.target.value })}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="cierre">Fecha de cierre (ECT) *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="titulo">Título de la convocatoria</Label>
                 <Input
-                  id="cierre"
-                  type="datetime-local"
-                  value={nuevoCierre}
-                  onChange={(e) => setNuevoCierre(e.target.value)}
+                  id="titulo"
                   required
+                  maxLength={200}
+                  value={form.titulo}
+                  onChange={(e) => setForm({ ...form, titulo: e.target.value })}
                 />
               </div>
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setModalCrearAbierto(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={mutacionCrear.isPending}>
-                {mutacionCrear.isPending ? "Guardando…" : "Crear convocatoria"}
-              </Button>
-            </DialogFooter>
-          </form>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {(["apertura", "cierre"] as const).map((campo) => (
+                  <div key={campo} className="space-y-2">
+                    <Label htmlFor={campo}>
+                      {campo === "apertura" ? "Apertura" : "Cierre"} (Ecuador
+                      UTC−5)
+                    </Label>
+                    <Input
+                      id={campo}
+                      type="datetime-local"
+                      required
+                      value={form[campo]}
+                      onChange={(e) =>
+                        setForm({ ...form, [campo]: e.target.value })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+              <fieldset className="space-y-3">
+                <legend className="mb-2 text-sm font-medium">
+                  Sectores convocados
+                </legend>
+                {(Object.keys(SECTORES) as SectorConvocatoria[]).map((s) => (
+                  <label key={s} className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      className="size-5 accent-primary"
+                      checked={form.sectores.includes(s)}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          sectores: e.target.checked
+                            ? [...form.sectores, s]
+                            : form.sectores.filter((x) => x !== s),
+                        })
+                      }
+                    />
+                    {SECTORES[s]}
+                  </label>
+                ))}
+              </fieldset>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setAbierto(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit">Revisar creación</Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

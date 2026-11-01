@@ -40,6 +40,7 @@ import {
   useListarPostulaciones,
   useSellarPostulacion,
 } from "@/features/postulaciones/queries"
+import { useDisponibilidadEF12 } from "@/features/convocatorias/use-disponibilidad"
 import { RUTAS, rutaSeccion } from "@/lib/rutas"
 import { calcularDuracionExperiencia } from "@/utils/validators"
 import type {
@@ -71,6 +72,7 @@ export function RevisionPostulacionView() {
 
   const postulacion = postulacionesData?.items?.[0]
   const yaEnviada = postulacion?.status !== "draft"
+  const disponibilidad = useDisponibilidadEF12(postulacion?.convocatoriaId)
 
   // Estado local para los cinco consentimientos si no están guardados previamente
   const [consentimiento, setConsentimiento] = useState<ConsentimientoEF12Data>(
@@ -132,6 +134,12 @@ export function RevisionPostulacionView() {
   }
 
   function handleEnviarPostulacion() {
+    if (!disponibilidad.abierta) {
+      toast.error(
+        "La recepción no está confirmada o el período cerró. Consulte la convocatoria.",
+      )
+      return
+    }
     if (!postulacion) return
     if (!formularioCompleto) {
       toast.error(
@@ -1090,10 +1098,22 @@ export function RevisionPostulacionView() {
         <ConsentimientoEF12
           datos={consentimiento}
           onChange={setConsentimiento}
-          disabled={yaEnviada}
+          disabled={yaEnviada || !disponibilidad.abierta}
         />
       </div>
 
+      {!yaEnviada && !disponibilidad.abierta && (
+        <p
+          role="alert"
+          className="rounded-lg border border-destructive/40 p-4 text-sm"
+        >
+          La recepción del período no está disponible o no pudo confirmarse. El
+          borrador se conserva; no se admiten nuevos envíos.{" "}
+          <Link className="underline" to={RUTAS.inicio}>
+            Consultar convocatoria
+          </Link>
+        </p>
+      )}
       {/* Acciones Finales de Envío */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-6">
         <Button
@@ -1121,7 +1141,8 @@ export function RevisionPostulacionView() {
               disabled={
                 !todosConsentimientosAceptados ||
                 !formularioCompleto ||
-                sellarMutation.isPending
+                sellarMutation.isPending ||
+                !disponibilidad.abierta
               }
               className="flex items-center gap-2 bg-emerald-700 text-white hover:bg-emerald-800"
             >

@@ -57,9 +57,10 @@ export function formatearFechaEcuador(
     return `${dia} de ${mes} de ${anio}`
   } catch {
     // Respaldo en caso de que Intl con timeZone falle en navegadores antiguos
-    const d = fecha.getUTCDate()
-    const m = MESES[fecha.getUTCMonth()] ?? ""
-    const y = fecha.getUTCFullYear()
+    const ecuador = new Date(fecha.getTime() - 5 * 60 * 60 * 1000)
+    const d = ecuador.getUTCDate()
+    const m = MESES[ecuador.getUTCMonth()] ?? ""
+    const y = ecuador.getUTCFullYear()
     return `${d} de ${m} de ${y}`
   }
 }
@@ -91,16 +92,19 @@ export function obtenerEstadoTemporal(
   cierreIso: string,
   cerradaFlag?: boolean,
 ): "programada" | "abierta" | "cerrada" {
-  if (cerradaFlag) return "cerrada"
-
   const ahora = Date.now()
   const apertura = new Date(aperturaIso).getTime()
   const cierre = new Date(cierreIso).getTime()
 
-  if (Number.isNaN(apertura) || Number.isNaN(cierre)) return "abierta"
+  if (
+    !Number.isFinite(apertura) ||
+    !Number.isFinite(cierre) ||
+    cierre <= apertura
+  )
+    return "cerrada"
 
   if (ahora < apertura) return "programada"
-  if (ahora >= cierre) return "cerrada"
+  if (ahora >= cierre || cerradaFlag) return "cerrada"
   return "abierta"
 }
 
@@ -134,4 +138,25 @@ export function diasHastaCierre(cierreIso: string): number {
   if (diferenciaMs <= 0) return 0
 
   return Math.ceil(diferenciaMs / (1000 * 60 * 60 * 24))
+}
+
+/** Convierte un instante del servidor al control datetime-local en Ecuador, no a la zona del equipo. */
+export function fechaParaControlEcuador(iso: string): string {
+  const fecha = new Date(iso)
+  if (!Number.isFinite(fecha.getTime())) return ""
+  return new Date(fecha.getTime() - 5 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 16)
+}
+
+/** Interpreta un control en UTC-5 explícito y rechaza fechas inexistentes o incompletas. */
+export function fechaControlEcuadorAISO(valor: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(valor)) return null
+  const fecha = new Date(`${valor}:00-05:00`)
+  if (
+    !Number.isFinite(fecha.getTime()) ||
+    fechaParaControlEcuador(fecha.toISOString()) !== valor
+  )
+    return null
+  return fecha.toISOString()
 }
