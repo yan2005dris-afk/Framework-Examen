@@ -176,3 +176,4 @@ export function useResultadosPublicosVigentes(period: string, sector: string) {
     staleTime: 60_000,
   })
 }
+
