@@ -23,6 +23,9 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/eligibility"
 	eligibilitypostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/eligibility/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/eligibility/simulated"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/evaluation"
+	evaluationnotification "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/evaluation/notification"
+	evaluationpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/evaluation/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/merit"
 	meritpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/merit/postgres"
 
@@ -199,12 +202,15 @@ func main() {
 			os.Exit(1)
 		}
 		documentService := document.NewService(documentpostgres.NewRepository(pool, db.NewTxManager(pool)), objects).WithAudit(auditor).WithEligibility(eligibilityService)
+		evaluationService := evaluation.NewService(evaluationpostgres.NewRepository(queries, db.NewTxManager(pool), auditor, &evaluationnotification.Outbox{Queue: outbox, Queries: queries}), objects, auditor)
+		go cleanupEvaluationUploads(ctx, evaluationService)
 		submissionService := submission.NewService(submissionRepository).WithConfirmationQueue(confirmations).
 			WithDocuments(documentService).WithApplicants(identityRepo).WithAudit(auditor).WithEligibility(eligibilityService).WithPrinter(printer)
 		router.Group(func(r chi.Router) {
 			r.Use(identity.RequireSession(identityService))
 			r.Use(identity.ProtectAdministration)
 			competitionHandler.RegisterAdministration(r)
+			evaluation.NewHandler(evaluationService).RegisterRoutes(r)
 			merit.NewHandler(merit.NewService(meritpostgres.NewRepository(queries, db.NewTxManager(pool), auditor), auditor)).RegisterRoutes(r)
 			catalog.NewHandler(catalog.NewService(catalogpostgres.NewRepository(queries), cache.NewCatalogStore(cacheClient))).RegisterRoutes(r)
 			identity.RegisterRoleRoutes(r, identity.NewRoleService(identityRepo))
@@ -289,4 +295,20 @@ func runHealthcheck() int {
 	}
 
 	return 0
+}
+
+/** cleanupEvaluationUploads conserva los intentos fallidos hasta poder borrar sus objetos, sin tocar evidencias confirmadas. */
+func cleanupEvaluationUploads(ctx context.Context, service *evaluation.Service) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	for {
+		if err := service.CleanupUploads(ctx); err != nil && ctx.Err() == nil {
+			slog.WarnContext(ctx, "no se pudieron retirar intentos de respaldo vencidos")
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
 }

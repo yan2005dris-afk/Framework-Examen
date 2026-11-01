@@ -9,8 +9,7 @@ SELECT * FROM documents WHERE id = $1;
 SELECT * FROM documents WHERE submission_id = $1 ORDER BY section, created_at, id;
 
 -- name: TotalDocumentBytes :one
-SELECT COALESCE(sum(d.size_bytes), 0)::bigint FROM documents d
-JOIN submissions s ON s.id = d.submission_id WHERE s.applicant_id = $1;
+SELECT (COALESCE((SELECT sum(d.size_bytes) FROM documents d JOIN submissions s ON s.id=d.submission_id WHERE s.applicant_id=$1),0)+COALESCE((SELECT sum(e.size_bytes) FROM evaluation_evidence e WHERE e.applicant_id=$1 AND e.applicant_upload),0))::bigint;
 
 -- name: DeleteDocument :execrows
 DELETE FROM documents WHERE id = $1;
