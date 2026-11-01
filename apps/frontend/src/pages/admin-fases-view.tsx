@@ -51,6 +51,7 @@ import {
   validarConfiguracion,
 } from "@/features/convocatorias/modelo"
 import { useAhora } from "@/features/convocatorias/use-ahora"
+import { PanelPrivacidadAdmin } from "@/features/privacidad/panel-privacidad-admin"
 import { RUTAS } from "@/lib/rutas"
 import {
   NOMBRES_FASES_OFICIALES,
@@ -454,6 +455,13 @@ export function AdminFasesView() {
               </p>
             </CardContent>
           </Card>
+
+          {id && (
+            <PanelPrivacidadAdmin
+              convocatoriaId={id}
+              convocatoriaTitulo={`${detalle.titulo} (${detalle.codigo})`}
+            />
+          )}
         </>
       )}
       <Dialog

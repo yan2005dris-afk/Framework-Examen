@@ -9,6 +9,7 @@ import {
   ShieldCheckIcon,
   UsersIcon,
 } from "lucide-react"
+import { useState } from "react"
 import { Link, useSearchParams } from "react-router"
 import { EstadoCargando, EstadoError } from "@/components/estados"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -32,6 +33,8 @@ import {
 } from "@/features/convocatorias/modelo"
 import { useDisponibilidadEF12 } from "@/features/convocatorias/use-disponibilidad"
 import { useAhora } from "@/features/convocatorias/use-ahora"
+import { ModalPoliticaPrivacidad } from "@/features/privacidad/modal-politica-privacidad"
+import { usePoliticaVigente } from "@/features/privacidad/queries"
 import { RUTAS, construirRutaLogin } from "@/lib/rutas"
 import { formatearFechaEcuador } from "@/utils/fechas"
 
@@ -60,6 +63,9 @@ export function PortadaView() {
   const destino = `${RUTAS.postulacion}${id ? `?convocatoria=${encodeURIComponent(id)}` : ""}`
   const rutaCuenta = ruta === RUTAS.postulacion ? destino : ruta
   const sectores = convocatoria?.sectores ?? []
+
+  const { data: politicaVigente } = usePoliticaVigente(id)
+  const [modalPoliticaAbierto, setModalPoliticaAbierto] = useState(false)
   const cargando = listado.isPending || (Boolean(id) && consulta.isPending)
   const error = consulta.error || listado.error
 
@@ -457,6 +463,49 @@ export function PortadaView() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Consentimiento y datos personales (Mockup 01-portal.html / FT28) */}
+        <div className="flex flex-col justify-between gap-4 rounded-lg border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center sm:p-5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <ShieldCheckIcon
+                className="size-4 text-primary"
+                aria-hidden="true"
+              />
+              <h3 className="text-sm font-semibold text-foreground">
+                Consentimiento y Protección de Datos Personales (Art. 7 LOPDP)
+              </h3>
+              {politicaVigente && (
+                <Badge variant="outline" className="font-mono text-[10px]">
+                  v{politicaVigente.version}
+                </Badge>
+              )}
+            </div>
+            <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
+              Al postular usted otorga consentimiento explícito para el
+              tratamiento de sus datos personales conforme al artículo 7 de la
+              Ley Orgánica de Protección de Datos Personales y la política
+              institucional vigente
+              {politicaVigente?.definicion.referenciaAprobacion
+                ? ` (${politicaVigente.definicion.referenciaAprobacion})`
+                : ""}
+              .
+            </p>
+          </div>
+          {politicaVigente && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="self-start text-xs shrink-0 gap-1.5 sm:self-auto"
+              onClick={() => setModalPoliticaAbierto(true)}
+            >
+              <span>Consultar política</span>
+              <ExternalLinkIcon className="size-3" />
+            </Button>
+          )}
+        </div>
+
         <p className="flex items-start gap-2 border-t pt-5 text-xs leading-relaxed text-muted-foreground">
           <CalendarDaysIcon
             className="mt-0.5 size-4 shrink-0"
@@ -466,6 +515,12 @@ export function PortadaView() {
           institucional. Este portal no afirma haber realizado esa publicación.
         </p>
       </div>
+
+      <ModalPoliticaPrivacidad
+        politica={politicaVigente}
+        abierto={modalPoliticaAbierto}
+        onCerrar={() => setModalPoliticaAbierto(false)}
+      />
     </div>
   )
 }

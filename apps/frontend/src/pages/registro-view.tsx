@@ -14,6 +14,7 @@ import { Link, useNavigate, useSearchParams } from "react-router"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
@@ -27,6 +28,9 @@ import { Label } from "@/components/ui/label"
 import { AlertaBloqueo } from "@/features/auth/alerta-bloqueo"
 import { MedidorPassword } from "@/features/auth/medidor-password"
 import { useSesion } from "@/features/auth/sesion-context"
+import { useConvocatoriasPublicas } from "@/features/convocatorias/queries"
+import { ModalPoliticaPrivacidad } from "@/features/privacidad/modal-politica-privacidad"
+import { usePoliticaVigente } from "@/features/privacidad/queries"
 import { esErrorApi } from "@/lib/api-error"
 import {
   solicitarRegistro,
@@ -54,6 +58,17 @@ export function RegistroView() {
   const [parametros] = useSearchParams()
   const periodo = parametros.get("convocatoria")
   const { iniciarSesionCon } = useSesion()
+
+  const listadoConvocatorias = useConvocatoriasPublicas()
+  const convocatoriaId =
+    periodo ||
+    listadoConvocatorias.data?.pages
+      ?.flatMap((p) => p.items)
+      ?.find((c) => c.ef12Disponible)?.id ||
+    listadoConvocatorias.data?.pages?.[0]?.items?.[0]?.id ||
+    ""
+  const { data: politicaVigente } = usePoliticaVigente(convocatoriaId)
+  const [modalPoliticaAbierto, setModalPoliticaAbierto] = useState(false)
 
   const [paso, setPaso] = useState<PasoRegistro>(1)
 
@@ -513,6 +528,39 @@ export function RegistroView() {
                   correo.
                 </p>
               </div>
+
+              {/* Información institucional de privacidad y LOPDP (FT28) */}
+              <div className="rounded-lg border bg-muted/40 p-3 text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-foreground font-medium">
+                    <ShieldCheckIcon
+                      className="size-4 text-primary shrink-0"
+                      aria-hidden="true"
+                    />
+                    <span>Protección de Datos (Art. 7 LOPDP)</span>
+                  </div>
+                  {politicaVigente && (
+                    <Badge variant="outline" className="font-mono text-[10px]">
+                      v{politicaVigente.version}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Sus datos se recopilan exclusivamente para el concurso oficial
+                  BIESS/IESS conforme a la política institucional vigente.
+                </p>
+                {politicaVigente && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto p-0 text-[11px] text-primary underline"
+                    onClick={() => setModalPoliticaAbierto(true)}
+                  >
+                    Consultar política institucional (
+                    {politicaVigente.definicion.referenciaAprobacion})
+                  </Button>
+                )}
+              </div>
             </CardContent>
 
             <CardFooter className="flex flex-col gap-3">
@@ -917,6 +965,12 @@ export function RegistroView() {
           </CardContent>
         )}
       </Card>
+
+      <ModalPoliticaPrivacidad
+        politica={politicaVigente}
+        abierto={modalPoliticaAbierto}
+        onCerrar={() => setModalPoliticaAbierto(false)}
+      />
     </div>
   )
 }

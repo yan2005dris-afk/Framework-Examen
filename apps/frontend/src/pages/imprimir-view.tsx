@@ -612,6 +612,20 @@ export function ImprimirView() {
                 </div>
               )
             })}
+            {Boolean(
+              consentimiento.politicaPrivacidadId ||
+              consentimiento.hashPoliticaPrivacidad,
+            ) && (
+              <div className="mt-2 border-t border-neutral-300 pt-2 font-mono text-[9px] text-neutral-600">
+                <span>
+                  Vinculación institucional: Política v
+                  {consentimiento.versionPolitica ?? "1"} · Ref:{" "}
+                  {consentimiento.referenciaAprobacion || "Resolución CD-BIESS"}{" "}
+                  · Hash:{" "}
+                  {consentimiento.hashPoliticaPrivacidad?.substring(0, 32)}…
+                </span>
+              </div>
+            )}
           </div>
         </section>
 
