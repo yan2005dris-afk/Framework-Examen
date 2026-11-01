@@ -34,6 +34,42 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("recharts")) {
+              return "recharts"
+            }
+            if (
+              id.includes("radix-ui") ||
+              id.includes("lucide-react") ||
+              id.includes("cmdk") ||
+              id.includes("embla-carousel-react")
+            ) {
+              return "ui-vendor"
+            }
+            if (id.includes("@tanstack")) {
+              return "query"
+            }
+            if (
+              id.includes("react") ||
+              id.includes("react-dom") ||
+              id.includes("react-router")
+            ) {
+              return "framework"
+            }
+            return "vendor"
+          }
+          if (id.includes("src/data/ecuadorGeo")) {
+            return "geo-data"
+          }
+        },
+      },
+    },
+  },
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],

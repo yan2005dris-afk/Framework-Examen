@@ -16,6 +16,8 @@ dist-ssr/
 build/
 coverage/
 *.tsbuildinfo
+test-results/
+playwright-report/
 
 # Go
 apps/backend/bin/
@@ -75,3 +77,9 @@ Thumbs.db
 CORRECCIONES*.md
 INFORME*.md
 docs/tasks/*-IMPLEMENTACION.md
+
+# Plan local de cierre del backend
+COMPLETAR-BACKEND.md
+
+# Plan local de cierre del frontend
+COMPLETAR-FRONTEND.md
