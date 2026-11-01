@@ -32,6 +32,10 @@ import {
   Seccion7Publicaciones,
   Seccion8Capacitacion,
   Seccion9Inhabilidades,
+  useDocumentosPostulacion,
+  useSubirDocumento,
+  useEliminarDocumento,
+  useDescargarDocumento,
   type Seccion1Data,
   type Seccion2Data,
   type Seccion3Data,
@@ -49,6 +53,7 @@ import {
 } from "@/features/postulaciones/queries"
 import { useDisponibilidadEF12 } from "@/features/convocatorias/use-disponibilidad"
 import { esErrorApi } from "@/lib/api-error"
+import { formatearTamanoBytes } from "@/lib/clientes/documentos"
 import { RUTAS, rutaSeccion } from "@/lib/rutas"
 import { validarSeccionEF12 } from "@/utils/validar-formulario"
 
@@ -205,6 +210,284 @@ export function PostulacionView() {
     }
     return mapa
   }, [postulacionActiva])
+
+  // Documentos reales y cuota total (FT18)
+  const { cuota } = useDocumentosPostulacion(postulacionActiva?.id)
+  const subirDocMutation = useSubirDocumento(postulacionActiva?.id)
+  const eliminarDocMutation = useEliminarDocumento(postulacionActiva?.id)
+  const descargarDocMutation = useDescargarDocumento()
+  const [cargandoDocId, setCargandoDocId] = useState<string | null>(null)
+
+  async function subirRespaldoSeccion4(archivo: File) {
+    if (!postulacionActiva?.id) return
+    try {
+      setCargandoDocId("sec4-org")
+      await guardarSeccionMutation.mutateAsync({
+        id: postulacionActiva.id,
+        seccion: 4,
+        datos: formData.seccion4,
+      })
+      const doc = await subirDocMutation.mutateAsync({
+        seccion: 4,
+        archivo,
+        recordId: "",
+      })
+      setFormData((prev) => ({
+        ...prev,
+        seccion4: {
+          ...prev.seccion4,
+          documentoRespaldoPdf: {
+            id: doc.id,
+            nombre: doc.name,
+            tamano: formatearTamanoBytes(doc.sizeBytes),
+            sizeBytes: doc.sizeBytes,
+            referenciaId: doc.id,
+            sha256: doc.sha256,
+          },
+        },
+      }))
+    } finally {
+      setCargandoDocId(null)
+    }
+  }
+
+  async function eliminarRespaldoSeccion4() {
+    const docId = formData.seccion4.documentoRespaldoPdf?.id
+    if (docId) {
+      await eliminarDocMutation.mutateAsync(docId)
+    }
+    setFormData((prev) => ({
+      ...prev,
+      seccion4: {
+        ...prev.seccion4,
+        documentoRespaldoPdf: null,
+      },
+    }))
+  }
+
+  async function subirRespaldoTitulo(tituloId: string, archivo: File) {
+    if (!postulacionActiva?.id) return
+    try {
+      setCargandoDocId(tituloId)
+      await guardarSeccionMutation.mutateAsync({
+        id: postulacionActiva.id,
+        seccion: 5,
+        datos: formData.seccion5,
+      })
+      const doc = await subirDocMutation.mutateAsync({
+        seccion: 5,
+        archivo,
+        recordId: tituloId,
+      })
+      setFormData((prev) => ({
+        ...prev,
+        seccion5: {
+          ...prev.seccion5,
+          titulos: prev.seccion5.titulos.map((t) =>
+            t.id === tituloId
+              ? {
+                  ...t,
+                  documentoPdf: {
+                    id: doc.id,
+                    nombre: doc.name,
+                    tamano: formatearTamanoBytes(doc.sizeBytes),
+                    sizeBytes: doc.sizeBytes,
+                    referenciaId: doc.id,
+                    sha256: doc.sha256,
+                  },
+                }
+              : t,
+          ),
+        },
+      }))
+    } finally {
+      setCargandoDocId(null)
+    }
+  }
+
+  async function eliminarRespaldoTitulo(tituloId: string) {
+    const t = formData.seccion5.titulos.find((x) => x.id === tituloId)
+    if (t?.documentoPdf?.id) {
+      await eliminarDocMutation.mutateAsync(t.documentoPdf.id)
+    }
+    setFormData((prev) => ({
+      ...prev,
+      seccion5: {
+        ...prev.seccion5,
+        titulos: prev.seccion5.titulos.map((x) =>
+          x.id === tituloId ? { ...x, documentoPdf: null } : x,
+        ),
+      },
+    }))
+  }
+
+  async function subirRespaldoExperiencia(expId: string, archivo: File) {
+    if (!postulacionActiva?.id) return
+    try {
+      setCargandoDocId(expId)
+      await guardarSeccionMutation.mutateAsync({
+        id: postulacionActiva.id,
+        seccion: 6,
+        datos: formData.seccion6,
+      })
+      const doc = await subirDocMutation.mutateAsync({
+        seccion: 6,
+        archivo,
+        recordId: expId,
+      })
+      setFormData((prev) => ({
+        ...prev,
+        seccion6: {
+          ...prev.seccion6,
+          experiencias: prev.seccion6.experiencias.map((e) =>
+            e.id === expId
+              ? {
+                  ...e,
+                  documentoPdf: {
+                    id: doc.id,
+                    nombre: doc.name,
+                    tamano: formatearTamanoBytes(doc.sizeBytes),
+                    sizeBytes: doc.sizeBytes,
+                    referenciaId: doc.id,
+                    sha256: doc.sha256,
+                  },
+                }
+              : e,
+          ),
+        },
+      }))
+    } finally {
+      setCargandoDocId(null)
+    }
+  }
+
+  async function eliminarRespaldoExperiencia(expId: string) {
+    const e = formData.seccion6.experiencias.find((x) => x.id === expId)
+    if (e?.documentoPdf?.id) {
+      await eliminarDocMutation.mutateAsync(e.documentoPdf.id)
+    }
+    setFormData((prev) => ({
+      ...prev,
+      seccion6: {
+        ...prev.seccion6,
+        experiencias: prev.seccion6.experiencias.map((x) =>
+          x.id === expId ? { ...x, documentoPdf: null } : x,
+        ),
+      },
+    }))
+  }
+
+  async function subirRespaldoPublicacion(pubId: string, archivo: File) {
+    if (!postulacionActiva?.id) return
+    try {
+      setCargandoDocId(pubId)
+      await guardarSeccionMutation.mutateAsync({
+        id: postulacionActiva.id,
+        seccion: 7,
+        datos: formData.seccion7,
+      })
+      const doc = await subirDocMutation.mutateAsync({
+        seccion: 7,
+        archivo,
+        recordId: pubId,
+      })
+      setFormData((prev) => ({
+        ...prev,
+        seccion7: {
+          ...prev.seccion7,
+          publicaciones: prev.seccion7.publicaciones.map((p) =>
+            p.id === pubId
+              ? {
+                  ...p,
+                  documentoPdf: {
+                    id: doc.id,
+                    nombre: doc.name,
+                    tamano: formatearTamanoBytes(doc.sizeBytes),
+                    sizeBytes: doc.sizeBytes,
+                    referenciaId: doc.id,
+                    sha256: doc.sha256,
+                  },
+                }
+              : p,
+          ),
+        },
+      }))
+    } finally {
+      setCargandoDocId(null)
+    }
+  }
+
+  async function eliminarRespaldoPublicacion(pubId: string) {
+    const p = formData.seccion7.publicaciones.find((x) => x.id === pubId)
+    if (p?.documentoPdf?.id) {
+      await eliminarDocMutation.mutateAsync(p.documentoPdf.id)
+    }
+    setFormData((prev) => ({
+      ...prev,
+      seccion7: {
+        ...prev.seccion7,
+        publicaciones: prev.seccion7.publicaciones.map((x) =>
+          x.id === pubId ? { ...x, documentoPdf: null } : x,
+        ),
+      },
+    }))
+  }
+
+  async function subirRespaldoCapacitacion(capId: string, archivo: File) {
+    if (!postulacionActiva?.id) return
+    try {
+      setCargandoDocId(capId)
+      await guardarSeccionMutation.mutateAsync({
+        id: postulacionActiva.id,
+        seccion: 8,
+        datos: formData.seccion8,
+      })
+      const doc = await subirDocMutation.mutateAsync({
+        seccion: 8,
+        archivo,
+        recordId: capId,
+      })
+      setFormData((prev) => ({
+        ...prev,
+        seccion8: {
+          ...prev.seccion8,
+          capacitaciones: prev.seccion8.capacitaciones.map((c) =>
+            c.id === capId
+              ? {
+                  ...c,
+                  documentoPdf: {
+                    id: doc.id,
+                    nombre: doc.name,
+                    tamano: formatearTamanoBytes(doc.sizeBytes),
+                    sizeBytes: doc.sizeBytes,
+                    referenciaId: doc.id,
+                    sha256: doc.sha256,
+                  },
+                }
+              : c,
+          ),
+        },
+      }))
+    } finally {
+      setCargandoDocId(null)
+    }
+  }
+
+  async function eliminarRespaldoCapacitacion(capId: string) {
+    const c = formData.seccion8.capacitaciones.find((x) => x.id === capId)
+    if (c?.documentoPdf?.id) {
+      await eliminarDocMutation.mutateAsync(c.documentoPdf.id)
+    }
+    setFormData((prev) => ({
+      ...prev,
+      seccion8: {
+        ...prev.seccion8,
+        capacitaciones: prev.seccion8.capacitaciones.map((x) =>
+          x.id === capId ? { ...x, documentoPdf: null } : x,
+        ),
+      },
+    }))
+  }
 
   if (
     !cargandoPostulaciones &&
@@ -521,6 +804,29 @@ export function PostulacionView() {
         seccionesCompletadas={seccionesCompletadas}
       />
 
+      {/* Indicador de cuota total de documentos (FT18) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/20 px-3.5 py-2 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-foreground">
+            Cuota de respaldos PDF:
+          </span>
+          <span className="text-muted-foreground">{cuota.formateado}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-28 overflow-hidden rounded-full bg-muted">
+            <div
+              className={`h-full transition-all ${cuota.excedida ? "bg-destructive" : cuota.porcentaje > 80 ? "bg-amber-500" : "bg-primary"}`}
+              style={{ width: `${cuota.porcentaje}%` }}
+            />
+          </div>
+          <span
+            className={`font-mono text-2xs ${cuota.excedida ? "font-bold text-destructive" : "text-muted-foreground"}`}
+          >
+            {cuota.porcentaje}%
+          </span>
+        </div>
+      </div>
+
       {errorValidacion && (
         <div
           role="alert"
@@ -572,6 +878,17 @@ export function PostulacionView() {
               }
               disabled={noModificable}
               elegibilidad={postulacionActiva?.elegibilidad}
+              onSubirRespaldo={subirRespaldoSeccion4}
+              onEliminarRespaldo={eliminarRespaldoSeccion4}
+              onDescargarRespaldo={
+                formData.seccion4.documentoRespaldoPdf?.id
+                  ? () =>
+                      descargarDocMutation.mutate(
+                        formData.seccion4.documentoRespaldoPdf!.id!,
+                      )
+                  : undefined
+              }
+              cargandoRespaldo={cargandoDocId === "sec4-org"}
             />
           )}
 
@@ -582,6 +899,10 @@ export function PostulacionView() {
                 setFormData((prev) => ({ ...prev, seccion5: s5 }))
               }
               disabled={noModificable}
+              onSubirRespaldo={subirRespaldoTitulo}
+              onEliminarRespaldo={eliminarRespaldoTitulo}
+              onDescargarRespaldo={(id) => descargarDocMutation.mutate(id)}
+              cargandoRespaldoId={cargandoDocId}
             />
           )}
 
@@ -592,6 +913,10 @@ export function PostulacionView() {
                 setFormData((prev) => ({ ...prev, seccion6: s6 }))
               }
               disabled={noModificable}
+              onSubirRespaldo={subirRespaldoExperiencia}
+              onEliminarRespaldo={eliminarRespaldoExperiencia}
+              onDescargarRespaldo={(id) => descargarDocMutation.mutate(id)}
+              cargandoRespaldoId={cargandoDocId}
             />
           )}
 
@@ -602,6 +927,10 @@ export function PostulacionView() {
                 setFormData((prev) => ({ ...prev, seccion7: s7 }))
               }
               disabled={noModificable}
+              onSubirRespaldo={subirRespaldoPublicacion}
+              onEliminarRespaldo={eliminarRespaldoPublicacion}
+              onDescargarRespaldo={(id) => descargarDocMutation.mutate(id)}
+              cargandoRespaldoId={cargandoDocId}
             />
           )}
 
@@ -612,6 +941,10 @@ export function PostulacionView() {
                 setFormData((prev) => ({ ...prev, seccion8: s8 }))
               }
               disabled={noModificable}
+              onSubirRespaldo={subirRespaldoCapacitacion}
+              onEliminarRespaldo={eliminarRespaldoCapacitacion}
+              onDescargarRespaldo={(id) => descargarDocMutation.mutate(id)}
+              cargandoRespaldoId={cargandoDocId}
             />
           )}
 

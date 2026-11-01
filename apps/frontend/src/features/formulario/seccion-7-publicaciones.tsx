@@ -31,12 +31,20 @@ export interface Seccion7PublicacionesProps {
   datos: Seccion7Data
   onChange: (nuevosDatos: Seccion7Data) => void
   disabled?: boolean
+  onSubirRespaldo?: (pubId: string, archivo: File) => Promise<void>
+  onEliminarRespaldo?: (pubId: string) => Promise<void>
+  onDescargarRespaldo?: (documentId: string) => void
+  cargandoRespaldoId?: string | null
 }
 
 export function Seccion7Publicaciones({
   datos,
   onChange,
   disabled = false,
+  onSubirRespaldo,
+  onEliminarRespaldo,
+  onDescargarRespaldo,
+  cargandoRespaldoId = null,
 }: Seccion7PublicacionesProps) {
   function manejarCambioTiene(valor: "Sí" | "No") {
     onChange({
@@ -270,11 +278,25 @@ export function Seccion7Publicaciones({
                     label="Archivo de la Publicación o Certificado Editorial (PDF)"
                     maxMB={2}
                     valor={pub.documentoPdf}
-                    onArchivoSeleccionado={(adjunto) =>
-                      actualizarPublicacion(index, "documentoPdf", adjunto)
-                    }
-                    onEliminar={() =>
-                      actualizarPublicacion(index, "documentoPdf", null)
+                    cargando={cargandoRespaldoId === pub.id}
+                    onArchivoSeleccionado={(adjunto, archivo) => {
+                      if (onSubirRespaldo && archivo) {
+                        void onSubirRespaldo(pub.id, archivo)
+                      } else {
+                        actualizarPublicacion(index, "documentoPdf", adjunto)
+                      }
+                    }}
+                    onEliminar={() => {
+                      if (onEliminarRespaldo) {
+                        void onEliminarRespaldo(pub.id)
+                      } else {
+                        actualizarPublicacion(index, "documentoPdf", null)
+                      }
+                    }}
+                    onDescargar={
+                      pub.documentoPdf?.id && onDescargarRespaldo
+                        ? () => onDescargarRespaldo(pub.documentoPdf!.id!)
+                        : undefined
                     }
                     disabled={disabled}
                     descripcion="Copia de portada, índice y créditos o constancia de publicación indexada (máx. 2 MB)."

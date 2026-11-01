@@ -32,6 +32,10 @@ export interface Seccion5AcademicaProps {
   datos: Seccion5Data
   onChange: (nuevosDatos: Seccion5Data) => void
   disabled?: boolean
+  onSubirRespaldo?: (tituloId: string, archivo: File) => Promise<void>
+  onEliminarRespaldo?: (tituloId: string) => Promise<void>
+  onDescargarRespaldo?: (documentId: string) => void
+  cargandoRespaldoId?: string | null
 }
 
 const NIVELES_CATALOGO = [
@@ -53,6 +57,10 @@ export function Seccion5Academica({
   datos,
   onChange,
   disabled = false,
+  onSubirRespaldo,
+  onEliminarRespaldo,
+  onDescargarRespaldo,
+  cargandoRespaldoId = null,
 }: Seccion5AcademicaProps) {
   function agregarTitulo() {
     const nuevo: TituloItem = {
@@ -287,10 +295,26 @@ export function Seccion5Academica({
                 label="Copia de Título o Certificado SENESCYT (PDF)"
                 maxMB={2}
                 valor={titulo.documentoPdf}
-                onArchivoSeleccionado={(adjunto) =>
-                  actualizarTitulo(index, "documentoPdf", adjunto)
+                cargando={cargandoRespaldoId === titulo.id}
+                onArchivoSeleccionado={(adjunto, archivo) => {
+                  if (onSubirRespaldo && archivo) {
+                    void onSubirRespaldo(titulo.id, archivo)
+                  } else {
+                    actualizarTitulo(index, "documentoPdf", adjunto)
+                  }
+                }}
+                onEliminar={() => {
+                  if (onEliminarRespaldo) {
+                    void onEliminarRespaldo(titulo.id)
+                  } else {
+                    actualizarTitulo(index, "documentoPdf", null)
+                  }
+                }}
+                onDescargar={
+                  titulo.documentoPdf?.id && onDescargarRespaldo
+                    ? () => onDescargarRespaldo(titulo.documentoPdf!.id!)
+                    : undefined
                 }
-                onEliminar={() => actualizarTitulo(index, "documentoPdf", null)}
                 disabled={disabled}
                 descripcion="Certificado de registro emitido por SENESCYT o título universitario escaneado (máx. 2 MB)."
               />
