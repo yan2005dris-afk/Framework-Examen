@@ -15,7 +15,7 @@ import {
 } from "@/features/formulario/constantes"
 import { useListarPostulaciones } from "@/features/postulaciones/queries"
 import { RUTAS } from "@/lib/rutas"
-import { calcularDuracionExperiencia } from "@/utils/validators"
+import { calcularDuracionExperiencia } from "@/helpers/experiencia"
 import type {
   Seccion1Data,
   Seccion2Data,

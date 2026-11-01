@@ -98,16 +98,47 @@ pnpm dlx shadcn@latest add <componente> --overwrite  # regenerar sobreescribiend
 
 `apps/frontend/src/`:
 
-- `components/ui/` — componentes shadcn. **No editar a mano**: se regeneran con el CLI
+- `components/ui/` — componentes shadcn. **No editar a mano**: se regeneran con el CLI.
+  Es una hoja: no importa features ni vistas
 - `components/` — componentes propios (`app-sidebar.tsx`, `app-header.tsx`,
-  `theme-toggle.tsx`, `theme-provider.tsx`)
-- `pages/` — vistas (`dashboard-view.tsx`)
-- `types/concurso.ts` — tipos del dominio (formulario EF-12 de 9 secciones)
-- `utils/validators.ts` — cédula módulo 10, fortaleza de contraseña, email
+  `theme-toggle.tsx`, `theme-provider.tsx`, `guard-sesion.tsx`)
+- `features/<dominio>/` — **una feature por dominio de negocio**. Cada feature
+  agrupa lo suyo: `modelo.ts` (lógica pura del dominio), `validacion.ts`
+  (validación pura del dominio), `queries.ts` (TanStack Query), `constantes.ts`
+  y la UI. Los tests van al lado del módulo
+- `layouts/` — guard por layout (`layout-admin`, `layout-postulante`,
+  `layout-publico`)
+- `pages/` — vistas (formularios y pantallas de ruta)
+- `lib/` — transporte e infraestructura: `api.ts`, `api-error.ts`, `config.ts`,
+  `rutas.ts`, `query-client.ts`, `query-provider.tsx`, `uuid.ts` y
+  `lib/clientes/<dominio>.ts`. **Cero reglas de negocio**
+- `utils/` — utilidades genéricas y copy-pasteable entre proyectos
+  (`validators.ts`: cédula módulo 10, fortaleza de contraseña, email;
+  `fechas.ts`: zona America/Guayaquil)
+- `helpers/` — lógica de este portal compartida entre dos o más features
+  (`experiencia.ts`: duración de la experiencia laboral EF-12)
+- `types/` — tipos compartidos (`api.ts`, `concurso.ts`, `convocatoria.ts`)
 - `data/` — `ecuadorGeo.ts` (provincias/cantones), `mockInitialData.ts`
-- `lib/utils.ts` — re-export de `cn`
 - `hooks/use-mobile.ts`
 - `assets/images/` — imágenes
+
+**Dónde va la lógica pura y las validaciones** (regla de tres preguntas):
+
+1. ¿Es puro? (sin React, sin `fetch`, sin estado, sin DOM) → si no, es hook,
+   query o componente
+2. ¿Habla el vocabulario de un dominio? → `features/<dominio>/modelo.ts`, o
+   `features/<dominio>/validacion.ts` si su trabajo es rechazar datos
+3. ¿No habla vocabulario de dominio y lo usan dos o más features? → `helpers/`;
+   si además es genérico y reutilizable entre proyectos → `utils/`
+
+El mensaje de error viaja con la validación (no se escribe en el JSX). Si una
+feature necesita lógica de otra, esa lógica sube a la capa compartida: no se
+importa de feature a feature.
+
+`eslint.config.js` hace cumplir estas fronteras con `no-restricted-imports`:
+las features no importan features ajenas (salvo `auth`, que es un primitivo
+transversal, y los módulos compartidos ya listados), las capas compartidas no
+dependen de features ni de vistas, y `components/ui` es una hoja.
 
 `apps/backend/`:
 
@@ -147,7 +178,8 @@ Raíz del repo:
 - **El dominio usa español en los identificadores** (`esValida`, `calcularDuracionExperiencia`,
   `seccion1`, `cumpleMayuscula`) — mantener ese idioma en lo nuevo
 - Tailwind para estilos: clases utilitarias, sin CSS en línea salvo valores dinámicos
-- Comentarios JSDoc en las funciones de `src/utils/`
+- Comentarios JSDoc en las funciones de `src/utils/`, `src/helpers/` y
+  `src/features/*/modelo.ts` / `validacion.ts`
 - **Tests en `src/**/*.test.ts` con Vitest** (entorno node para lógica pura).
   `src/components/ui/` se excluye de Prettier: lo regenera el CLI de shadcn
 - En desarrollo el frontend habla con la API por el proxy de Vite (`/api` →
@@ -300,7 +332,7 @@ decisión que afecte cómo se trabaja en el repo.
 
 | 2026-10-31 | Registro y recuperación con OTP por correo, sin validación dactilar ni fecha de expedición | No existe acceso a Registro Civil. Se valida módulo 10 y acceso al correo; los demás datos personales son declarados. El RF original se conserva y la adaptación se documenta en ADR-008. |
 
-| 2026-10-31 | Definición EF-12 embebida y casos de validación compartidos Go/TypeScript | `internal/submission/definition.json` es la fuente de opciones/tipos de captura; los cambios deben conservar paridad con `src/utils/validar-formulario.ts` mediante `form_cases.json`. Los contenedores frontend y CI incluyen estos recursos. La cuenta OTP aporta la precarga sin certificar identidad civil. |
+| 2026-10-31 | Definición EF-12 embebida y casos de validación compartidos Go/TypeScript | `internal/submission/definition.json` es la fuente de opciones/tipos de captura; los cambios deben conservar paridad con `src/features/formulario/validacion.ts` mediante `form_cases.json`. Los contenedores frontend y CI incluyen estos recursos. La cuenta OTP aporta la precarga sin certificar identidad civil. |
 
 | 2026-10-31 | Tres roles y política administrativa explícita en `identity/permissions.go` | Toda ruta administrativa vive en `/api/v1/admin/`, usa sesión y permiso por operación; los permisos desconocidos se deniegan. Las rutas del postulante conservan titularidad. La lectura administrativa solo entrega snapshots enviados y URLs temporales tras registrar auditoría. |
 | 2026-10-31 | Cambios de rol auditados por trigger y confirmados en transacción | El registro OTP siempre crea postulantes. El PATCH de roles exige administrador vigente bajo bloqueo; la CLI de alta inicial exige operador y motivo. Los historiales de acceso y rol rechazan modificación/borrado. T8 completa retención y consulta del historial. |
@@ -338,3 +370,4 @@ decisión que afecte cómo se trabaja en el repo.
 | 2026-10-31 | Demostraciones backend aisladas mediante `scripts/backend-demo/` y proyecto `framework-backend-demo` | No detener el stack del frontend ni reutilizar sus datos; secretos/fixtures quedan en rutas ignoradas. `DATA_ORIGIN` marca salidas sólo en desarrollo. El perfil QA de 5 s autorizado usa otra versión; el principal conserva 3600 s. |
 | 2026-10-31 | Métricas privadas y trazas locales explícitas, sin prometer OTLP | `METRICS_ADDR` separado del proxy; etiquetas cerradas, rutas parametrizadas, UUID de solicitud y trazas W3C locales. Redis limita operaciones/pool a 3 s y no repite scripts tras errores de red ambiguos. |
 | 2026-10-31 | Diario de estados uniforme desde migración 00019, sin backfill de actores | Triggers guardan proyecciones antes/después y motivo técnico/humano en el commit; identidad/UUID de solicitud son locales a la transacción. No duplicar formularios personales en el diario ni inferir actores históricos. |
+| 2026-11-01 | El frontend agrupa por feature y separa la lógica pura por capa, con fronteras verificadas por ESLint | `features/<dominio>/modelo.ts` y `validacion.ts` alojan la lógica pura del dominio; `helpers/` guarda la regla de este portal compartida entre features y `utils/` lo genérico. El backend Go es el dominio: el frontend sólo replica lo necesario para la UX (`features/formulario/validacion.ts` frente a `form_cases.json`). `lib/` es transporte sin reglas de negocio. `no-restricted-imports` bloquea feature→feature, shared→feature y `components/ui`→feature; `auth` queda como primitivo transversal y los módulos compartidos ya enumerados son la excepción, no un patrón. |
