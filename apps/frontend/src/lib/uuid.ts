@@ -17,3 +17,19 @@ export function generarUuid(): string {
     return v.toString(16)
   })
 }
+
+/**
+ * Valida que un valor tenga forma de UUID canónico.
+ *
+ * Es una regla de formato, no de negocio: vive en `lib/` para que los
+ * adaptadores HTTP y los modelos puros compartan la misma comprobación sin
+ * que ninguno dependa del otro.
+ *
+ * @param valor - Cadena a verificar.
+ * @returns `true` si el valor es un UUID con la forma `8-4-4-4-12`.
+ */
+export function esUuid(valor: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    valor,
+  )
+}

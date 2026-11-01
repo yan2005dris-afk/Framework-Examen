@@ -1,5 +1,6 @@
-import { esUuidRevision, type FiltrosRevision } from "@/lib/clientes/revision"
-import { calcularDuracionExperiencia } from "@/utils/validators"
+import type { FiltrosRevision } from "@/lib/clientes/revision"
+import { esUuid } from "@/lib/uuid"
+import { calcularDuracionExperiencia } from "@/helpers/experiencia"
 
 export const SECTORES_REVISION = [
   { valor: "afiliados", etiqueta: "Afiliados" },
@@ -25,7 +26,7 @@ export function leerFiltrosRevision(params: URLSearchParams): {
   )
   if (
     repetidos ||
-    (periodo !== "" && periodo !== "legado" && !esUuidRevision(periodo)) ||
+    (periodo !== "" && periodo !== "legado" && !esUuid(periodo)) ||
     !["", ...SECTORES_REVISION.map((s) => s.valor)].includes(sector) ||
     !["", "submitted"].includes(estado)
   ) {

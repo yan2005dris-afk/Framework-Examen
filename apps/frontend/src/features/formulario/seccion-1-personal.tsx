@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useSesion } from "@/features/auth/sesion-context"
-import { validarCedulaEcuatoriana } from "@/utils/validators"
+import { validarCedulaPareja } from "./validacion"
 
 export interface Seccion1Data {
   nombres: string
@@ -76,9 +76,7 @@ export function Seccion1Personal({
     })
   }
 
-  const validacionCedulaConyuge = datos.cedulaConyuge
-    ? validarCedulaEcuatoriana(datos.cedulaConyuge)
-    : null
+  const validacionCedulaConyuge = validarCedulaPareja(datos.cedulaConyuge)
 
   return (
     <div className="flex flex-col gap-6">

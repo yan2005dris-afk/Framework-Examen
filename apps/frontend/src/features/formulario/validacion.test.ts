@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
-import compartidos from "../../../backend/internal/submission/testdata/form_cases.json"
-import { validarFormularioEF12, validarSeccionEF12 } from "./validar-formulario"
+import compartidos from "../../../../backend/internal/submission/testdata/form_cases.json"
+import {
+  validarCedulaPareja,
+  validarCorreoSecundario,
+  validarFormularioEF12,
+  validarSeccionEF12,
+} from "./validacion"
 
 interface Caso {
   nombre: string
@@ -59,5 +64,36 @@ describe("paridad Go/TypeScript del EF-12", () => {
       ).esValido,
     ).toBe(true)
     expect(validarSeccionEF12({}, 10).esValido).toBe(false)
+  })
+})
+
+describe("validaciones de campo extraídas de las secciones", () => {
+  it("no exige cédula de la pareja si el campo está vacío", () => {
+    expect(validarCedulaPareja(undefined)).toBeNull()
+    expect(validarCedulaPareja("")).toBeNull()
+  })
+
+  it("rechaza una cédula de la pareja que no cumple el módulo 10", () => {
+    const resultado = validarCedulaPareja("1710034009")
+
+    expect(resultado?.esValida).toBe(false)
+    expect(resultado?.error).toContain("dígito verificador")
+  })
+
+  it("acepta una cédula de la pareja válida", () => {
+    expect(validarCedulaPareja("1710034008")?.esValida).toBe(true)
+  })
+
+  it("no exige correo de confirmación si el campo está vacío", () => {
+    expect(validarCorreoSecundario(undefined)).toBeNull()
+    expect(validarCorreoSecundario("")).toBeNull()
+  })
+
+  it("rechaza un correo de confirmación con formato inválido", () => {
+    expect(validarCorreoSecundario("correo sin arroba")).toBe("Correo inválido")
+  })
+
+  it("acepta un correo de confirmación válido", () => {
+    expect(validarCorreoSecundario("maria.fernandez@example.com")).toBeNull()
   })
 })

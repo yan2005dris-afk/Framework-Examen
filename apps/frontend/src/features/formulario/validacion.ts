@@ -1,6 +1,6 @@
-import definicion from "../../../backend/internal/submission/definition.json"
+import definicion from "../../../../backend/internal/submission/definition.json"
 import { PROVINCIAS_ECUADOR } from "@/data/ecuadorGeo"
-import { validarCedulaEcuatoriana, validarEmail } from "./validators"
+import { validarCedulaEcuatoriana, validarEmail } from "@/utils/validators"
 
 type Registro = Record<string, unknown>
 interface TipoCampo {
@@ -411,4 +411,28 @@ export function validarSeccionEF12(
     ({ campo }) => campo === "contenido" || campo === `seccion${numero}`,
   )
   return { esValido: errores.length === 0, errores }
+}
+
+/**
+ * Valida la cédula de la pareja; devuelve `null` si el campo está vacío.
+ *
+ * @param cedula - Cédula declarada por el postulante.
+ * @returns El resultado del validador oficial, o `null` si no se informó.
+ */
+export function validarCedulaPareja(
+  cedula: string | undefined,
+): { esValida: boolean; error?: string } | null {
+  return cedula ? validarCedulaEcuatoriana(cedula) : null
+}
+
+/**
+ * Valida el correo de confirmación; devuelve `null` si el campo está vacío.
+ *
+ * @param correo - Correo de confirmación declarado por el postulante.
+ * @returns El mensaje de error, o `null` si el correo es válido o está vacío.
+ */
+export function validarCorreoSecundario(
+  correo: string | undefined,
+): string | null {
+  return correo && !validarEmail(correo) ? "Correo inválido" : null
 }

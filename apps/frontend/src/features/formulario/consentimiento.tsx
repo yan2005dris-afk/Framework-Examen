@@ -16,7 +16,7 @@ import {
   PUNTOS_CONSENTIMIENTO_EF12,
   type ClavePuntoConsentimiento,
   type ConsentimientoEF12Data,
-} from "@/features/formulario/constantes"
+} from "./constantes"
 import { ModalPoliticaPrivacidad } from "@/features/privacidad/modal-politica-privacidad"
 import type { PoliticaPrivacidadDto } from "@/lib/clientes/privacidad"
 

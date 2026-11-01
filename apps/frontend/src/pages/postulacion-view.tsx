@@ -55,7 +55,7 @@ import { useDisponibilidadEF12 } from "@/features/convocatorias/use-disponibilid
 import { esErrorApi } from "@/lib/api-error"
 import { formatearTamanoBytes } from "@/lib/clientes/documentos"
 import { RUTAS, rutaSeccion } from "@/lib/rutas"
-import { validarSeccionEF12 } from "@/utils/validar-formulario"
+import { validarSeccionEF12 } from "@/features/formulario/validacion"
 
 export interface FormularioPostulacionState {
   seccion1: Seccion1Data

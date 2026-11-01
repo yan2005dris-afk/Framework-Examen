@@ -1,5 +1,6 @@
 import { apiGet, apiGetBlob, type ParametrosConsulta } from "@/lib/api"
 import { ErrorApi } from "@/lib/api-error"
+import { esUuid } from "@/lib/uuid"
 import type { PostulacionDto } from "./postulaciones"
 import type { PaginaCursor } from "@/types/api"
 import type { SectorPostulacion } from "@/types/concurso"
@@ -94,7 +95,7 @@ export function parametrosRevision(
 ): ParametrosConsulta {
   if (
     !filtros.periodo ||
-    (filtros.periodo !== "legado" && !esUuidRevision(filtros.periodo))
+    (filtros.periodo !== "legado" && !esUuid(filtros.periodo))
   ) {
     throw new Error(
       "Seleccione una convocatoria válida o el legado sin convocatoria.",
@@ -113,13 +114,6 @@ export function parametrosRevision(
     sector: filtros.sector || undefined,
     status: filtros.estado || undefined,
   }
-}
-
-/** Valida identificadores antes de construir rutas administrativas. */
-export function esUuidRevision(valor: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-    valor,
-  )
 }
 
 export const listarConvocatoriasRevision = (

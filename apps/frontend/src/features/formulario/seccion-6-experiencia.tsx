@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { calcularDuracionExperiencia } from "@/utils/validators"
+import { calcularDuracionExperiencia } from "@/helpers/experiencia"
 import { AdjuntoUploader, type AdjuntoInfo } from "./adjunto-uploader"
 
 export interface ExperienciaItem {
