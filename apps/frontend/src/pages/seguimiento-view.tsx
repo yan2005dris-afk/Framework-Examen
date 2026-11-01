@@ -4,6 +4,7 @@ import {
   CheckCircle2Icon,
   ClockIcon,
   FileCheckIcon,
+  MailIcon,
   ScaleIcon,
   XCircleIcon,
 } from "lucide-react"
@@ -19,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { useEvaluacionPostulante } from "@/features/evaluacion/queries"
+import { useNotificacionesPostulante } from "@/features/notificaciones/queries"
 import { useListarPostulaciones } from "@/features/postulaciones/queries"
 import { useReconsideracionesPostulante } from "@/features/reconsideracion/queries"
 import { useResultadoMeritosPostulante } from "@/features/revision/queries"
@@ -38,6 +40,7 @@ export function SeguimientoView() {
   const { data: evaluacionData } = useEvaluacionPostulante(submissionId)
   const { data: reconsideracionesData } =
     useReconsideracionesPostulante(submissionId)
+  const { data: notificacionesData } = useNotificacionesPostulante(submissionId)
 
   const resultadoMeritos = meritosData?.resultado
   const meritosPublicado = meritosData?.publicado && Boolean(resultadoMeritos)
@@ -402,6 +405,79 @@ export function SeguimientoView() {
                 ponderados.
               </p>
             )}
+          </div>
+
+          {/* Fase 5: Notificaciones y Comunicaciones Oficiales (FT22) */}
+          <div className="rounded-lg border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-sm flex items-center gap-1.5">
+                <MailIcon className="size-4 text-primary" />
+                Comunicaciones y Notificaciones de Etapa (FT22)
+              </span>
+              <Badge variant="outline">
+                {notificacionesData?.pages.flatMap((p) => p.items).length ?? 0}{" "}
+                Avisos
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Avisos generados automáticamente para su expediente por cada hito
+              del concurso. La confirmación SMTP acredita la recepción por el
+              servidor de correo, no la apertura por el destinatario.
+            </p>
+
+            <div className="space-y-2 pt-1">
+              {(notificacionesData?.pages.flatMap((p) => p.items) ?? [])
+                .length === 0 ? (
+                <p className="text-xs text-muted-foreground italic">
+                  Aún no se han emitido comunicaciones oficiales por correo para
+                  este expediente.
+                </p>
+              ) : (
+                notificacionesData?.pages
+                  .flatMap((p) => p.items)
+                  .map((notif) => (
+                    <div
+                      key={notif.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded border bg-muted/20 p-2.5 text-xs"
+                    >
+                      <div>
+                        <p className="font-semibold">{notif.accion}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {new Date(notif.creadaEn).toLocaleDateString("es-EC")}{" "}
+                          · Plantilla: {notif.plantilla}
+                        </p>
+                      </div>
+                      <div>
+                        {notif.estado === "smtp_accepted" ? (
+                          <Badge
+                            variant="default"
+                            className="flex items-center gap-1 bg-emerald-600 text-[10px]"
+                          >
+                            <CheckCircle2Icon className="size-3" />
+                            <span>Aceptado por SMTP</span>
+                          </Badge>
+                        ) : notif.estado === "failed" ? (
+                          <Badge
+                            variant="destructive"
+                            className="flex items-center gap-1 text-[10px]"
+                          >
+                            <XCircleIcon className="size-3" />
+                            <span>Fallo en entrega</span>
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="secondary"
+                            className="flex items-center gap-1 text-[10px]"
+                          >
+                            <ClockIcon className="size-3" />
+                            <span>En cola</span>
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
           </div>
 
           {/* Botones de navegación inferior */}

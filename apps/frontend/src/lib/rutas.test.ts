@@ -235,6 +235,7 @@ describe("Rutas del portal (rutas.ts)", () => {
         [RUTAS.adminConvocatorias]: "con-rol-admin",
         [RUTAS.adminFases]: "con-rol-admin",
         [RUTAS.adminPreguntas]: "con-rol-admin",
+        [RUTAS.resultadosPublicos]: "publico",
       }
 
       expect(ACCESO_POR_RUTA).toEqual(esperado)
