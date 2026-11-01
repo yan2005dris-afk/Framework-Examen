@@ -9,6 +9,7 @@ import {
   esAnalista,
   leerDestinoLogin,
   puedeAcceder,
+  resolverDestinoLogin,
   rutaDetallePostulacion,
   rutaInicial,
   rutaSeccion,
@@ -192,19 +193,42 @@ describe("Rutas del portal (rutas.ts)", () => {
       )
     })
 
-    it("resuelve la redirección posterior al login priorizando el destino explícito", () => {
+    it("resuelve la redirección posterior al login priorizando el destino explícito para postulantes", () => {
       // Si el guard guardó ?destino=/postulacion/5, tras login se redirige allí
       const queryParams = "destino=%2Fpostulacion%2F5"
       const destino = leerDestinoLogin(queryParams, "")
-      const rutaFinal = destino || rutaInicial(POSTULANTE)
+      const rutaFinal = resolverDestinoLogin(destino, POSTULANTE)
       expect(rutaFinal).toBe("/postulacion/5")
 
       // Si no hay parámetro destino, se calcula la ruta inicial por rol
       const sinDestino = leerDestinoLogin("", "")
-      expect(sinDestino || rutaInicial(POSTULANTE)).toBe(RUTAS.postulacion)
-      expect(sinDestino || rutaInicial(ANALISTA)).toBe(RUTAS.dashboard)
-      expect(sinDestino || rutaInicial(ADMINISTRADOR)).toBe(
+      expect(resolverDestinoLogin(sinDestino, POSTULANTE)).toBe(
+        RUTAS.postulacion,
+      )
+      expect(resolverDestinoLogin(sinDestino, ANALISTA)).toBe(RUTAS.dashboard)
+      expect(resolverDestinoLogin(sinDestino, ADMINISTRADOR)).toBe(
         RUTAS.adminConvocatorias,
+      )
+    })
+
+    it("ignora destinos de postulación si el usuario es administrador o analista", () => {
+      // Bug: "Ya tengo una cuenta" desde la portada pasa ?destino=/postulacion
+      const destinoPostulacion = "/postulacion?convocatoria=123"
+      expect(resolverDestinoLogin(destinoPostulacion, ADMINISTRADOR)).toBe(
+        RUTAS.adminConvocatorias,
+      )
+      expect(resolverDestinoLogin(destinoPostulacion, ANALISTA)).toBe(
+        RUTAS.dashboard,
+      )
+
+      // Pero respeta destinos administrativos válidos
+      const destinoAdmin = "/admin/fases"
+      expect(resolverDestinoLogin(destinoAdmin, ADMINISTRADOR)).toBe(
+        "/admin/fases",
+      )
+      const destinoDashboard = "/dashboard/postulaciones?page=2"
+      expect(resolverDestinoLogin(destinoDashboard, ANALISTA)).toBe(
+        "/dashboard/postulaciones?page=2",
       )
     })
   })

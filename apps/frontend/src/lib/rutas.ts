@@ -165,3 +165,54 @@ export function leerDestinoLogin(
   const destino = parametros.get("destino")?.trim() ?? ""
   return destino === "" ? porDefecto : destino
 }
+
+/**
+ * Resuelve la redirección posterior al login validando coherencia de rol.
+ * Evita que usuarios administrativos (administrador/analista) terminen en el
+ * formulario de postulación aunque el enlace de login trajera `?destino=/postulacion`.
+ */
+export function resolverDestinoLogin(
+  destino: string | undefined | null,
+  postulante: PostulanteDto | null,
+): string {
+  if (!postulante) {
+    return RUTAS.login
+  }
+
+  const destinoLimpio = destino?.trim() ?? ""
+  if (
+    !destinoLimpio ||
+    destinoLimpio === RUTAS.login ||
+    destinoLimpio === RUTAS.inicio
+  ) {
+    return rutaInicial(postulante)
+  }
+
+  // Administradores y analistas nunca deben ser redirigidos al formulario de postulación
+  if (esAdministrador(postulante)) {
+    if (
+      destinoLimpio.startsWith(RUTAS.dashboard) ||
+      destinoLimpio.startsWith("/admin")
+    ) {
+      return destinoLimpio
+    }
+    return rutaInicial(postulante)
+  }
+
+  if (esAnalista(postulante)) {
+    if (destinoLimpio.startsWith(RUTAS.dashboard)) {
+      return destinoLimpio
+    }
+    return rutaInicial(postulante)
+  }
+
+  // Postulantes comunes no deben ir a rutas administrativas
+  if (
+    destinoLimpio.startsWith(RUTAS.dashboard) ||
+    destinoLimpio.startsWith("/admin")
+  ) {
+    return rutaInicial(postulante)
+  }
+
+  return destinoLimpio
+}
