@@ -231,9 +231,7 @@ export function EvaluacionOposicion({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <LayersIcon className="size-5 text-primary" />
-              <CardTitle>
-                Expediente de Oposición y Calificaciones (FT20)
-              </CardTitle>
+              <CardTitle>Expediente de Oposición y Calificaciones</CardTitle>
             </div>
             {reglasOposicion ? (
               <Badge variant={tieneReglasAprobadas ? "default" : "secondary"}>
@@ -293,7 +291,7 @@ export function EvaluacionOposicion({
             {/* Fuente 1: Méritos */}
             <div className="rounded-lg border p-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold">1. Méritos (T20)</span>
+                <span className="text-xs font-semibold">1. Méritos</span>
                 {meritosPublicados ? (
                   <Badge variant="default" className="text-[10px]">
                     Publicado
@@ -317,7 +315,7 @@ export function EvaluacionOposicion({
             <div className="rounded-lg border p-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold">
-                  2. Oposición Teórica (T27)
+                  2. Oposición Teórica
                 </span>
                 {teoricaPublicada ? (
                   <Badge variant="default" className="text-[10px]">
@@ -325,7 +323,7 @@ export function EvaluacionOposicion({
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="text-[10px]">
-                    Pendiente T27
+                    Pendiente de evaluación teórica
                   </Badge>
                 )}
               </div>
@@ -757,7 +755,7 @@ export function EvaluacionOposicion({
                           </span>
                         ) : (
                           <span className="text-destructive font-semibold">
-                            Pendiente de examen técnico (T27)
+                            Pendiente de examen técnico
                           </span>
                         )}
                       </li>

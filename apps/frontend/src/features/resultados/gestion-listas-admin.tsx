@@ -180,9 +180,7 @@ export function GestionListasAdmin() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <ListOrderedIcon className="size-5 text-primary" />
-              <CardTitle>
-                Listas de Elegibles y Publicación Oficial (FT23)
-              </CardTitle>
+              <CardTitle>Listas de Elegibles y Publicación Oficial</CardTitle>
             </div>
             {publicacionVigente && (
               <Badge

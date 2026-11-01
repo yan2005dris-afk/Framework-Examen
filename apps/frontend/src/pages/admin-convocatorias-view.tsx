@@ -126,7 +126,7 @@ export function AdminConvocatoriasView() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="mb-2 font-mono text-xs text-muted-foreground">
-            ADMINISTRACIÓN · EF-13
+            ADMINISTRACIÓN
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">
             Convocatorias del concurso
@@ -170,7 +170,8 @@ export function AdminConvocatoriasView() {
       </div>
       <p className="text-xs text-muted-foreground">
         Resumen de los períodos cargados, no un total global. Estar dentro de
-        fechas no implica aprobación ni habilitación de EF-12.
+        fechas no implica aprobación ni habilitación del formulario de
+        postulación.
       </p>
       <Card>
         <CardHeader className="gap-4">
@@ -325,8 +326,9 @@ export function AdminConvocatoriasView() {
                 : "Nueva convocatoria"}
             </DialogTitle>
             <DialogDescription>
-              El período se crea sin aprobar, sin publicar y con EF-12
-              deshabilitado. No se publica automáticamente en portales externos.
+              El período se crea sin aprobar, sin publicar y con el formulario
+              de postulación deshabilitado. No se publica automáticamente en
+              portales externos.
             </DialogDescription>
           </DialogHeader>
           {error && (

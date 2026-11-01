@@ -239,7 +239,7 @@ export function PortadaView() {
                         ? "La recepción de esta convocatoria finalizó. Sus expedientes enviados conservan su código y sello."
                         : estado === "sin_confirmar"
                           ? "No se habilitan nuevas postulaciones mientras no se confirme la disponibilidad con el servidor."
-                          : "El servidor no tiene habilitada la recepción de EF-12 para esta convocatoria. Puede consultar la información publicada y sus expedientes anteriores."}
+                          : "El servidor no tiene habilitada la recepción de postulaciones para esta convocatoria. Puede consultar la información publicada y sus expedientes anteriores."}
                   </AlertDescription>
                 </Alert>
               )}
@@ -379,7 +379,7 @@ export function PortadaView() {
                 "Valide su cédula y confirme el acceso a su correo con un código OTP.",
               ],
               [
-                "Complete el EF-12",
+                "Complete el formulario de postulación",
                 "Guarde su avance en nueve secciones y adjunte sus respaldos PDF.",
               ],
               [

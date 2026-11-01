@@ -378,7 +378,7 @@ export function validarFormularioEF12(
       errores: [
         {
           campo: "contenido",
-          mensaje: "El formulario no cumple el contrato JSON del EF-12.",
+          mensaje: "El formulario contiene datos con un formato no válido.",
         },
       ],
     }

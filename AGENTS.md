@@ -175,6 +175,10 @@ Raíz del repo:
 - `verbatimModuleSyntax` activo → los imports solo de tipo usan `import type`
 - `noUnusedLocals` y `noUnusedParameters` activos
 - Alias `@/` → `apps/frontend/src/`
+- **Los textos visibles no incluyen códigos del plan de desarrollo** (`EF-12`, `FT23`,
+  `T24`, `HU-11`, etc.): usar nombres funcionales como «Formulario de postulación».
+  Mantener los identificadores del contrato, los códigos reales de expediente y
+  las referencias técnicas en comentarios/documentación; no renombrarlos para corregir copy.
 - **El dominio usa español en los identificadores** (`esValida`, `calcularDuracionExperiencia`,
   `seccion1`, `cumpleMayuscula`) — mantener ese idioma en lo nuevo
 - Tailwind para estilos: clases utilitarias, sin CSS en línea salvo valores dinámicos

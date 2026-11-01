@@ -181,7 +181,7 @@ export function PanelPrivacidadAdmin({
             <div className="flex items-center gap-2">
               <ShieldCheckIcon className="size-5 text-primary" />
               <CardTitle className="text-lg">
-                Política Institucional Vigente (T28 / LOPDP)
+                Política Institucional Vigente (LOPDP)
               </CardTitle>
             </div>
             {politica ? (

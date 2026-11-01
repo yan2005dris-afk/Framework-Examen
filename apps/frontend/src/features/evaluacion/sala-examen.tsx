@@ -167,7 +167,7 @@ export function SalaExamen() {
           <div className="flex items-center gap-2 text-primary">
             <LockIcon className="size-5" />
             <span className="text-xs font-semibold tracking-wider uppercase">
-              EF-14 · Oposición Teórica
+              Oposición Teórica
             </span>
           </div>
           <CardTitle className="mt-1 text-2xl">

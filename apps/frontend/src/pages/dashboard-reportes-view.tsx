@@ -15,8 +15,8 @@ export function DashboardReportesView() {
           Reportes y Listas de Elegibles
         </h1>
         <p className="text-sm text-muted-foreground">
-          Gestión de la matriz técnica preliminar EF-13 y de las listas
-          oficiales de elegibles por convocatoria y sector (T24).
+          Gestión de la matriz técnica preliminar y de las listas oficiales de
+          elegibles por convocatoria y sector.
         </p>
       </div>
 
@@ -24,7 +24,7 @@ export function DashboardReportesView() {
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="matriz" className="flex items-center gap-2">
             <FileSpreadsheetIcon className="size-4" />
-            <span>Matriz técnica EF-13</span>
+            <span>Matriz técnica</span>
           </TabsTrigger>
           <TabsTrigger value="listas" className="flex items-center gap-2">
             <ListOrderedIcon className="size-4" />

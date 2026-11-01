@@ -12,7 +12,6 @@ import {
 } from "lucide-react"
 import { Link } from "react-router"
 
-import { Badge } from "@/components/ui/badge"
 import {
   Sidebar,
   SidebarContent,
@@ -56,7 +55,7 @@ const grupos: { titulo: string; entradas: EntradaMenu[] }[] = [
       },
       {
         id: "formulario",
-        titulo: "Formulario EF-12",
+        titulo: "Formulario de postulación",
         icono: FileTextIcon,
         badge: "9",
       },
@@ -211,9 +210,6 @@ export function AppSidebar({
             <SidebarMenuButton tooltip="Centro de ayuda">
               <LifeBuoyIcon />
               <span>Centro de ayuda</span>
-              <Badge variant="outline" className="ml-auto">
-                EF-12
-              </Badge>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

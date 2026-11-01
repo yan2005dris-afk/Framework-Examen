@@ -202,7 +202,8 @@ describe("Presentación administrativa FT7 / FT8 (renderizado sin navegador)", (
     const cliente = prepararCliente()
     try {
       const html = renderizar(cliente, "reportes")
-      expect(html).toContain("EF13-TECNICA-v1")
+      expect(html).toContain("Matriz comparativa interna")
+      expect(html).not.toContain("EF13-TECNICA-v1")
       expect(html).toContain("pendiente de aprobación institucional")
       expect(html).toContain("No es una lista pública de elegibles")
       expect(html).toContain("10.000")

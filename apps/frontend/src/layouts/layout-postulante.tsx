@@ -88,7 +88,7 @@ export function LayoutPostulante() {
 
       <footer className="border-t print:hidden">
         <p className="mx-auto w-full max-w-5xl px-4 py-4 text-xs text-muted-foreground">
-          Formulario EF-12 · Los datos personales se tratan conforme al
+          Formulario de postulación · Los datos personales se tratan conforme al
           requerimiento del concurso.
         </p>
       </footer>

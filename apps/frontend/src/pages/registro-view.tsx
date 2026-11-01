@@ -938,7 +938,7 @@ export function RegistroView() {
                   {cedula}
                 </span>
                 . Ya puede iniciar la postulación al Concurso de Méritos y
-                Oposición del Directorio BIESS (Formulario EF-12).
+                Oposición del Directorio BIESS (formulario de postulación).
               </p>
             </div>
 
@@ -952,7 +952,7 @@ export function RegistroView() {
                 }
                 className="w-full"
               >
-                Comenzar postulación (EF-12)
+                Comenzar postulación
               </Button>
               <Button
                 variant="outline"

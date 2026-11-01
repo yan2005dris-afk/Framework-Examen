@@ -157,7 +157,10 @@ export function ExpedienteSellado({
     ),
   )
   return (
-    <section className="space-y-3" aria-label="EF-12 íntegro de solo lectura">
+    <section
+      className="space-y-3"
+      aria-label="Formulario de postulación íntegro de solo lectura"
+    >
       {SECCIONES_EF12_INFO.map((s) => (
         <details
           key={s.numero}

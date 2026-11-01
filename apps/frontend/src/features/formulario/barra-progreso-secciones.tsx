@@ -25,7 +25,7 @@ export function BarraProgresoSecciones({
     <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 text-card-foreground shadow-xs">
       <div className="flex items-center justify-between text-xs font-medium sm:text-sm">
         <span className="text-muted-foreground">
-          Progreso del Formulario EF-12
+          Progreso del Formulario de Postulación
         </span>
         <span className="font-semibold text-primary">
           {totalCompletadas} de 9 completadas ({porcentaje}%)

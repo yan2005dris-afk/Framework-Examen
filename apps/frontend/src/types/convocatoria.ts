@@ -78,7 +78,7 @@ export interface CrearConvocatoriaPayload {
 
 /** Catálogo de nombres institucionales para los códigos de fase del servidor */
 export const NOMBRES_FASES_OFICIALES: Record<CodigoFase, string> = {
-  postulacion: "Recepción de postulaciones (EF-12)",
+  postulacion: "Recepción de postulaciones",
   meritos: "Valoración de méritos",
   oposicion_teorica: "Prueba técnica de conocimientos",
   oposicion_psicotecnica: "Evaluación psicométrica",

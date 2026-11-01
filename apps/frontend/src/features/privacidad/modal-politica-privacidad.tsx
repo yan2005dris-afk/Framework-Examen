@@ -241,7 +241,7 @@ export function ModalPoliticaPrivacidad({
 
         <DialogFooter className="p-4 border-t bg-muted/10 flex items-center justify-between sm:justify-between">
           <span className="text-[11px] text-muted-foreground hidden sm:inline">
-            EF-1 Precondiciones · Ley Orgánica de Protección de Datos Personales
+            Ley Orgánica de Protección de Datos Personales
           </span>
           <Button type="button" size="sm" onClick={onCerrar}>
             Cerrar

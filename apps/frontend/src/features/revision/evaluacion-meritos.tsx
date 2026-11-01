@@ -202,7 +202,7 @@ export function EvaluacionMeritos({
             <div className="flex items-center gap-2">
               <FileCheckIcon className="size-5 text-primary" />
               <CardTitle className="text-lg">
-                Revisión y Calificación de Méritos (FT19)
+                Revisión y Calificación de Méritos
               </CardTitle>
             </div>
             <div className="flex items-center gap-2">

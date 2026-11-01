@@ -505,7 +505,7 @@ export function PanelReconsideracionesAdmin({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ScaleIcon className="size-5 text-primary" />
-            <CardTitle>Bandeja de Reconsideraciones (FT21)</CardTitle>
+            <CardTitle>Bandeja de Reconsideraciones</CardTitle>
           </div>
           <Badge variant="outline">
             {items.length === 1 ? "1 Solicitud" : `${items.length} Solicitudes`}

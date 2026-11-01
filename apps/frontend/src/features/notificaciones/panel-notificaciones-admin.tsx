@@ -127,9 +127,7 @@ export function PanelNotificacionesAdmin({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MailIcon className="size-5 text-primary" />
-            <CardTitle>
-              Comunicaciones y Notificaciones de Etapa (FT22)
-            </CardTitle>
+            <CardTitle>Comunicaciones y Notificaciones de Etapa</CardTitle>
           </div>
           <Badge variant="outline">
             {items.length === 1 ? "1 Aviso" : `${items.length} Avisos`}
