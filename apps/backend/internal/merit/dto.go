@@ -12,6 +12,7 @@ type Criterion struct {
 	Label         string `json:"nombre"`
 	Metric        string `json:"metrica"`
 	Filter        string `json:"filtro,omitempty"`
+	WholeUnits    bool   `json:"unidadesCompletas,omitempty"`
 	UnitSize      int64  `json:"tamanoUnidad"`
 	PointsPerUnit int64  `json:"centipuntosPorUnidad"`
 	MaximumPoints int64  `json:"maximoCentipuntos"`

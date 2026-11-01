@@ -30,6 +30,12 @@ func NewRedis(ctx context.Context, url string) (*RedisClient, error) {
 		return nil, fmt.Errorf("cache: URL de Redis inválida: %w", err)
 	}
 
+	opts.DialTimeout = 3 * time.Second
+	opts.ReadTimeout = 3 * time.Second
+	opts.WriteTimeout = 3 * time.Second
+	opts.ContextTimeoutEnabled = true
+	opts.PoolTimeout = 3 * time.Second
+	opts.MaxRetries = -1 // No repetir scripts de seguridad tras un resultado de red ambiguo.
 	client := redis.NewClient(opts)
 
 	if err := client.Ping(ctx).Err(); err != nil {
@@ -49,12 +55,14 @@ func NewRedis(ctx context.Context, url string) (*RedisClient, error) {
  * @throws {error} ErrNotFound o error de Redis.
  */
 func (r *RedisClient) Get(ctx context.Context, key string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 	val, err := r.client.Get(ctx, key).Result()
 	if errors.Is(err, redis.Nil) {
 		return "", ErrNotFound
 	}
 	if err != nil {
-		return "", fmt.Errorf("cache: Get(%q): %w", key, err)
+		return "", fmt.Errorf("cache: lectura no disponible: %w", err)
 	}
 	return val, nil
 }
@@ -70,8 +78,10 @@ func (r *RedisClient) Get(ctx context.Context, key string) (string, error) {
  * @throws {error} Error de Redis.
  */
 func (r *RedisClient) Set(ctx context.Context, key string, value string, ttl time.Duration) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 	if err := r.client.Set(ctx, key, value, ttl).Err(); err != nil {
-		return fmt.Errorf("cache: Set(%q): %w", key, err)
+		return fmt.Errorf("cache: escritura no disponible: %w", err)
 	}
 	return nil
 }
@@ -103,8 +113,10 @@ func (r *RedisClient) Incr(ctx context.Context, key string, ttl time.Duration) (
  * @throws {error} Error de Redis.
  */
 func (r *RedisClient) Delete(ctx context.Context, key string) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 	if err := r.client.Del(ctx, key).Err(); err != nil {
-		return fmt.Errorf("cache: Delete(%q): %w", key, err)
+		return fmt.Errorf("cache: baja no disponible: %w", err)
 	}
 	return nil
 }
@@ -120,6 +132,8 @@ func (r *RedisClient) Close() error {
 
 /** RunScript ejecuta una operación indivisible de seguridad en Redis. */
 func (r *RedisClient) RunScript(ctx context.Context, script string, keys []string, args ...interface{}) (int64, error) {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
 	result, err := redis.NewScript(script).Run(ctx, r.client, keys, args...).Int64()
 	if err != nil {
 		return 0, ErrUnavailable

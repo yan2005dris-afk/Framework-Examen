@@ -88,3 +88,6 @@ UPDATE password_resets
 SET used = true
 WHERE token_hash = $1;
 
+
+-- name: PurgeExpiredSessionBatch :execrows
+DELETE FROM sessions WHERE id IN(SELECT id FROM sessions WHERE expires_at<clock_timestamp()-interval '30 days' ORDER BY expires_at,id LIMIT 1000 FOR UPDATE SKIP LOCKED);

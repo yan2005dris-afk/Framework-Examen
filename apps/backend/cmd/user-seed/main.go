@@ -44,8 +44,9 @@ func main() {
 		log.Fatalf("Error al confirmar transacción: %v", err)
 	}
 
-	fmt.Println("Semilla de usuarios inyectada exitosamente:")
+	fmt.Println("Semilla de usuarios y convocatoria inyectada exitosamente:")
 	fmt.Println("  - Postulante:    1710034008 / postulante@biess.local (Password.2026*)")
 	fmt.Println("  - Analista:      1710034016 / analista@biess.local   (Password.2026*)")
 	fmt.Println("  - Administrador: 0910034008 / admin@biess.local      (Password.2026*)")
+	fmt.Println("  - Convocatoria:  convocatoria-2026-01 (Concurso Público de Méritos y Oposición BIESS 2026)")
 }

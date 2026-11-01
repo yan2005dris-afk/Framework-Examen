@@ -125,7 +125,7 @@ func (s *Service) Upload(ctx context.Context, input UploadInput) (*Document, err
 	d := &Document{ID: id, SubmissionID: input.SubmissionID, Section: input.Section, RecordID: input.RecordID, Name: name, MIME: "application/pdf", SizeBytes: int64(len(data)), SHA256: hex.EncodeToString(sum[:]), CreatedAt: s.now().UTC(), StorageKey: fmt.Sprintf("%s/%d/%s.pdf", input.SubmissionID, input.Section, objectID)}
 	if err := s.storage.Save(ctx, d.StorageKey, bytes.NewReader(data)); err != nil {
 		s.removeObject(d.StorageKey)
-		return nil, err
+		return nil, ErrStorageUnavailable
 	}
 	var closure *submission.EligibilityAssessment
 	err = s.repo.WithinSubmission(ctx, input.ApplicantID, input.SubmissionID, func(txctx context.Context, item *submission.Submission, repo Repository) error {
@@ -286,6 +286,10 @@ func (s *Service) removeObject(key string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := s.storage.Delete(ctx, key); err != nil && !errors.Is(err, context.Canceled) {
-		slog.Error("no se pudo limpiar un objeto de una carga fallida")
+		retryCtx, retryCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer retryCancel()
+		if queueErr := s.repo.QueueDeletion(retryCtx, key); queueErr != nil {
+			slog.Error("no se pudo registrar la compensación de una carga fallida")
+		}
 	}
 }

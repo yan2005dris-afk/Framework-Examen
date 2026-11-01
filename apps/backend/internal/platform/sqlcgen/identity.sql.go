@@ -351,6 +351,18 @@ func (q *Queries) MarkPasswordResetUsed(ctx context.Context, tokenHash string) e
 	return err
 }
 
+const purgeExpiredSessionBatch = `-- name: PurgeExpiredSessionBatch :execrows
+DELETE FROM sessions WHERE id IN(SELECT id FROM sessions WHERE expires_at<clock_timestamp()-interval '30 days' ORDER BY expires_at,id LIMIT 1000 FOR UPDATE SKIP LOCKED)
+`
+
+func (q *Queries) PurgeExpiredSessionBatch(ctx context.Context) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeExpiredSessionBatch)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const updateApplicantPassword = `-- name: UpdateApplicantPassword :exec
 UPDATE applicants
 SET password_hash = $2, updated_at = now()

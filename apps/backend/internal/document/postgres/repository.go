@@ -183,3 +183,8 @@ func (r *Repository) CompleteDeletion(ctx context.Context, key string) error {
 func fromRow(row sqlcgen.Document) document.Document {
 	return document.Document{ID: row.ID, SubmissionID: row.SubmissionID, Section: int(row.Section), RecordID: row.RecordID, Name: row.Name, MIME: row.Mime, SizeBytes: row.SizeBytes, SHA256: row.Sha256, StorageKey: row.StorageKey, CreatedAt: row.CreatedAt}
 }
+
+/** QueueDeletion conserva la compensación aunque RustFS esté caído. */
+func (r *Repository) QueueDeletion(ctx context.Context, key string) error {
+	return r.queries(ctx).QueueDocumentDeletion(ctx, key)
+}

@@ -48,6 +48,7 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/mail"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/storage"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/telemetry"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/review"
 	reviewpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/review/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
@@ -93,7 +94,10 @@ func main() {
 		} else {
 			defer pool.Close()
 
-			if err := migrations.Run(ctx, cfg.DatabaseURL); err != nil {
+			migrationStarted := time.Now()
+			migrationErr := migrations.Run(ctx, cfg.DatabaseURL)
+			telemetry.Default.Observe("migration", "run", telemetry.Result(migrationErr), time.Since(migrationStarted))
+			if err := migrationErr; err != nil {
 				log.Error("no se pudieron aplicar las migraciones", "error", err)
 				if cfg.DatabaseRequired {
 					os.Exit(1)
@@ -146,6 +150,11 @@ func main() {
 		log.Info("Cliente de correo configurado", "host", cfg.SMTPHost, "puerto", cfg.SMTPPort)
 	}
 
+	demoMark := ""
+	if cfg.Environment != "production" && os.Getenv("DATA_ORIGIN") == "synthetic-demo" {
+		demoMark = "DATOS SINTÉTICOS - NO VÁLIDO"
+	}
+
 	// ── Router y contextos ───────────────────────────────────────────────────
 	router := httpx.NewRouter(httpx.RouterDependencies{
 		Logger:  log,
@@ -155,15 +164,16 @@ func main() {
 
 	if pool != nil {
 		queries := sqlcgen.New(pool)
+		go purgeSessions(ctx, queries)
 		outbox, outboxErr := mail.NewOutbox(queries, cfg.MailOutboxKey)
 		if outboxErr != nil {
 			log.Warn("MAIL_OUTBOX_KEY ausente o inválida: nuevos OTP y envíos finales bloqueados")
 		}
 		// Incluso sin SMTP/clave se retiran cargas vencidas; nunca se marcan como entregadas.
-		printer := submissionprint.NewRenderer()
+		printer := submissionprint.NewRenderer().WithMark(demoMark)
 		var deliverySender mail.Sender
 		if smtpSender != nil {
-			deliverySender = &submissionnotification.PrintingSender{Next: smtpSender, Printer: printer}
+			deliverySender = &submissionnotification.PrintingSender{Next: &mail.MarkedSender{Next: smtpSender, Mark: demoMark}, Printer: printer}
 		}
 
 		var identityMailer identity.Mailer
@@ -173,7 +183,7 @@ func main() {
 
 		// Contexto de identidad (EF-11: registro, login, sesión, OTP)
 		identityRepo := identitypostgres.NewRepository(queries, db.NewTxManager(pool))
-		auditor := auditpostgres.NewRepository(queries)
+		auditor := auditpostgres.NewRepository(queries, db.NewTxManager(pool))
 		privacyRepository := privacypostgres.NewRepository(queries, db.NewTxManager(pool), auditor)
 		privacyHandler := privacy.NewHandler(privacyRepository, auditor)
 		privacyHandler.RegisterPublic(router)
@@ -182,7 +192,7 @@ func main() {
 		}
 		go outbox.Run(ctx, deliverySender, otpStore.Active)
 		stageQueue := &noticepostgres.Queue{Outbox: outbox, Queries: queries}
-		resultsHandler := results.NewHandler(results.NewService(resultspostgres.NewRepository(queries, db.NewTxManager(pool), auditor, stageQueue), auditor).WithPrivacy(privacyRepository))
+		resultsHandler := results.NewHandler(results.NewService(resultspostgres.NewRepository(queries, db.NewTxManager(pool), auditor, stageQueue), auditor).WithPrivacy(privacyRepository).WithMark(demoMark))
 		resultsHandler.RegisterPublic(router)
 		identityService := identity.NewService(identity.ServiceDependencies{
 			Applicants: identityRepo,
@@ -220,10 +230,11 @@ func main() {
 			log.Error("no se pudo configurar el almacenamiento", "error", err)
 			os.Exit(1)
 		}
+		objects = &storage.Observed{Next: objects}
 		documentService := document.NewService(documentpostgres.NewRepository(pool, db.NewTxManager(pool)), objects).WithAudit(auditor).WithEligibility(eligibilityService)
 		evaluationService := evaluation.NewService(evaluationpostgres.NewRepository(queries, db.NewTxManager(pool), auditor, &evaluationnotification.Outbox{Queue: outbox, Queries: queries}), objects, auditor)
 		go cleanupEvaluationUploads(ctx, evaluationService)
-		examRepository := exampostgres.NewRepository(queries, db.NewTxManager(pool), auditor, evaluationpostgres.NewRepository(queries, db.NewTxManager(pool), auditor, &evaluationnotification.Outbox{Queue: outbox, Queries: queries}), examreport.NewRenderer(), privacyRepository)
+		examRepository := exampostgres.NewRepository(queries, db.NewTxManager(pool), auditor, evaluationpostgres.NewRepository(queries, db.NewTxManager(pool), auditor, &evaluationnotification.Outbox{Queue: outbox, Queries: queries}), examreport.NewRenderer().WithMark(demoMark), privacyRepository)
 		go expireExams(ctx, examRepository)
 		submissionService := submission.NewService(submissionRepository).WithConfirmationQueue(confirmations).
 			WithDocuments(documentService).WithApplicants(identityRepo).WithAudit(auditor).WithEligibility(eligibilityService).WithPrinter(printer).WithPrivacy(privacyRepository)
@@ -252,11 +263,11 @@ func main() {
 
 	// ── Middleware ───────────────────────────────────────────────────────────
 	handler := httpx.RequestID(
-		httpx.Recover(
-			httpx.Logging(
+		httpx.Logging(
+			httpx.Recover(
 				httpx.CORS(
 					httpx.CSRF(
-						httpx.MaxBodySize(router, cfg.MaxBodyBytes),
+						httpx.MaxBodySize(httpx.Deadline(router, cfg.RequestTimeout), cfg.MaxBodyBytes),
 						cfg.CORSOrigins,
 					),
 					cfg.CORSOrigins,
@@ -265,6 +276,18 @@ func main() {
 		),
 	)
 
+	// Métricas fuera del proxy público; loopback por defecto y sin etiquetas personales.
+	metricsAddr := os.Getenv("METRICS_ADDR")
+	if metricsAddr == "" {
+		metricsAddr = "127.0.0.1:9090"
+	}
+	metricsServer := &http.Server{Addr: metricsAddr, Handler: telemetry.Default.Handler(), ReadHeaderTimeout: 3 * time.Second, WriteTimeout: 5 * time.Second, IdleTimeout: 30 * time.Second}
+	go func() {
+		if e := metricsServer.ListenAndServe(); e != nil && e != http.ErrServerClosed {
+			log.Warn("métricas no disponibles")
+		}
+	}()
+	defer metricsServer.Close()
 	// ── Servidor HTTP ────────────────────────────────────────────────────────
 	server := &http.Server{
 		Addr:         cfg.Address(),
@@ -328,7 +351,12 @@ func cleanupEvaluationUploads(ctx context.Context, service *evaluation.Service) 
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 	for {
-		if err := service.CleanupUploads(ctx); err != nil && ctx.Err() == nil {
+		start := time.Now()
+		run, cancel := context.WithTimeout(ctx, 20*time.Second)
+		err := service.CleanupUploads(run)
+		cancel()
+		telemetry.Default.Observe("cleanup", "uploads", telemetry.Result(err), time.Since(start))
+		if err != nil && ctx.Err() == nil {
 			slog.WarnContext(ctx, "no se pudieron retirar intentos de respaldo vencidos")
 		}
 		select {
@@ -345,10 +373,33 @@ func expireExams(ctx context.Context, r exam.Repository) {
 	defer ticker.Stop()
 	for {
 		run, cancel := context.WithTimeout(ctx, 20*time.Second)
+		started := time.Now()
 		err := r.Expire(run)
+		telemetry.Default.Observe("cleanup", "expire_exams", telemetry.Result(err), time.Since(started))
 		cancel()
 		if err != nil && ctx.Err() == nil {
 			slog.WarnContext(ctx, "no se pudieron confirmar cierres de evaluación pendientes")
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+/** purgeSessions elimina sólo sesiones que llevan treinta días expiradas, en lotes acotados. */
+func purgeSessions(ctx context.Context, q *sqlcgen.Queries) {
+	ticker := time.NewTicker(time.Hour)
+	defer ticker.Stop()
+	for {
+		run, cancel := context.WithTimeout(ctx, 10*time.Second)
+		started := time.Now()
+		_, err := q.PurgeExpiredSessionBatch(run)
+		cancel()
+		telemetry.Default.Observe("cleanup", "sessions", telemetry.Result(err), time.Since(started))
+		if err != nil && ctx.Err() == nil {
+			slog.WarnContext(ctx, "purga de sesiones pendiente")
 		}
 		select {
 		case <-ctx.Done():

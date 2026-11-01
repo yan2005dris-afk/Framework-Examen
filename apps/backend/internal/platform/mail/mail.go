@@ -188,3 +188,17 @@ func buildMessage(from string, message Message) string {
 	body, _ := composeMessage(from, message)
 	return body
 }
+
+/** MarkedSender mantiene visibles los correos de demostración sin cambiar la cola ni el remitente de producción. */
+type MarkedSender struct {
+	Next Sender
+	Mark string
+}
+
+func (s *MarkedSender) Send(ctx context.Context, m Message) error {
+	if s.Mark != "" {
+		m.Subject = s.Mark + " | " + m.Subject
+		m.Body = s.Mark + "\n\n" + m.Body
+	}
+	return s.Next.Send(ctx, m)
+}

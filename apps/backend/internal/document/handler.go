@@ -208,6 +208,8 @@ func writeError(w http.ResponseWriter, r *http.Request, err error) {
 		httpx.RespondError(w, r, 404, "documento_no_encontrado", ErrNotFound.Error())
 	case errors.Is(err, ErrDuplicate):
 		httpx.RespondError(w, r, 409, "documento_duplicado", ErrDuplicate.Error())
+	case errors.Is(err, ErrStorageUnavailable):
+		httpx.RespondError(w, r, 503, "almacenamiento_no_disponible", ErrStorageUnavailable.Error())
 	case errors.Is(err, ErrUnsupportedType):
 		httpx.RespondError(w, r, 415, "tipo_no_soportado", ErrUnsupportedType.Error())
 	case errors.As(err, &maxErr), errors.Is(err, ErrFileTooLarge):

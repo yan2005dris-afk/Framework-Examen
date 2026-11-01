@@ -20,6 +20,7 @@ type Repository interface {
 	TotalByApplicant(context.Context, uuid.UUID) (int64, error)
 	Create(context.Context, *Document) error
 	Delete(context.Context, uuid.UUID) error
+	QueueDeletion(context.Context, string) error
 	PendingDeletions(context.Context) ([]string, error)
 	CompleteDeletion(context.Context, string) error
 }

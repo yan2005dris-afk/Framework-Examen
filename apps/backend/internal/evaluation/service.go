@@ -159,7 +159,7 @@ func (s *Service) PublishPsychometric(ctx context.Context, a *identity.Applicant
 		if err := validatePublication(c, "oposicion_psicotecnica", input); err != nil {
 			return Change{}, err
 		}
-		value := Result{ID: newID(), SubmissionID: id, Phase: "oposicion_psicotecnica", Version: input.PreviousVersion + 1, SupersedesID: input.SupersedesID, SourceID: record.ID, PolicyID: p.ID, PolicyHash: p.Hash, SnapshotHash: c.Snapshot.Hash, Score: record.Score, Maximum: record.Maximum, CanAdvance: slices.Contains(p.Definition.Opposition.AcceptedConclusions, record.Conclusion), Motive: input.Motive, ActorID: a.ID, PublishedAt: c.Now}
+		value := Result{ID: newID(), SubmissionID: id, Phase: "oposicion_psicotecnica", Version: input.PreviousVersion + 1, SupersedesID: input.SupersedesID, SourceID: record.ID, PolicyID: p.ID, PolicyHash: p.Hash, SnapshotHash: c.Snapshot.Hash, Score: record.Score, Maximum: record.Maximum, CanAdvance: p.Definition.Opposition.AcceptsPsychometric(record.Score, record.Conclusion), Motive: input.Motive, ActorID: a.ID, PublishedAt: c.Now}
 		c.State.Results[value.Phase] = value
 		return makeChange(value.ID, "psicotecnica.publicada", value.Phase, value, true)
 	})

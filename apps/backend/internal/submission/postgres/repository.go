@@ -51,6 +51,15 @@ func NewRepository(queries *sqlcgen.Queries, txManager ...*db.TxManager) *Reposi
  * @throws {Error} ErrDuplicateCode o ErrInvalidApplicant según la restricción violada.
  */
 func (r *Repository) Create(ctx context.Context, item *submission.Submission) error {
+	if r.transactions != nil {
+		return r.transactions.WithinTx(ctx, func(tx pgx.Tx) error {
+			adapter := &Repository{queries: r.queries.WithTx(tx)}
+			return adapter.create(ctx, item)
+		})
+	}
+	return r.create(ctx, item)
+}
+func (r *Repository) create(ctx context.Context, item *submission.Submission) error {
 	params := sqlcgen.CreateSubmissionParams{
 		CompetitionID: nullableUUID(item.CompetitionID),
 		ID:            item.ID,
@@ -183,6 +192,15 @@ func (r *Repository) ListByApplicantCursor(ctx context.Context, applicantID uuid
  * @returns {void}
  */
 func (r *Repository) Update(ctx context.Context, item *submission.Submission) error {
+	if r.transactions != nil {
+		return r.transactions.WithinTx(ctx, func(tx pgx.Tx) error {
+			adapter := &Repository{queries: r.queries.WithTx(tx)}
+			return adapter.update(ctx, item)
+		})
+	}
+	return r.update(ctx, item)
+}
+func (r *Repository) update(ctx context.Context, item *submission.Submission) error {
 	evidence, err := json.Marshal(item.Eligibility)
 	if err != nil {
 		return err
@@ -221,6 +239,15 @@ func (r *Repository) Update(ctx context.Context, item *submission.Submission) er
  * @throws {Error} ErrNotFound si la postulación no existe.
  */
 func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
+	if r.transactions != nil {
+		return r.transactions.WithinTx(ctx, func(tx pgx.Tx) error {
+			adapter := &Repository{queries: r.queries.WithTx(tx)}
+			return adapter.delete(ctx, id)
+		})
+	}
+	return r.delete(ctx, id)
+}
+func (r *Repository) delete(ctx context.Context, id uuid.UUID) error {
 	rowsAffected, err := r.queries.DeleteSubmission(ctx, id)
 	if err != nil {
 		return fmt.Errorf("no se pudo eliminar la postulación: %w", err)

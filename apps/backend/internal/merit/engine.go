@@ -190,9 +190,16 @@ func Evaluate(c *Case, review *Review) (Evaluation, error) {
 			result.Blockers = append(result.Blockers, "respuesta_no_admitida:"+q.ID)
 		}
 	}
+	checklistApproved := len(result.Blockers) == 0
 	byCode := map[string]Breakdown{}
 	for _, criterion := range def.Criteria {
 		units, err := metric(form, c.Snapshot, valid, criterion, def)
+		if criterion.Metric == "requirements_approved" {
+			units = 0
+			if checklistApproved {
+				units = 1
+			}
+		}
 		if err != nil {
 			return Evaluation{}, err
 		}
@@ -219,6 +226,8 @@ func Evaluate(c *Case, review *Review) (Evaluation, error) {
 func metric(form *submission.Form, item *submission.Submission, valid map[string]bool, c Criterion, def RuleDefinition) (int64, error) {
 	units := int64(0)
 	switch c.Metric {
+	case "requirements_approved":
+		return 0, nil
 	case "education_count":
 		if form.Education != nil {
 			for _, r := range form.Education.Degrees {

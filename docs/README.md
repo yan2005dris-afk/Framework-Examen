@@ -49,6 +49,7 @@ docs/
 ├── deployment/
 │   ├── LOCAL_DEPLOYMENT.md       # entorno de desarrollo
 │   └── PRODUCTION_DEPLOYMENT.md  # entorno de producción
+├── PARAMETROS-SINTETICOS.md      # valores reproducibles para demos y QA
 └── tasks/
     ├── backend-tasks.md          # trabajo pendiente del backend, mapeado a la rúbrica
     ├── cross-cutting-tasks.md    # tareas transversales de seguridad, contratos y operación
@@ -72,6 +73,7 @@ docs/
 | [`api-contracts/COMPETITION_LIFECYCLE.md`](api-contracts/COMPETITION_LIFECYCLE.md) | T15–T18: contrato de correo, OTP, elegibilidad, convocatorias y fases para FT14–FT17 | Backend, Frontend, QA |
 | [`deployment/LOCAL_DEPLOYMENT.md`](deployment/LOCAL_DEPLOYMENT.md) | Prerrequisitos, arranque con Docker o nativo, variables de entorno, pruebas | Desarrollo |
 | [`deployment/PRODUCTION_DEPLOYMENT.md`](deployment/PRODUCTION_DEPLOYMENT.md) | Topología, TLS, secretos, backup, monitoreo, rollback | Operaciones |
+| [`PARAMETROS-SINTETICOS.md`](PARAMETROS-SINTETICOS.md) | Parámetros ficticios para pruebas integrales del backend | QA, Desarrollo |
 | [`tasks/backend-tasks.md`](tasks/backend-tasks.md) | Tareas backend priorizadas y mapeadas a los 6 criterios de la rúbrica | Ingeniería |
 | [`tasks/frontend-tasks.md`](tasks/frontend-tasks.md) | Tareas frontend priorizadas y mapeadas a los 6 criterios de la rúbrica | Ingeniería |
 | [`mockups/index.html`](mockups/index.html) | Galería de las 36 pantallas del sistema en HTML estático (sin build) | Frontend, Diseño |
@@ -162,3 +164,10 @@ del proyecto. Las matrices de las tareas separan planificación de implementaci�
 - [Examen y privacidad](api-contracts/EXAMS_AND_PRIVACY.md): banco versionado,
   intento persistente, cierre/nota/PDF y política de tratamiento vinculada al sello.
   Incluye cambios de integración para FT24–FT28 y transición del legado pendiente.
+
+## Demostración técnica sintética
+
+- [Backend: ejecución, observabilidad y recuperación](deployment/BACKEND_SYNTHETIC_DEMO.md)
+- [Matriz de auditoría T17–T28 y brechas verificadas](architecture/BACKEND_AUDIT_MATRIX.md)
+
+- [Cierre técnico verificado del backend sintético](deployment/BACKEND_COMPLETION_REPORT.md)
