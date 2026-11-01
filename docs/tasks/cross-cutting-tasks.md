@@ -142,7 +142,7 @@ consentimientos, documentos y notificaciones.
 **Dependencias:** todas las tareas que expongan endpoints.  
 **Esfuerzo estimado:** 2 días iniciales y mantenimiento continuo.
 
-### XT-04 · Estados, transiciones e idempotencia de procesos
+### XT-04 · Estados, transiciones e idempotencia de procesos [✅ hecho]
 
 **Origen:** `T3`, `T5`, `T9`, `T18`, `T20`–`T27`, `FT5`–`FT8` y `FT14`–`FT27`.  
 **Prioridad:** P0-X.
@@ -150,22 +150,22 @@ consentimientos, documentos y notificaciones.
 Definir las máquinas de estado y las operaciones idempotentes para evitar que
 reintentos, pestañas abiertas o carreras cambien ilegalmente el expediente.
 
-- [ ] Separar estado de postulación, convocatoria, fase, elegibilidad, evaluación,
+- [x] Separar estado de postulación, convocatoria, fase, elegibilidad, evaluación,
       reconsideración, publicación y notificación.
-- [ ] Documentar las transiciones válidas y el actor autorizado para cada una.
-- [ ] Rechazar guardados, adjuntos, envíos y evaluaciones fuera de plazo en el servidor.
-- [ ] Hacer idempotentes el sellado, finalización de examen, reenvío y generación
+- [x] Documentar las transiciones válidas y el actor autorizado para cada una.
+- [x] Rechazar guardados, adjuntos, envíos y evaluaciones fuera de plazo en el servidor.
+- [x] Hacer idempotentes el sellado, finalización de examen, reenvío y generación
       de notificaciones.
-- [ ] Usar bloqueo o control de versión para carreras entre cierre y envío.
-- [ ] Evitar doble creación por reintentos de red o doble clic.
-- [ ] Conservar el estado anterior, nuevo estado, actor, fecha y motivo en auditoría.
+- [x] Usar bloqueo o control de versión para carreras entre cierre y envío.
+- [x] Evitar doble creación por reintentos de red o doble clic.
+- [x] Conservar el estado anterior, nuevo estado, actor, fecha y motivo en auditoría.
 
 **Criterios de aceptación**
 
-- [ ] Cada transición inválida devuelve un error estable y no altera datos.
-- [ ] Dos solicitudes concurrentes producen un solo resultado definitivo.
-- [ ] Una pestaña antigua no puede modificar una convocatoria o fase cerrada.
-- [ ] Las pruebas cubren reintentos, carreras y recuperación tras desconexión.
+- [x] Cada transición inválida devuelve un error estable y no altera datos.
+- [x] Dos solicitudes concurrentes producen un solo resultado definitivo.
+- [x] Una pestaña antigua no puede modificar una convocatoria o fase cerrada.
+- [x] Las pruebas cubren reintentos, carreras y recuperación tras desconexión.
 
 **Dependencias:** `T5`, `T6`, `T8`, `T18`, `T20`–`T27`.  
 **Esfuerzo estimado:** 3 días iniciales y aplicación por módulo.
