@@ -227,4 +227,3 @@ export async function obtenerResultadosPublicosHistoricos(
     { params, signal },
   )
 }
-
