@@ -641,13 +641,20 @@ no fijar valores inventados en código.
 
 **Origen:** EF-1, oposición teórica y psicotécnica. **Prioridad:** P1-RF.
 
-- [ ] Registrar resultados psicotécnicos según el instrumento/formato aprobado,
+- [x] Registrar resultados psicotécnicos según el instrumento/formato aprobado,
       con responsable, fecha y evidencia; el RF no detalla su instrumento de aplicación.
 - [ ] Incorporar la nota teórica calculada por T27, sin sustituirla por una nota
       ingresada libremente desde la interfaz.
-- [ ] Consolidar méritos y oposición conforme a reglas aprobadas, con historial
+- [x] Consolidar méritos y oposición conforme a reglas aprobadas, con historial
       y correcciones autorizadas; evitar contar dos veces el mismo resultado.
-- [ ] Exponer el expediente propio y el administrativo con sus permisos específicos.
+- [x] Exponer el expediente propio y el administrativo con sus permisos específicos.
+
+**Estado técnico:** registro/publicación psicotécnica, consolidación y expediente implementados
+con políticas aprobadas y fuentes versionadas. El puerto transaccional de resultado
+teórico está disponible, pero su productor real T27 aún no existe: la incorporación
+real de esa nota permanece pendiente y no se sustituye por una nota manual.
+Instrumento, escalas, pesos y umbral requieren aprobación institucional.
+Ver [contrato T21/T22](../api-contracts/EVALUATION_RECONSIDERATION.md).
 
 **Dependencias:** T18, T20, T27. **Frontend:** FT20, FT22.
 
@@ -655,16 +662,20 @@ no fijar valores inventados en código.
 
 **Origen:** EF-1, gestión de reconsideraciones. **Prioridad:** P1-RF.
 
-- [ ] Registrar solicitud, motivos y respaldos, vincularlos al resultado de una fase
+- [x] Registrar solicitud, motivos y respaldos, vincularlos al resultado de una fase
       y controlar su presentación por el postulante dentro de la ventana aplicable.
-- [ ] Modelar recepción, atención de Talento Humano y resolución de la Comisión
+- [x] Modelar recepción, atención de Talento Humano y resolución de la Comisión
       con responsables, estados, fecha límite y trazabilidad de cada actuación.
-- [ ] Parametrizar el cómputo de términos/plazos por actor y calendario aprobado;
+- [x] Parametrizar el cómputo de términos/plazos por actor y calendario aprobado;
       rechazar acciones fuera de plazo y evitar duplicados ante reintentos.
-- [ ] Conservar resultado original, resolución y efecto sobre puntajes/avance,
+- [x] Conservar resultado original, resolución y efecto sobre puntajes/avance,
       notificando cada decisión y habilitando su consulta en el expediente.
 
 **Dependencias:** T6, T8, T18, T20–T21, T23. **Frontend:** FT21.
+**Estado técnico:** flujo transaccional `recibida → atendida → resuelta`, términos
+por actor, política congelada, idempotencia, respaldos, historial y resolución con
+notificación durable implementados y probados localmente. Las rectificaciones
+referencian otra publicación autorizada, no editan una nota desde la solicitud.
 **Definición pendiente:** duración, días hábiles/calendario y reglas aplicables no
 están detallados en este RF; requieren parámetros aprobados.
 
@@ -788,8 +799,8 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | EF-13.3 | Conteos por cargo en tiempo real e históricos íntegros/certificados | T8–T9, T18 | FT7 | Parcial: shell/mock; falta administración real |
 | EF-13.3 | Matriz comparativa Excel/PDF | T9 | FT8 | Planificado, obligatorio para RF completo |
 | EF-1 | Verificar requisitos y calcular méritos | T20 | FT19 | Motor configurable y revisión backend disponibles; falta matriz institucional aprobada |
-| EF-1 | Registrar oposición psicotécnica y consolidar expediente | T21 | FT20 | Planificado; falta instrumento/reglas |
-| EF-1 | Reconsideraciones y plazos exactos por actor | T22 | FT21 | Planificado; faltan términos y calendario aprobados |
+| EF-1 | Registrar oposición psicotécnica y consolidar expediente | T21 | FT20 | Motor/expediente disponibles; faltan instrumento/reglas aprobados y productor T27 |
+| EF-1 | Reconsideraciones y plazos exactos por actor | T22 | FT21 | Flujo y cómputo implementados; faltan términos y calendario institucionales aprobados |
 | EF-1 | Notificar resultados de cada etapa | T23 | FT22 | Correo base; flujo y reintentos persistentes pendientes |
 | EF-1 | Reportes, listas de elegibles y trazabilidad completa | T8, T24 | FT7–FT8, FT23 | Planificado sobre auditoría base de T5 |
 | EF-14, apertura/1.1 | Módulo restringido y banco de preguntas | T6, T25 | FT24–FT25 | Planificado |

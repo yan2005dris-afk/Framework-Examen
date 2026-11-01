@@ -160,8 +160,7 @@ func (q *Queries) PendingDocumentDeletions(ctx context.Context) ([]string, error
 }
 
 const totalDocumentBytes = `-- name: TotalDocumentBytes :one
-SELECT COALESCE(sum(d.size_bytes), 0)::bigint FROM documents d
-JOIN submissions s ON s.id = d.submission_id WHERE s.applicant_id = $1
+SELECT (COALESCE((SELECT sum(d.size_bytes) FROM documents d JOIN submissions s ON s.id=d.submission_id WHERE s.applicant_id=$1),0)+COALESCE((SELECT sum(e.size_bytes) FROM evaluation_evidence e WHERE e.applicant_id=$1 AND e.applicant_upload),0))::bigint
 `
 
 func (q *Queries) TotalDocumentBytes(ctx context.Context, applicantID uuid.UUID) (int64, error) {

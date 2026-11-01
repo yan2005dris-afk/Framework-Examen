@@ -118,6 +118,75 @@ type EligibilityCheck struct {
 	Assessment    []byte             `json:"assessment"`
 }
 
+type EvaluationCommand struct {
+	ID           uuid.UUID `json:"id"`
+	ActorID      uuid.UUID `json:"actor_id"`
+	SubmissionID uuid.UUID `json:"submission_id"`
+	Operation    string    `json:"operation"`
+	ResourceID   uuid.UUID `json:"resource_id"`
+	RequestHash  string    `json:"request_hash"`
+	Response     []byte    `json:"response"`
+}
+
+type EvaluationEvidence struct {
+	ID              uuid.UUID          `json:"id"`
+	SubmissionID    uuid.UUID          `json:"submission_id"`
+	ApplicantID     uuid.UUID          `json:"applicant_id"`
+	ActorID         uuid.UUID          `json:"actor_id"`
+	ApplicantUpload bool               `json:"applicant_upload"`
+	Name            string             `json:"name"`
+	SizeBytes       int64              `json:"size_bytes"`
+	Sha256          string             `json:"sha256"`
+	StorageKey      string             `json:"storage_key"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+}
+
+type EvaluationHead struct {
+	SubmissionID uuid.UUID `json:"submission_id"`
+	Version      int64     `json:"version"`
+	State        []byte    `json:"state"`
+}
+
+type EvaluationPolicy struct {
+	ID                uuid.UUID          `json:"id"`
+	CompetitionID     uuid.UUID          `json:"competition_id"`
+	Sector            string             `json:"sector"`
+	Kind              string             `json:"kind"`
+	Version           int64              `json:"version"`
+	Definition        []byte             `json:"definition"`
+	DefinitionHash    string             `json:"definition_hash"`
+	Approved          bool               `json:"approved"`
+	ApprovalReference *string            `json:"approval_reference"`
+	ApprovedBy        pgtype.UUID        `json:"approved_by"`
+	ApprovedAt        pgtype.Timestamptz `json:"approved_at"`
+	ActorID           uuid.UUID          `json:"actor_id"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+}
+
+type EvaluationPolicyStream struct {
+	CompetitionID uuid.UUID   `json:"competition_id"`
+	Sector        string      `json:"sector"`
+	Kind          string      `json:"kind"`
+	Version       int64       `json:"version"`
+	ActiveID      pgtype.UUID `json:"active_id"`
+}
+
+type EvaluationRecord struct {
+	ID           uuid.UUID          `json:"id"`
+	SubmissionID uuid.UUID          `json:"submission_id"`
+	Action       string             `json:"action"`
+	Phase        string             `json:"phase"`
+	Payload      []byte             `json:"payload"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
+type EvaluationUploadIntent struct {
+	ID           uuid.UUID          `json:"id"`
+	SubmissionID uuid.UUID          `json:"submission_id"`
+	StorageKey   string             `json:"storage_key"`
+	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
+}
+
 type MailOutbox struct {
 	ID            uuid.UUID          `json:"id"`
 	DedupKey      string             `json:"dedup_key"`
@@ -197,6 +266,18 @@ type PasswordReset struct {
 	ExpiresAt   time.Time `json:"expires_at"`
 	Used        bool      `json:"used"`
 	CreatedAt   time.Time `json:"created_at"`
+}
+
+type Reconsideration struct {
+	ID           uuid.UUID          `json:"id"`
+	SubmissionID uuid.UUID          `json:"submission_id"`
+	Phase        string             `json:"phase"`
+	ResultID     uuid.UUID          `json:"result_id"`
+	PolicyID     uuid.UUID          `json:"policy_id"`
+	Status       string             `json:"status"`
+	Version      int64              `json:"version"`
+	Payload      []byte             `json:"payload"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
 type Session struct {

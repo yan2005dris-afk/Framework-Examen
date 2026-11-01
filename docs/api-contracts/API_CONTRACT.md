@@ -950,3 +950,11 @@ puede incluir `notificacion` fuera del contenido sellado. Las rutas no cambian.
 el adjunto desde el outbox cifrado, revisión de respaldos, matrices versionadas,
 aprobación, cálculos y publicación explícita de resoluciones. No añade puntajes
 institucionales por defecto ni habilita un examen desde un cálculo provisional.
+
+## Evaluación y reconsideraciones (T21/T22, 2026-10-31)
+
+[EVALUATION_RECONSIDERATION.md](EVALUATION_RECONSIDERATION.md) define políticas
+versionadas y aprobadas, informe psicotécnico, consolidación de fuentes publicadas,
+expediente propio/administrativo, respaldos, idempotencia y flujo de reconsideración
+con plazos por actor. No permite cargar una nota teórica desde el navegador;
+la fuente definitiva debe producirla T27. No incluye valores oficiales por defecto.
