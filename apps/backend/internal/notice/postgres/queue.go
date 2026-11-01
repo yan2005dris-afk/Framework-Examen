@@ -2,8 +2,10 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/notice"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/db"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/mail"
@@ -63,5 +65,14 @@ func (q *Queue) Enqueue(ctx context.Context, sub, source uuid.UUID, action strin
 	if err != nil {
 		return err
 	}
-	return q.Outbox.Send(ctx, mail.Message{Kind: kind, ResourceID: event.ID.String(), To: owner.Correo, Subject: "Actualización de su expediente de postulación", Body: fmt.Sprintf("Hay una actualización de %s en su expediente %s. Inicie sesión en el portal para consultar el resultado, sus respaldos y los plazos aplicables. Actuación: %s. Plantilla: %s.", label, item.Code, source, event.TemplateVersion), ExpiresAt: time.Now().UTC().Add(7 * 24 * time.Hour)})
+	attachments := []mail.Attachment{}
+	if action == "evaluacion.finalizada" {
+		report, e := queries.GetExamReport(ctx, sub)
+		if e == nil && report.ResultID == source {
+			attachments = append(attachments, mail.Attachment{Name: "Evaluacion-" + sub.String() + ".pdf", MIME: "application/pdf", Data: report.Pdf})
+		} else if e != nil && !errors.Is(e, pgx.ErrNoRows) {
+			return e
+		}
+	}
+	return q.Outbox.Send(ctx, mail.Message{Attachments: attachments, Kind: kind, ResourceID: event.ID.String(), To: owner.Correo, Subject: "Actualización de su expediente de postulación", Body: fmt.Sprintf("Hay una actualización de %s en su expediente %s. Inicie sesión en el portal para consultar el resultado, sus respaldos y los plazos aplicables. Actuación: %s. Plantilla: %s.", label, item.Code, source, event.TemplateVersion), ExpiresAt: time.Now().UTC().Add(7 * 24 * time.Hour)})
 }

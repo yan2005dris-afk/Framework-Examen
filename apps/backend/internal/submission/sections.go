@@ -190,14 +190,16 @@ type RemovalDetails struct {
 
 /** Consent conserva por separado las cinco aceptaciones del RF 1.10. */
 type Consent struct {
-	Version          string   `json:"version,omitempty"`
-	Statements       []string `json:"puntos,omitempty"`
-	AcceptedAt       string   `json:"aceptadoEn,omitempty"`
-	DataProcessing   bool     `json:"aceptacionTratamientoDatos"`
-	Truthfulness     bool     `json:"declaracionVeracidad"`
-	CompetitionRules bool     `json:"aceptacionNormasConcurso"`
-	NamePublication  bool     `json:"autorizacionPublicacionNombre"`
-	PhysicalDelivery bool     `json:"constanciaEntregaFisica"`
-	Signature        string   `json:"firmaManuscritaDataUrl"`
-	SignedAt         string   `json:"fechaFirma"`
+	PrivacyPolicyID   string   `json:"politicaPrivacidadId,omitempty"`
+	PrivacyPolicyHash string   `json:"hashPoliticaPrivacidad,omitempty"`
+	Version           string   `json:"version,omitempty"`
+	Statements        []string `json:"puntos,omitempty"`
+	AcceptedAt        string   `json:"aceptadoEn,omitempty"`
+	DataProcessing    bool     `json:"aceptacionTratamientoDatos"`
+	Truthfulness      bool     `json:"declaracionVeracidad"`
+	CompetitionRules  bool     `json:"aceptacionNormasConcurso"`
+	NamePublication   bool     `json:"autorizacionPublicacionNombre"`
+	PhysicalDelivery  bool     `json:"constanciaEntregaFisica"`
+	Signature         string   `json:"firmaManuscritaDataUrl"`
+	SignedAt          string   `json:"fechaFirma"`
 }

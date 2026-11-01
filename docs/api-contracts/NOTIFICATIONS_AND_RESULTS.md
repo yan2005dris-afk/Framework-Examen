@@ -1,5 +1,11 @@
 # Notificaciones de etapa y listas de elegibles — T23/T24
 
+> Actualización T25–T28: el productor teórico T27 y su PDF/correo ya están
+> implementados; las referencias de este documento a ese productor como pendiente
+> son históricas. [EXAMS_AND_PRIVACY.md](EXAMS_AND_PRIVACY.md) define el contrato
+> vigente de examen y los nuevos controles/binding de privacidad.
+
+
 **Entrega técnica local, 2026-10-31.** Completa el aviso de resultados de méritos,
 consulta de entregas y reintentos autorizados; añade listas versionadas sobre
 fuentes definitivas. No configura valores oficiales, no implementa el examen T27

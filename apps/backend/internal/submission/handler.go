@@ -318,6 +318,9 @@ func decodeJSON(request *http.Request, target any) error {
  */
 func writeError(writer http.ResponseWriter, request *http.Request, err error) {
 	switch {
+	case errors.Is(err, ErrPrivacyPending):
+		httpx.RespondError(writer, request, 409, "privacidad_pendiente", ErrPrivacyPending.Error())
+		return
 	case errors.Is(err, ErrInvalidSeal):
 		httpx.RespondError(writer, request, 409, "sello_invalido", ErrInvalidSeal.Error())
 	case errors.Is(err, ErrPrintTooLarge):

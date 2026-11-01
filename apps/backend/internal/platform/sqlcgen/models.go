@@ -187,6 +187,71 @@ type EvaluationUploadIntent struct {
 	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
 }
 
+type ExamAttempt struct {
+	ID             uuid.UUID          `json:"id"`
+	SubmissionID   uuid.UUID          `json:"submission_id"`
+	ConfigID       uuid.UUID          `json:"config_id"`
+	AssignmentHash string             `json:"assignment_hash"`
+	Payload        []byte             `json:"payload"`
+	Version        int64              `json:"version"`
+	Status         string             `json:"status"`
+	ExpiresAt      pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+}
+
+type ExamBank struct {
+	ID            uuid.UUID          `json:"id"`
+	CompetitionID uuid.UUID          `json:"competition_id"`
+	Sector        string             `json:"sector"`
+	Version       int64              `json:"version"`
+	Definition    []byte             `json:"definition"`
+	Hash          string             `json:"hash"`
+	ActorID       uuid.UUID          `json:"actor_id"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+}
+
+type ExamBankStream struct {
+	CompetitionID uuid.UUID `json:"competition_id"`
+	Sector        string    `json:"sector"`
+	Version       int64     `json:"version"`
+}
+
+type ExamConfig struct {
+	ID            uuid.UUID          `json:"id"`
+	BankID        uuid.UUID          `json:"bank_id"`
+	CompetitionID uuid.UUID          `json:"competition_id"`
+	Sector        string             `json:"sector"`
+	Definition    []byte             `json:"definition"`
+	Hash          string             `json:"hash"`
+	ActorID       uuid.UUID          `json:"actor_id"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+}
+
+type ExamEnrollment struct {
+	SubmissionID uuid.UUID          `json:"submission_id"`
+	ConfigID     uuid.UUID          `json:"config_id"`
+	MeritID      uuid.UUID          `json:"merit_id"`
+	ActorID      uuid.UUID          `json:"actor_id"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
+type ExamEvent struct {
+	ID        uuid.UUID          `json:"id"`
+	AttemptID uuid.UUID          `json:"attempt_id"`
+	Version   int64              `json:"version"`
+	Payload   []byte             `json:"payload"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type ExamReport struct {
+	AttemptID    uuid.UUID          `json:"attempt_id"`
+	SubmissionID uuid.UUID          `json:"submission_id"`
+	ResultID     uuid.UUID          `json:"result_id"`
+	Pdf          []byte             `json:"pdf"`
+	Sha256       string             `json:"sha256"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
 type MailDeliveryEvent struct {
 	ID        uuid.UUID          `json:"id"`
 	MailID    uuid.UUID          `json:"mail_id"`
@@ -280,6 +345,40 @@ type PasswordReset struct {
 	ExpiresAt   time.Time `json:"expires_at"`
 	Used        bool      `json:"used"`
 	CreatedAt   time.Time `json:"created_at"`
+}
+
+type PrivacyBinding struct {
+	SubmissionID      uuid.UUID          `json:"submission_id"`
+	PolicyID          uuid.UUID          `json:"policy_id"`
+	PolicyHash        string             `json:"policy_hash"`
+	AcceptedAt        pgtype.Timestamptz `json:"accepted_at"`
+	RetentionReviewAt pgtype.Timestamptz `json:"retention_review_at"`
+}
+
+type PrivacyControl struct {
+	CompetitionID uuid.UUID   `json:"competition_id"`
+	Version       int64       `json:"version"`
+	ActiveID      pgtype.UUID `json:"active_id"`
+	Blocked       bool        `json:"blocked"`
+}
+
+type PrivacyDecision struct {
+	ID            uuid.UUID          `json:"id"`
+	CompetitionID uuid.UUID          `json:"competition_id"`
+	Blocked       bool               `json:"blocked"`
+	Reason        string             `json:"reason"`
+	ActorID       uuid.UUID          `json:"actor_id"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+}
+
+type PrivacyPolicy struct {
+	ID            uuid.UUID          `json:"id"`
+	CompetitionID uuid.UUID          `json:"competition_id"`
+	Version       int64              `json:"version"`
+	Definition    []byte             `json:"definition"`
+	Hash          string             `json:"hash"`
+	ActorID       uuid.UUID          `json:"actor_id"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 }
 
 type Reconsideration struct {

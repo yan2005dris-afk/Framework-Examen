@@ -151,3 +151,9 @@ del proyecto. Las matrices de las tareas separan planificación de implementaci�
 
 - [Notificaciones y listas de elegibles](api-contracts/NOTIFICATIONS_AND_RESULTS.md):
   entregas/reintentos autorizados, versiones internas y publicación mínima de nombres.
+
+### Entrega backend T25–T28
+
+- [Examen y privacidad](api-contracts/EXAMS_AND_PRIVACY.md): banco versionado,
+  intento persistente, cierre/nota/PDF y política de tratamiento vinculada al sello.
+  Incluye cambios de integración para FT24–FT28 y transición del legado pendiente.

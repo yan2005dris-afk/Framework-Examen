@@ -13,12 +13,19 @@ import (
 	"unicode"
 )
 
+type PrivacyGate interface {
+	Period(context.Context, uuid.UUID, string) error
+}
+
 type Service struct {
+	privacy PrivacyGate
 	repo    Repository
 	auditor audit.Recorder
 }
 
-func NewService(r Repository, a audit.Recorder) *Service { return &Service{r, a} }
+func NewService(r Repository, a audit.Recorder) *Service { return &Service{repo: r, auditor: a} }
+func (s *Service) WithPrivacy(p PrivacyGate) *Service    { s.privacy = p; return s }
+
 func (s *Service) record(ctx context.Context, a *identity.Applicant, id uuid.UUID, action string, err error) error {
 	return audit.Record(ctx, s.auditor, audit.Event{ActorID: a.ID, Role: a.Role, ResourceID: id, ResourceType: "convocatoria", Action: action, CreatedAt: time.Now().UTC()}, err)
 }
@@ -45,6 +52,15 @@ func (s *Service) Publish(ctx context.Context, a *identity.Applicant, id, key uu
 	}
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
+	if s.privacy != nil && input.Public {
+		v, e := s.repo.Get(ctx, id)
+		if e != nil {
+			return nil, e
+		}
+		if e = s.privacy.Period(ctx, v.CompetitionID, "nombres"); e != nil {
+			return nil, ErrPrivacy
+		}
+	}
 	return s.repo.Publish(ctx, a, id, key, input)
 }
 func (s *Service) Get(ctx context.Context, a *identity.Applicant, id uuid.UUID) (v *List, err error) {
@@ -163,6 +179,11 @@ func (s *Service) Public(ctx context.Context, id uuid.UUID, sector string, curre
 	}
 	if v == nil || !v.Public {
 		return nil, ErrNotFound
+	}
+	if s.privacy != nil {
+		if err = s.privacy.Period(ctx, v.CompetitionID, "nombres"); err != nil {
+			return nil, ErrNotFound
+		}
 	}
 	return v, nil
 }

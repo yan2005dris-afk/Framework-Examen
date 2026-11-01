@@ -38,7 +38,12 @@ type CreateInput struct {
 /**
  * Service expone los casos de uso del contexto de postulaciones.
  */
+type PrivacyBinder interface {
+	Bind(context.Context, *Submission, *Consent) error
+}
+
 type Service struct {
+	privacy       PrivacyBinder
 	repo          Repository
 	now           func() time.Time
 	notifier      Notifier
@@ -53,6 +58,8 @@ type Service struct {
 /** WithDocuments configura la validación obligatoria de respaldos en la composición.
  * @returns {Service} Servicio configurado antes de atender peticiones.
  */
+func (s *Service) WithPrivacy(p PrivacyBinder) *Service { s.privacy = p; return s }
+
 func (s *Service) WithDocuments(verifier DocumentVerifier) *Service {
 	s.documents = verifier
 	return s
@@ -469,6 +476,11 @@ func (s *Service) Submit(ctx context.Context, id uuid.UUID, consent *Consent) (*
 		}
 		if err := item.MarkAsSent(now); err != nil {
 			return err
+		}
+		if s.privacy != nil {
+			if err := s.privacy.Bind(ctx, item, form.Consent); err != nil {
+				return err
+			}
 		}
 		if s.confirmations != nil {
 			if err := s.confirmations.Enqueue(ctx, item); err != nil {
