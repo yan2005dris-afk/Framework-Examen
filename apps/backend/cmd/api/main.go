@@ -28,6 +28,10 @@ import (
 	evaluationpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/evaluation/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/merit"
 	meritpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/merit/postgres"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/notice"
+	noticepostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/notice/postgres"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/results"
+	resultspostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/results/postgres"
 
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
 	identitypostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity/postgres"
@@ -165,6 +169,9 @@ func main() {
 		// Contexto de identidad (EF-11: registro, login, sesión, OTP)
 		identityRepo := identitypostgres.NewRepository(queries, db.NewTxManager(pool))
 		auditor := auditpostgres.NewRepository(queries)
+		stageQueue := &noticepostgres.Queue{Outbox: outbox, Queries: queries}
+		resultsHandler := results.NewHandler(results.NewService(resultspostgres.NewRepository(queries, db.NewTxManager(pool), auditor, stageQueue), auditor))
+		resultsHandler.RegisterPublic(router)
 		identityService := identity.NewService(identity.ServiceDependencies{
 			Applicants: identityRepo,
 			Sessions:   identityRepo,
@@ -210,8 +217,10 @@ func main() {
 			r.Use(identity.RequireSession(identityService))
 			r.Use(identity.ProtectAdministration)
 			competitionHandler.RegisterAdministration(r)
+			resultsHandler.RegisterAdministration(r)
+			notice.NewHandler(notice.NewService(noticepostgres.NewRepository(queries, db.NewTxManager(pool), auditor), auditor)).RegisterRoutes(r)
 			evaluation.NewHandler(evaluationService).RegisterRoutes(r)
-			merit.NewHandler(merit.NewService(meritpostgres.NewRepository(queries, db.NewTxManager(pool), auditor), auditor)).RegisterRoutes(r)
+			merit.NewHandler(merit.NewService(meritpostgres.NewRepository(queries, db.NewTxManager(pool), auditor).WithNotifier(stageQueue), auditor)).RegisterRoutes(r)
 			catalog.NewHandler(catalog.NewService(catalogpostgres.NewRepository(queries), cache.NewCatalogStore(cacheClient))).RegisterRoutes(r)
 			identity.RegisterRoleRoutes(r, identity.NewRoleService(identityRepo))
 			submission.NewHandler(submissionService).RegisterRoutes(r)

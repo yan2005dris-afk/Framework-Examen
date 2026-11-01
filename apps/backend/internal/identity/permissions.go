@@ -18,13 +18,15 @@ const (
 	PermissionQuestions        Permission = "preguntas.gestionar"
 	PermissionGrades           Permission = "calificaciones.gestionar"
 	PermissionReconsiderations Permission = "reconsideraciones.gestionar"
+	PermissionNotifications    Permission = "notificaciones.consultar"
+	PermissionResults          Permission = "resultados.consultar"
 	PermissionRoles            Permission = "roles.gestionar"
 )
 
 /** RolesForPermission define una política explícita, sin privilegios implícitos. */
 func RolesForPermission(permission Permission) []string {
 	switch permission {
-	case PermissionReview, PermissionDocuments, PermissionGrades, PermissionReconsiderations:
+	case PermissionReview, PermissionDocuments, PermissionGrades, PermissionReconsiderations, PermissionNotifications, PermissionResults:
 		return []string{RoleAnalyst, RoleAdministrator}
 	case PermissionPhases, PermissionQuestions, PermissionRoles:
 		return []string{RoleAdministrator}
@@ -90,7 +92,7 @@ func ProtectAdministration(next http.Handler) http.Handler {
 			"competitions": PermissionReview,
 			"phases":       PermissionPhases, "question-bank": PermissionQuestions,
 			"merits": PermissionGrades, "grades": PermissionGrades, "reconsiderations": PermissionReconsiderations,
-			"applicants": PermissionRoles,
+			"applicants": PermissionRoles, "notifications": PermissionNotifications, "results": PermissionResults,
 		}[segment]
 		RequirePermission(permission)(next).ServeHTTP(w, r)
 	})

@@ -958,3 +958,10 @@ versionadas y aprobadas, informe psicotécnico, consolidación de fuentes public
 expediente propio/administrativo, respaldos, idempotencia y flujo de reconsideración
 con plazos por actor. No permite cargar una nota teórica desde el navegador;
 la fuente definitiva debe producirla T27. No incluye valores oficiales por defecto.
+
+## Notificaciones y listas (T23/T24, 2026-10-31)
+
+[NOTIFICATIONS_AND_RESULTS.md](NOTIFICATIONS_AND_RESULTS.md) define consultas de
+entrega, reintento administrativo, generación/exportación de listas, controles de
+fuentes/reconsideraciones y versiones públicas mínimas con consentimiento.
+No añade notas teóricas simuladas ni aprobación de privacidad por defecto.

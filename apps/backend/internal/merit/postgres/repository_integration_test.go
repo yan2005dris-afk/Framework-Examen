@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,7 +13,9 @@ import (
 	competitionpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/competition/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/merit"
+	noticepostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/notice/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/db"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/mail"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/testutil"
@@ -73,7 +76,13 @@ func TestPostgresMeritLifecycleAndRollback(t *testing.T) {
 	if _, err = calendar.Configure(ctx, admin, period.ID, config); err != nil {
 		t.Fatal(err)
 	}
-	repo := NewRepository(q, tx, recorder)
+	repo := NewRepository(q, tx, recorder).WithNotifier(&noticepostgres.Queue{Queries: q, Outbox: func() *mail.Outbox {
+		v, err := mail.NewOutbox(q, base64.StdEncoding.EncodeToString(make([]byte, 32)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}()})
 	service := merit.NewService(repo, recorder)
 	max, threshold := int64(100), int64(50)
 	def := merit.RuleDefinition{Criteria: []merit.Criterion{{Code: "grado", Label: "Sólo prueba", Metric: "education_count", UnitSize: 1, PointsPerUnit: 100, MaximumPoints: 100, Weight: 10000, Required: true}}, Requirements: []merit.Requirement{{Code: "base", Label: "Sólo prueba"}}, MaximumTotal: &max, Threshold: &threshold, Rounding: "inferior", ExperienceAggregation: "unir_intervalos", DayCounting: "dias_transcurridos", TieBreakers: []string{"grado", "resolucion_manual"}}
@@ -145,6 +154,15 @@ func TestPostgresMeritLifecycleAndRollback(t *testing.T) {
 		t.Fatal("cálculo", err)
 	}
 	publication := merit.PublishInput{CalculationID: calc.Calculation.ID, Decision: "avanza", Motive: "Resolución QA"}
+	previousNotifier := repo.notifier
+	repo.notifier = nil
+	if _, err = service.Publish(ctx, admin, id, publication); err == nil {
+		t.Fatal("publicación de méritos sin cola")
+	}
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM merit_publications WHERE submission_id=$1`, id).Scan(&count); err != nil || count != 0 {
+		t.Fatal("nota sobrevivió a fallo de cola", count, err)
+	}
+	repo.notifier = previousNotifier
 	published, err := service.Publish(ctx, admin, id, publication)
 	if err != nil {
 		t.Fatal("publicación", err)

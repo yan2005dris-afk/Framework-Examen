@@ -146,3 +146,8 @@ del proyecto. Las matrices de las tareas separan planificación de implementaci�
 - [Contrato de evaluación y reconsideraciones](api-contracts/EVALUATION_RECONSIDERATION.md):
   registro psicotécnico, expediente consolidado, plazos por actor y correcciones.
   Sin valores institucionales precargados; el resultado teórico depende de T27.
+
+### Entrega backend T23/T24
+
+- [Notificaciones y listas de elegibles](api-contracts/NOTIFICATIONS_AND_RESULTS.md):
+  entregas/reintentos autorizados, versiones internas y publicación mínima de nombres.

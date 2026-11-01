@@ -20,14 +20,17 @@ import (
 )
 
 type Repository struct {
-	queries *sqlcgen.Queries
-	tx      *db.TxManager
-	audit   audit.WorkflowRecorder
+	queries  *sqlcgen.Queries
+	tx       *db.TxManager
+	audit    audit.WorkflowRecorder
+	notifier merit.Notifier
 }
 
 func NewRepository(q *sqlcgen.Queries, tx *db.TxManager, a audit.WorkflowRecorder) *Repository {
-	return &Repository{q, tx, a}
+	return &Repository{queries: q, tx: tx, audit: a}
 }
+
+func (r *Repository) WithNotifier(n merit.Notifier) *Repository { r.notifier = n; return r }
 
 /** verifyActor serializa la revocación de permisos con cada escritura de méritos. */
 func verifyActor(ctx context.Context, q *sqlcgen.Queries, a *identity.Applicant, admin bool) error {
@@ -419,6 +422,14 @@ func (r *Repository) MutateCase(ctx context.Context, a *identity.Applicant, id u
 		}
 		if err = r.record(ctx, a, id, "postulacion", action); err != nil {
 			return err
+		}
+		if c.Publication != previousPub {
+			if r.notifier == nil {
+				return errors.New("cola de notificaciones de méritos no configurada")
+			}
+			if err = r.notifier.Enqueue(ctx, id, c.Publication.ID, "resultado.publicado"); err != nil {
+				return err
+			}
 		}
 		result = c
 		return nil

@@ -683,14 +683,19 @@ están detallados en este RF; requieren parámetros aprobados.
 
 **Origen:** EF-1, EF-12 1.10.3 y EF-14 1.4. **Prioridad:** P1-RF; absorbe T15.
 
-- [ ] Encolar la notificación dentro de la transacción que confirma el evento;
+- [x] Encolar la notificación dentro de la transacción que confirma el evento;
       enviar por SMTP después del commit con reintentos persistentes e idempotencia.
-- [ ] Cubrir envío de postulación, resultados de requisitos/méritos/oposición,
+- [x] Cubrir envío de postulación, resultados de requisitos/méritos/oposición,
       reconsideraciones y publicación de resultados según el flujo aprobado.
-- [ ] Usar destinatario registrado y plantillas versionadas; adjuntar o enlazar
+- [x] Usar destinatario registrado y plantillas versionadas; adjuntar o enlazar
       de forma autorizada el formulario/reporte cuando corresponda (T19/T27).
-- [ ] Registrar entrega/fallo sin OTP ni datos sensibles en logs y permitir reintento
+- [x] Registrar entrega/fallo sin OTP ni datos sensibles en logs y permitir reintento
       autorizado. Un fallo de entrega no cambia una nota ni duplica una postulación.
+
+**Estado técnico:** cola transaccional y avisos de las etapas implementadas,
+metadatos propios/administrativos, historial y reintento autorizado disponibles.
+El productor real de nota/PDF de examen sigue en T27; no se simula su entrega.
+Ver [contrato T23/T24](../api-contracts/NOTIFICATIONS_AND_RESULTS.md).
 
 **Dependencias:** T5, T8, correo existente. **Frontend:** FT6, FT22, FT27.
 
@@ -698,12 +703,18 @@ están detallados en este RF; requieren parámetros aprobados.
 
 **Origen:** EF-1, reportes/listas de elegibles; EF-12 1.10.1.4. **Prioridad:** P1-RF.
 
-- [ ] Generar listas por convocatoria/cargo desde resultados aprobados y
+- [x] Generar listas por convocatoria/cargo desde resultados aprobados y
       reconsideraciones resueltas, con versión, fecha y orden definido por las reglas.
-- [ ] Gestionar publicación por el rol competente y conservar versiones históricas.
-- [ ] Distinguir reportes internos de listas públicas: no publicar documentos,
+- [x] Gestionar publicación por el rol competente y conservar versiones históricas.
+- [x] Distinguir reportes internos de listas públicas: no publicar documentos,
       contactos o datos personales no autorizados; respetar el consentimiento del RF.
-- [ ] Vincular reportes a los mismos resultados del expediente y de la matriz T9.
+- [x] Vincular reportes a los mismos resultados del expediente y de la matriz T9.
+
+**Estado técnico:** generación, CSV interno, fuentes/hash, orden explícito sin
+adjudicar empates, publicación versionada y proyección pública de nombres
+implementados y probados con datos sintéticos. Valores oficiales de orden y
+aprobación de privacidad pendientes; T28 no se declara implementada. Los casos
+sin resultado teórico real siguen bloqueados por T27.
 
 **Dependencias:** T6, T9, T18, T20–T23, T28. **Frontend:** FT8, FT23.
 
@@ -801,8 +812,8 @@ incluye lo explícito de EF-11–EF-14 y los procesos que EF-1 describe sin deta
 | EF-1 | Verificar requisitos y calcular méritos | T20 | FT19 | Motor configurable y revisión backend disponibles; falta matriz institucional aprobada |
 | EF-1 | Registrar oposición psicotécnica y consolidar expediente | T21 | FT20 | Motor/expediente disponibles; faltan instrumento/reglas aprobados y productor T27 |
 | EF-1 | Reconsideraciones y plazos exactos por actor | T22 | FT21 | Flujo y cómputo implementados; faltan términos y calendario institucionales aprobados |
-| EF-1 | Notificar resultados de cada etapa | T23 | FT22 | Correo base; flujo y reintentos persistentes pendientes |
-| EF-1 | Reportes, listas de elegibles y trazabilidad completa | T8, T24 | FT7–FT8, FT23 | Planificado sobre auditoría base de T5 |
+| EF-1 | Notificar resultados de cada etapa | T23 | FT22 | Avisos de etapas implementadas y reintento autorizado disponibles; productor de examen depende de T27 |
+| EF-1 | Reportes, listas de elegibles y trazabilidad completa | T8, T24 | FT7–FT8, FT23 | Listas/versiones y trazabilidad disponibles; orden y privacidad institucional pendientes |
 | EF-14, apertura/1.1 | Módulo restringido y banco de preguntas | T6, T25 | FT24–FT25 | Planificado |
 | EF-14 1.2 | Méritos aprobados, fecha/hora, azar, cantidad y orden distinto | T18, T20, T26 | FT25–FT26 | Planificado; parámetros pendientes |
 | EF-14 1.3.1–1.3.4 | Pregunta individual, reloj, controles UI y cierre al vencer | T26–T27 | FT26 | Planificado |
