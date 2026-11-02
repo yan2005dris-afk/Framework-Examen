@@ -246,6 +246,8 @@ export function PostulacionView() {
           },
         },
       }))
+    } catch {
+      // La mutación ya mostró el error en un toast; aquí sólo se evita la promesa rechazada.
     } finally {
       setCargandoDocId(null)
     }
@@ -254,7 +256,12 @@ export function PostulacionView() {
   async function eliminarRespaldoSeccion4() {
     const docId = formData.seccion4.documentoRespaldoPdf?.id
     if (docId) {
-      await eliminarDocMutation.mutateAsync(docId)
+      try {
+        await eliminarDocMutation.mutateAsync(docId)
+      } catch {
+        // El servidor rechazó la baja (ya informada en un toast): el adjunto se conserva.
+        return
+      }
     }
     setFormData((prev) => ({
       ...prev,
@@ -300,6 +307,8 @@ export function PostulacionView() {
           ),
         },
       }))
+    } catch {
+      // La mutación ya mostró el error en un toast; aquí sólo se evita la promesa rechazada.
     } finally {
       setCargandoDocId(null)
     }
@@ -308,7 +317,12 @@ export function PostulacionView() {
   async function eliminarRespaldoTitulo(tituloId: string) {
     const t = formData.seccion5.titulos.find((x) => x.id === tituloId)
     if (t?.documentoPdf?.id) {
-      await eliminarDocMutation.mutateAsync(t.documentoPdf.id)
+      try {
+        await eliminarDocMutation.mutateAsync(t.documentoPdf.id)
+      } catch {
+        // El servidor rechazó la baja (ya informada en un toast): el adjunto se conserva.
+        return
+      }
     }
     setFormData((prev) => ({
       ...prev,
@@ -356,6 +370,8 @@ export function PostulacionView() {
           ),
         },
       }))
+    } catch {
+      // La mutación ya mostró el error en un toast; aquí sólo se evita la promesa rechazada.
     } finally {
       setCargandoDocId(null)
     }
@@ -364,7 +380,12 @@ export function PostulacionView() {
   async function eliminarRespaldoExperiencia(expId: string) {
     const e = formData.seccion6.experiencias.find((x) => x.id === expId)
     if (e?.documentoPdf?.id) {
-      await eliminarDocMutation.mutateAsync(e.documentoPdf.id)
+      try {
+        await eliminarDocMutation.mutateAsync(e.documentoPdf.id)
+      } catch {
+        // El servidor rechazó la baja (ya informada en un toast): el adjunto se conserva.
+        return
+      }
     }
     setFormData((prev) => ({
       ...prev,
@@ -412,6 +433,8 @@ export function PostulacionView() {
           ),
         },
       }))
+    } catch {
+      // La mutación ya mostró el error en un toast; aquí sólo se evita la promesa rechazada.
     } finally {
       setCargandoDocId(null)
     }
@@ -420,7 +443,12 @@ export function PostulacionView() {
   async function eliminarRespaldoPublicacion(pubId: string) {
     const p = formData.seccion7.publicaciones.find((x) => x.id === pubId)
     if (p?.documentoPdf?.id) {
-      await eliminarDocMutation.mutateAsync(p.documentoPdf.id)
+      try {
+        await eliminarDocMutation.mutateAsync(p.documentoPdf.id)
+      } catch {
+        // El servidor rechazó la baja (ya informada en un toast): el adjunto se conserva.
+        return
+      }
     }
     setFormData((prev) => ({
       ...prev,
@@ -468,6 +496,8 @@ export function PostulacionView() {
           ),
         },
       }))
+    } catch {
+      // La mutación ya mostró el error en un toast; aquí sólo se evita la promesa rechazada.
     } finally {
       setCargandoDocId(null)
     }
@@ -476,7 +506,12 @@ export function PostulacionView() {
   async function eliminarRespaldoCapacitacion(capId: string) {
     const c = formData.seccion8.capacitaciones.find((x) => x.id === capId)
     if (c?.documentoPdf?.id) {
-      await eliminarDocMutation.mutateAsync(c.documentoPdf.id)
+      try {
+        await eliminarDocMutation.mutateAsync(c.documentoPdf.id)
+      } catch {
+        // El servidor rechazó la baja (ya informada en un toast): el adjunto se conserva.
+        return
+      }
     }
     setFormData((prev) => ({
       ...prev,
