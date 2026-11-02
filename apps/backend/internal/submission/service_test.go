@@ -18,6 +18,8 @@ type memoryRepository struct {
 	mu   sync.Mutex
 	item *Submission
 	fail bool
+	// duplicate simula la violación del índice submissions_one_per_competition.
+	duplicate bool
 }
 
 func copySubmission(item *Submission) *Submission {
@@ -32,6 +34,14 @@ func (r *memoryRepository) FindByID(_ context.Context, id uuid.UUID) (*Submissio
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.item == nil || r.item.ID != id {
+		return nil, nil
+	}
+	return copySubmission(r.item), nil
+}
+func (r *memoryRepository) FindByApplicantAndCompetition(_ context.Context, applicantID uuid.UUID, competitionID uuid.UUID) (*Submission, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.item == nil || r.item.ApplicantID != applicantID || r.item.CompetitionID == nil || *r.item.CompetitionID != competitionID {
 		return nil, nil
 	}
 	return copySubmission(r.item), nil
@@ -52,6 +62,9 @@ func (r *memoryRepository) SaveSubmission(ctx context.Context, item *Submission,
 	}
 	if r.fail {
 		return errors.New("fallo de persistencia de prueba")
+	}
+	if r.duplicate {
+		return ErrSubmissionExists
 	}
 	if err := r.Create(ctx, working); err != nil {
 		return err

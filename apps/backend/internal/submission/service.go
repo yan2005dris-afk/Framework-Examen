@@ -250,6 +250,26 @@ func (s *Service) List(ctx context.Context, applicantID uuid.UUID, page shareddo
 }
 
 /**
+ * FindByCompetition devuelve la postulación del postulante en una convocatoria.
+ * La regla de negocio admite como máximo una por convocatoria.
+ *
+ * @param {Context} ctx - Contexto de la operación.
+ * @param {uuid.UUID} applicantID - Postulante titular.
+ * @param {uuid.UUID} competitionID - Convocatoria de origen.
+ * @returns {Submission} Postulación encontrada o nil si aún no existe.
+ * @throws {Error} ErrInvalidApplicant o ErrInvalidCompetition ante identificadores vacíos.
+ */
+func (s *Service) FindByCompetition(ctx context.Context, applicantID uuid.UUID, competitionID uuid.UUID) (*Submission, error) {
+	if applicantID == uuid.Nil {
+		return nil, ErrInvalidApplicant
+	}
+	if competitionID == uuid.Nil {
+		return nil, ErrInvalidCompetition
+	}
+	return s.repo.FindByApplicantAndCompetition(ctx, applicantID, competitionID)
+}
+
+/**
  * ListCursor devuelve la página siguiente usando paginación por cursor. Es la
  * opción para listados grandes: el costo no crece con el desplazamiento y el
  * resultado es estable aunque se inserten postulaciones nuevas.

@@ -102,6 +102,33 @@ func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*submission.Su
 }
 
 /**
+ * FindByApplicantAndCompetition devuelve la postulación de un postulante en
+ * una convocatoria. El índice submissions_one_per_competition garantiza que
+ * haya como máximo una.
+ *
+ * @param {Context} ctx - Contexto de la operación.
+ * @param {uuid.UUID} applicantID - Postulante titular.
+ * @param {uuid.UUID} competitionID - Convocatoria de origen.
+ * @returns {Submission} Postulación encontrada o nil si no existe.
+ */
+func (r *Repository) FindByApplicantAndCompetition(ctx context.Context, applicantID uuid.UUID, competitionID uuid.UUID) (*submission.Submission, error) {
+	row, err := r.queries.GetSubmissionByApplicantAndCompetition(ctx, sqlcgen.GetSubmissionByApplicantAndCompetitionParams{
+		ApplicantID:   applicantID,
+		CompetitionID: pgtype.UUID{Bytes: competitionID, Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("no se pudo consultar la postulación de la convocatoria: %w", err)
+	}
+
+	item := &submission.Submission{}
+	applyRow(item, row)
+	return item, nil
+}
+
+/**
  * ListByApplicant devuelve la página de postulaciones de un postulante y el
  * total de registros disponibles.
  *
@@ -408,6 +435,9 @@ func mapError(err error) error {
 			return submission.ErrInvalidCompetition
 		}
 	case "23505":
+		if pgErr.ConstraintName == "submissions_one_per_competition" {
+			return submission.ErrSubmissionExists
+		}
 		return fmt.Errorf("%w: %s", submission.ErrDuplicateCode, pgErr.ConstraintName)
 	case "23503":
 		if pgErr.ConstraintName == "submissions_competition_id_fkey" {
