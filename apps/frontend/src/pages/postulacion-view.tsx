@@ -8,7 +8,13 @@ import {
   SaveIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { Link, useNavigate, useParams, useSearchParams } from "react-router"
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router"
 import { toast } from "sonner"
 
 import { EstadoCargando, EstadoError } from "@/components/estados"
@@ -48,12 +54,19 @@ import {
 } from "@/features/formulario"
 import {
   useCrearPostulacion,
+  useEliminarPostulacion,
   useGuardarSeccion,
-  useListarPostulaciones,
+  usePostulacionActual,
 } from "@/features/postulaciones/queries"
+import { DescartarBorrador } from "@/features/postulaciones/descartar-borrador"
+import { ListaMisPostulaciones } from "@/features/postulaciones/lista-mis-postulaciones"
+import { convocatoriasAbiertas } from "@/features/convocatorias/modelo"
+import { useConvocatoriasPublicas } from "@/features/convocatorias/queries"
+import { SelectorConvocatoria } from "@/features/convocatorias/selector-convocatoria"
+import { useAhora } from "@/features/convocatorias/use-ahora"
 import { useDisponibilidadEF12 } from "@/features/convocatorias/use-disponibilidad"
 import { esErrorApi } from "@/lib/api-error"
-import { RUTAS, rutaSeccion } from "@/lib/rutas"
+import { RUTAS, rutaPostulacion, rutaSeccion } from "@/lib/rutas"
 import {
   aplicarValoresIniciales,
   referenciaDocumento,
@@ -137,49 +150,93 @@ const FORMULARIO_BASE_DEFAULT: FormularioPostulacionState = {
 export function PostulacionView() {
   const { seccion } = useParams<{ seccion: string }>()
   const navegar = useNavigate()
-  const [parametros] = useSearchParams()
+  const { state: estadoNavegacion } = useLocation()
+  const [parametros, setParametros] = useSearchParams()
 
   const numeroSeccion = seccion ? Number(seccion) : 1
   const esSeccionValida =
     Number.isInteger(numeroSeccion) && numeroSeccion >= 1 && numeroSeccion <= 9
 
-  // Consultar postulación existente o crear borrador
+  // Postulación de la convocatoria de la URL, o la única que tenga el postulante
   const {
-    data: postulacionesData,
+    resolucion,
+    postulacion: postulacionActiva,
+    convocatoriaId: periodo,
     isLoading: cargandoPostulaciones,
     error: errorPostulaciones,
     refetch: recargarPostulaciones,
-  } = useListarPostulaciones({ limit: 1 })
+  } = usePostulacionActual()
 
   const crearPostulacionMutation = useCrearPostulacion()
   const guardarSeccionMutation = useGuardarSeccion()
+  const eliminarPostulacionMutation = useEliminarPostulacion()
 
-  const postulacionActiva = postulacionesData?.items?.[0]
-  const periodo =
-    postulacionActiva?.convocatoriaId ?? parametros.get("convocatoria")
   const disponibilidad = useDisponibilidadEF12(periodo)
   const abiertaConvocatoria = disponibilidad.abierta
 
-  // Crear borrador automático si el postulante aún no tiene ninguno
+  // Sin postulación ni `?convocatoria=`: hay que elegir convocatoria. Con una
+  // sola abierta se elige sola; con varias decide el postulante. Tras
+  // descartar un borrador tampoco se elige sola, para no recrearlo.
+  const listadoConvocatorias = useConvocatoriasPublicas()
+  const ahora = useAhora()
+  const convocatoriasPublicadas =
+    listadoConvocatorias.data?.pages.flatMap((p) => p.items) ?? []
+  const abiertas = convocatoriasAbiertas(convocatoriasPublicadas, ahora)
+  const necesitaConvocatoria =
+    resolucion?.estado === "sin_postulacion" && !parametros.get("convocatoria")
+  const recienDescartado = Boolean(
+    (estadoNavegacion as { borradorDescartado?: boolean } | null)
+      ?.borradorDescartado,
+  )
+  const convocatoriaAutomatica =
+    necesitaConvocatoria && !recienDescartado && abiertas.length === 1
+      ? abiertas[0].id
+      : undefined
+
+  function elegirConvocatoria(convocatoriaId: string) {
+    setParametros(
+      (previos) => {
+        const siguientes = new URLSearchParams(previos)
+        siguientes.set("convocatoria", convocatoriaId)
+        return siguientes
+      },
+      { replace: true },
+    )
+  }
+
+  useEffect(() => {
+    if (!convocatoriaAutomatica) return
+    setParametros(
+      (previos) => {
+        const siguientes = new URLSearchParams(previos)
+        siguientes.set("convocatoria", convocatoriaAutomatica)
+        return siguientes
+      },
+      { replace: true },
+    )
+  }, [convocatoriaAutomatica, setParametros])
+
+  // Crear el borrador cuando la URL indica una convocatoria abierta sin postulación.
+  // El servidor garantiza una sola por convocatoria: si otra pestaña ya la creó
+  // responde 409 y se abre la existente.
+  const convocatoriaSinPostulacion =
+    resolucion?.estado === "sin_postulacion"
+      ? resolucion.convocatoriaId
+      : undefined
   useEffect(() => {
     if (
-      !cargandoPostulaciones &&
-      postulacionesData &&
-      postulacionesData.items.length === 0 &&
-      !crearPostulacionMutation.isPending &&
-      !crearPostulacionMutation.isSuccess &&
-      !crearPostulacionMutation.isError &&
-      Boolean(periodo) &&
-      abiertaConvocatoria
+      convocatoriaSinPostulacion &&
+      abiertaConvocatoria &&
+      crearPostulacionMutation.isIdle
     ) {
-      crearPostulacionMutation.mutate({ convocatoriaId: periodo! })
+      crearPostulacionMutation.mutate({
+        convocatoriaId: convocatoriaSinPostulacion,
+      })
     }
   }, [
-    cargandoPostulaciones,
-    postulacionesData,
-    crearPostulacionMutation,
-    periodo,
+    convocatoriaSinPostulacion,
     abiertaConvocatoria,
+    crearPostulacionMutation,
   ])
 
   // Contenido local del formulario sincronizado con la postulación
@@ -514,11 +571,27 @@ export function PostulacionView() {
     }))
   }
 
-  if (
-    !cargandoPostulaciones &&
-    !postulacionActiva &&
-    crearPostulacionMutation.isError
-  ) {
+  /** Descarta el borrador y vuelve a la elección de convocatoria sin recrearlo. */
+  async function descartarBorrador() {
+    if (!postulacionActiva) return
+    await eliminarPostulacionMutation.mutateAsync(postulacionActiva.id)
+    crearPostulacionMutation.reset()
+    setPrevId(null)
+    setFormData(FORMULARIO_BASE_DEFAULT)
+    navegar(RUTAS.postulacion, {
+      replace: true,
+      state: { borradorDescartado: true },
+    })
+  }
+
+  // Un 409 «postulacion_existente» no es un fallo: se abre la postulación existente.
+  const errorCreacion =
+    crearPostulacionMutation.isError &&
+    !(
+      esErrorApi(crearPostulacionMutation.error) &&
+      crearPostulacionMutation.error.codigo === "postulacion_existente"
+    )
+  if (!cargandoPostulaciones && !postulacionActiva && errorCreacion) {
     return (
       <EstadoError
         error={crearPostulacionMutation.error}
@@ -530,6 +603,51 @@ export function PostulacionView() {
       />
     )
   }
+
+  if (resolucion?.estado === "elegir") {
+    return (
+      <ListaMisPostulaciones
+        postulaciones={resolucion.postulaciones}
+        titulos={Object.fromEntries(
+          convocatoriasPublicadas.map((c) => [c.id, c.titulo]),
+        )}
+        onAbrir={elegirConvocatoria}
+      />
+    )
+  }
+
+  if (necesitaConvocatoria) {
+    if (listadoConvocatorias.isPending || convocatoriaAutomatica) {
+      return (
+        <div className="mx-auto w-full max-w-4xl px-4 py-12">
+          <EstadoCargando
+            mensaje="Consultando las convocatorias abiertas…"
+            variante="pantalla-completa"
+          />
+        </div>
+      )
+    }
+    if (listadoConvocatorias.isError) {
+      return (
+        <div className="mx-auto w-full max-w-4xl px-4 py-12">
+          <EstadoError
+            error={listadoConvocatorias.error}
+            titulo="No se pudieron consultar las convocatorias"
+            onReintentar={() => void listadoConvocatorias.refetch()}
+          />
+        </div>
+      )
+    }
+    if (abiertas.length > 0) {
+      return (
+        <SelectorConvocatoria
+          convocatorias={abiertas}
+          onElegir={elegirConvocatoria}
+        />
+      )
+    }
+  }
+
   if (
     !cargandoPostulaciones &&
     !postulacionActiva &&
@@ -547,8 +665,8 @@ export function PostulacionView() {
             </CardTitle>
             <CardDescription>
               {periodo
-                ? "No se ha confirmado una convocatoria abierta y habilitada. No se crea un borrador ni se envían cambios mientras no se confirme el período."
-                : "Seleccione una convocatoria publicada antes de comenzar su postulación."}
+                ? "La convocatoria indicada no tiene la recepción abierta. No se crea un borrador ni se envían cambios mientras no se confirme el período."
+                : "No hay convocatorias con la recepción de postulaciones abierta en este momento."}
             </CardDescription>
           </CardHeader>
           <CardFooter>
@@ -574,7 +692,9 @@ export function PostulacionView() {
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline">
-              <Link to={RUTAS.postulacion}>Abrir el formulario</Link>
+              <Link to={rutaPostulacion(RUTAS.postulacion, periodo)}>
+                Abrir el formulario
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -582,7 +702,17 @@ export function PostulacionView() {
     )
   }
 
-  if (cargandoPostulaciones || crearPostulacionMutation.isPending) {
+  // Mientras se crea el borrador o se vuelve a consultar tras crearlo (o tras un 409)
+  const esperandoBorrador =
+    !postulacionActiva &&
+    Boolean(convocatoriaSinPostulacion) &&
+    abiertaConvocatoria &&
+    !errorCreacion
+  if (
+    cargandoPostulaciones ||
+    crearPostulacionMutation.isPending ||
+    esperandoBorrador
+  ) {
     return (
       <div className="mx-auto w-full max-w-4xl px-4 py-12">
         <EstadoCargando
@@ -652,11 +782,9 @@ export function PostulacionView() {
 
       if (irSiguiente) {
         if (numeroSeccion < 9) {
-          navegar(
-            `${rutaSeccion(numeroSeccion + 1)}${periodo ? `?convocatoria=${encodeURIComponent(periodo)}` : ""}`,
-          )
+          navegar(rutaPostulacion(rutaSeccion(numeroSeccion + 1), periodo))
         } else {
-          navegar(RUTAS.postulacionRevision)
+          navegar(rutaPostulacion(RUTAS.postulacionRevision, periodo))
         }
       }
       return true
@@ -722,10 +850,14 @@ export function PostulacionView() {
           </div>
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm">
-              <Link to={RUTAS.postulacionRevision}>Ver revisión</Link>
+              <Link to={rutaPostulacion(RUTAS.postulacionRevision, periodo)}>
+                Ver revisión
+              </Link>
             </Button>
             <Button asChild size="sm">
-              <Link to={RUTAS.postulacionImprimir}>Imprimir</Link>
+              <Link to={rutaPostulacion(RUTAS.postulacionImprimir, periodo)}>
+                Imprimir
+              </Link>
             </Button>
           </div>
         </div>
@@ -823,10 +955,32 @@ export function PostulacionView() {
         </div>
       )}
 
+      {/* Convocatoria de la postulación y descarte del borrador */}
+      {postulacionActiva && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/20 px-3.5 py-2 text-xs">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-medium text-foreground">
+              {disponibilidad.data?.titulo ?? "Convocatoria"}
+            </span>
+            <span className="text-muted-foreground">
+              Código {postulacionActiva.code}
+            </span>
+          </div>
+          {postulacionActiva.status === "draft" && (
+            <DescartarBorrador
+              convocatoria={disponibilidad.data?.titulo ?? "esta convocatoria"}
+              pendiente={eliminarPostulacionMutation.isPending}
+              onConfirmar={descartarBorrador}
+            />
+          )}
+        </div>
+      )}
+
       {/* Stepper y barra de progreso */}
       <BarraProgresoSecciones
         seccionActiva={numeroSeccion}
         seccionesCompletadas={seccionesCompletadas}
+        convocatoriaId={periodo}
       />
 
       {/* Indicador de cuota total de documentos (FT18) */}
@@ -991,7 +1145,11 @@ export function PostulacionView() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => navegar(rutaSeccion(numeroSeccion - 1))}
+                onClick={() =>
+                  navegar(
+                    rutaPostulacion(rutaSeccion(numeroSeccion - 1), periodo),
+                  )
+                }
                 disabled={guardarSeccionMutation.isPending}
                 className="flex items-center gap-1.5"
               >
