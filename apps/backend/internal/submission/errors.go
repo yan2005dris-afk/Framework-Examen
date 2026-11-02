@@ -14,6 +14,7 @@ var (
 	ErrInvalidContent     = errors.New("el contenido de la postulación no es válido")
 	ErrInvalidApplicant   = errors.New("el postulante indicado no es válido")
 	ErrDuplicateCode      = errors.New("ya existe una postulación con ese código")
+	ErrSubmissionExists   = errors.New("ya tiene una postulación en esta convocatoria")
 	ErrInvalidIdentifier  = errors.New("el identificador de la postulación no es válido")
 	ErrForbidden          = errors.New("acceso denegado a la postulación")
 	ErrBusinessRule       = errors.New("regla de negocio incumplida")

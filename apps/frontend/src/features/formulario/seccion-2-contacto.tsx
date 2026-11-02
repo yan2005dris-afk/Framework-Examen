@@ -58,7 +58,8 @@ export function Seccion2Contacto({
     }
   }, [postulante, datos, onChange])
 
-  const paisActual = datos.pais || "Ecuador"
+  // Se muestra el dato real: el valor inicial «Ecuador» ya viene en los datos.
+  const paisActual = datos.pais
   const esEcuador = paisActual.toLowerCase() === "ecuador"
 
   const provinciasDisponibles = esEcuador ? Object.keys(PROVINCIAS_ECUADOR) : []

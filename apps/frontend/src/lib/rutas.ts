@@ -70,6 +70,19 @@ export function rutaSeccion(seccion: number | string): string {
   return `${RUTAS.postulacion}/${seccion}`
 }
 
+/**
+ * Agrega `?convocatoria=` a una ruta del postulante para que formulario,
+ * revisión, impresión y seguimiento muestren la postulación de esa convocatoria.
+ * Sin convocatoria devuelve la ruta tal cual.
+ */
+export function rutaPostulacion(
+  ruta: string,
+  convocatoriaId?: string | null,
+): string {
+  if (!convocatoriaId) return ruta
+  return `${ruta}?convocatoria=${encodeURIComponent(convocatoriaId)}`
+}
+
 /** Ruta del detalle de una postulación en el panel del analista. */
 export function rutaDetallePostulacion(id: string): string {
   return `${RUTAS.dashboardPostulaciones}/${id}`

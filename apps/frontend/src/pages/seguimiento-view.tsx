@@ -21,18 +21,17 @@ import {
 } from "@/components/ui/card"
 import { useEvaluacionPostulante } from "@/features/evaluacion/queries"
 import { useNotificacionesPostulante } from "@/features/notificaciones/queries"
-import { useListarPostulaciones } from "@/features/postulaciones/queries"
+import { usePostulacionActual } from "@/features/postulaciones/queries"
 import { useReconsideracionesPostulante } from "@/features/reconsideracion/queries"
 import { useResultadoMeritosPostulante } from "@/features/revision/queries"
 import { centipuntosAPuntos } from "@/lib/clientes/meritos"
-import { RUTAS } from "@/lib/rutas"
+import { RUTAS, rutaPostulacion } from "@/lib/rutas"
 
 /**
  * Seguimiento de fases, resultados y notificaciones del postulante (FT19/FT20/FT21/FT22).
  */
 export function SeguimientoView() {
-  const { data: postulacionesData } = useListarPostulaciones({ limit: 1 })
-  const postulacion = postulacionesData?.items?.[0]
+  const { postulacion } = usePostulacionActual()
   const submissionId = postulacion?.id ?? ""
 
   // Consultas de fases y calificaciones oficiales
@@ -483,7 +482,14 @@ export function SeguimientoView() {
           {/* Botones de navegación inferior */}
           <div className="flex flex-wrap gap-2 border-t pt-4">
             <Button asChild variant="outline" size="sm">
-              <Link to={RUTAS.postulacion}>Volver a mi postulación</Link>
+              <Link
+                to={rutaPostulacion(
+                  RUTAS.postulacion,
+                  postulacion?.convocatoriaId,
+                )}
+              >
+                Volver a mi postulación
+              </Link>
             </Button>
             <Button asChild variant="secondary" size="sm">
               <Link to={RUTAS.reconsideracion}>
@@ -493,7 +499,12 @@ export function SeguimientoView() {
             </Button>
             {postulacion?.status === "submitted" && (
               <Button asChild size="sm">
-                <Link to={RUTAS.postulacionImprimir}>
+                <Link
+                  to={rutaPostulacion(
+                    RUTAS.postulacionImprimir,
+                    postulacion?.convocatoriaId,
+                  )}
+                >
                   Ver comprobante imprimible
                 </Link>
               </Button>

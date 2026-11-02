@@ -1,11 +1,17 @@
 import { ShieldCheckIcon } from "lucide-react"
 import { useState, type ReactNode } from "react"
-import { Link, Outlet, useLocation, useNavigate } from "react-router"
+import {
+  Link,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router"
 
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { useSesion } from "@/features/auth/sesion-context"
-import { RUTAS } from "@/lib/rutas"
+import { RUTAS, rutaPostulacion } from "@/lib/rutas"
 import { cn } from "@/lib/utils"
 
 /**
@@ -16,6 +22,9 @@ export function LayoutPostulante() {
   const { postulante, cerrar } = useSesion()
   const navegar = useNavigate()
   const { pathname } = useLocation()
+  // La navegación conserva la convocatoria de la postulación que se está viendo.
+  const [parametros] = useSearchParams()
+  const convocatoriaId = parametros.get("convocatoria")
   const [saliendo, setSaliendo] = useState(false)
 
   const enRevision = pathname.startsWith(RUTAS.postulacionRevision)
@@ -37,7 +46,7 @@ export function LayoutPostulante() {
       <header className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur print:hidden">
         <div className="mx-auto flex h-16 w-full max-w-5xl items-center gap-3 px-4">
           <Link
-            to={RUTAS.postulacion}
+            to={rutaPostulacion(RUTAS.postulacion, convocatoriaId)}
             className="flex shrink-0 items-center gap-2 font-semibold"
           >
             <ShieldCheckIcon
@@ -54,13 +63,22 @@ export function LayoutPostulante() {
             aria-label="Secciones de la postulación"
             className="ml-2 flex items-center gap-1 overflow-x-auto"
           >
-            <EnlaceNav ruta={RUTAS.postulacion} activo={enFormulario}>
+            <EnlaceNav
+              ruta={rutaPostulacion(RUTAS.postulacion, convocatoriaId)}
+              activo={enFormulario}
+            >
               Formulario
             </EnlaceNav>
-            <EnlaceNav ruta={RUTAS.postulacionRevision} activo={enRevision}>
+            <EnlaceNav
+              ruta={rutaPostulacion(RUTAS.postulacionRevision, convocatoriaId)}
+              activo={enRevision}
+            >
               Revisión
             </EnlaceNav>
-            <EnlaceNav ruta={RUTAS.postulacionImprimir} activo={enImpresion}>
+            <EnlaceNav
+              ruta={rutaPostulacion(RUTAS.postulacionImprimir, convocatoriaId)}
+              activo={enImpresion}
+            >
               Imprimir
             </EnlaceNav>
           </nav>

@@ -126,7 +126,7 @@ export function Seccion1Personal({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="sec1-nacionalidad">Nacionalidad *</Label>
           <Select
-            value={datos.nacionalidad || "Ecuatoriana"}
+            value={datos.nacionalidad}
             onValueChange={(val) => actualizarCampo("nacionalidad", val)}
             disabled={disabled}
           >

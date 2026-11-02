@@ -151,6 +151,15 @@ func (h *Handler) list(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	query := request.URL.Query()
+	if value := query.Get("convocatoriaId"); value != "" {
+		competitionID, err := uuid.Parse(value)
+		if err != nil || competitionID == uuid.Nil {
+			httpx.RespondError(writer, request, http.StatusBadRequest, "filtro_invalido", "El filtro de convocatoria no es válido.")
+			return
+		}
+		h.listByCompetition(writer, request, applicantID, competitionID)
+		return
+	}
 	if query.Get("cursor") != "" || query.Get("limit") != "" {
 		h.listCursor(writer, request, applicantID)
 		return
@@ -174,6 +183,30 @@ func (h *Handler) list(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	httpx.Respond(writer, request, http.StatusOK, shareddomain.NewPage(items, result.Total, page))
+}
+
+/**
+ * listByCompetition devuelve la postulación del postulante en una convocatoria
+ * con la misma forma que el listado por cursor: cero o un elemento.
+ *
+ * @param {http.ResponseWriter} writer - Respuesta HTTP en construcción.
+ * @param {http.Request} request - Petición recibida.
+ * @param {uuid.UUID} applicantID - Postulante de la sesión.
+ * @param {uuid.UUID} competitionID - Convocatoria solicitada.
+ */
+func (h *Handler) listByCompetition(writer http.ResponseWriter, request *http.Request, applicantID uuid.UUID, competitionID uuid.UUID) {
+	item, err := h.service.FindByCompetition(request.Context(), applicantID, competitionID)
+	if err != nil {
+		writeError(writer, request, err)
+		return
+	}
+
+	items := make([]Response, 0, 1)
+	if item != nil {
+		items = append(items, NewResponse(item))
+	}
+
+	httpx.Respond(writer, request, http.StatusOK, shareddomain.NewCursorPage(items, "", false, 1))
 }
 
 /**
@@ -345,6 +378,8 @@ func writeError(writer http.ResponseWriter, request *http.Request, err error) {
 		httpx.RespondError(writer, request, http.StatusNotFound, "postulacion_no_encontrada", "La postulación no existe.")
 	case errors.Is(err, ErrNotEditable):
 		httpx.RespondError(writer, request, http.StatusConflict, "postulacion_no_editable", "La postulación ya fue enviada y no admite cambios.")
+	case errors.Is(err, ErrSubmissionExists):
+		httpx.RespondError(writer, request, http.StatusConflict, "postulacion_existente", "Ya tiene una postulación en esta convocatoria.")
 	case errors.Is(err, ErrDuplicateCode):
 		httpx.RespondError(writer, request, http.StatusConflict, "codigo_duplicado", "Ya existe una postulación con ese código.")
 	case errors.Is(err, ErrInvalidContent):

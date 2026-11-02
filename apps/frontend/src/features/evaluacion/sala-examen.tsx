@@ -36,7 +36,7 @@ import {
 import { Progress } from "@/components/ui/progress"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { useListarPostulaciones } from "@/features/postulaciones/queries"
+import { usePostulacionActual } from "@/features/postulaciones/queries"
 import {
   useEstadoExamen,
   useFinalizarExamen,
@@ -54,9 +54,7 @@ import { RUTAS } from "@/lib/rutas"
 export function SalaExamen() {
   const navigate = useNavigate()
 
-  const { data: postulacionesData, isPending: cargandoPostulacion } =
-    useListarPostulaciones({ limit: 1 })
-  const postulacion = postulacionesData?.items?.[0]
+  const { postulacion, isPending: cargandoPostulacion } = usePostulacionActual()
   const submissionId = postulacion?.id ?? ""
 
   // Estado del examen en servidor
