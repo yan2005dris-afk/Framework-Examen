@@ -53,8 +53,8 @@ import {
 } from "@/features/postulaciones/queries"
 import { useDisponibilidadEF12 } from "@/features/convocatorias/use-disponibilidad"
 import { esErrorApi } from "@/lib/api-error"
-import { formatearTamanoBytes } from "@/lib/clientes/documentos"
 import { RUTAS, rutaSeccion } from "@/lib/rutas"
+import { referenciaDocumento } from "@/features/formulario/modelo"
 import { validarSeccionEF12 } from "@/features/formulario/validacion"
 
 export interface FormularioPostulacionState {
@@ -236,14 +236,7 @@ export function PostulacionView() {
         ...prev,
         seccion4: {
           ...prev.seccion4,
-          documentoRespaldoPdf: {
-            id: doc.id,
-            nombre: doc.name,
-            tamano: formatearTamanoBytes(doc.sizeBytes),
-            sizeBytes: doc.sizeBytes,
-            referenciaId: doc.id,
-            sha256: doc.sha256,
-          },
+          documentoRespaldoPdf: referenciaDocumento(doc),
         },
       }))
     } catch {
@@ -294,14 +287,7 @@ export function PostulacionView() {
             t.id === tituloId
               ? {
                   ...t,
-                  documentoPdf: {
-                    id: doc.id,
-                    nombre: doc.name,
-                    tamano: formatearTamanoBytes(doc.sizeBytes),
-                    sizeBytes: doc.sizeBytes,
-                    referenciaId: doc.id,
-                    sha256: doc.sha256,
-                  },
+                  documentoPdf: referenciaDocumento(doc),
                 }
               : t,
           ),
@@ -357,14 +343,7 @@ export function PostulacionView() {
             e.id === expId
               ? {
                   ...e,
-                  documentoPdf: {
-                    id: doc.id,
-                    nombre: doc.name,
-                    tamano: formatearTamanoBytes(doc.sizeBytes),
-                    sizeBytes: doc.sizeBytes,
-                    referenciaId: doc.id,
-                    sha256: doc.sha256,
-                  },
+                  documentoPdf: referenciaDocumento(doc),
                 }
               : e,
           ),
@@ -420,14 +399,7 @@ export function PostulacionView() {
             p.id === pubId
               ? {
                   ...p,
-                  documentoPdf: {
-                    id: doc.id,
-                    nombre: doc.name,
-                    tamano: formatearTamanoBytes(doc.sizeBytes),
-                    sizeBytes: doc.sizeBytes,
-                    referenciaId: doc.id,
-                    sha256: doc.sha256,
-                  },
+                  documentoPdf: referenciaDocumento(doc),
                 }
               : p,
           ),
@@ -483,14 +455,7 @@ export function PostulacionView() {
             c.id === capId
               ? {
                   ...c,
-                  documentoPdf: {
-                    id: doc.id,
-                    nombre: doc.name,
-                    tamano: formatearTamanoBytes(doc.sizeBytes),
-                    sizeBytes: doc.sizeBytes,
-                    referenciaId: doc.id,
-                    sha256: doc.sha256,
-                  },
+                  documentoPdf: referenciaDocumento(doc),
                 }
               : c,
           ),

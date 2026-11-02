@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest"
 import compartidos from "../../../../backend/internal/submission/testdata/form_cases.json"
+import type { DocumentoDto } from "@/lib/clientes/documentos"
+import { referenciaDocumento } from "./modelo"
 import {
   validarCedulaPareja,
   validarCorreoSecundario,
@@ -95,5 +97,46 @@ describe("validaciones de campo extraídas de las secciones", () => {
 
   it("acepta un correo de confirmación válido", () => {
     expect(validarCorreoSecundario("maria.fernandez@example.com")).toBeNull()
+  })
+})
+
+describe("referencia de respaldo PDF tras la subida", () => {
+  const subido: DocumentoDto = {
+    id: "01a19cfc-42aa-79ef-a877-28f0a8a7fbe3",
+    submissionId: "01a19ce2-6213-7dc3-b8ec-7a7a8da4a62c",
+    section: 4,
+    recordId: "",
+    name: "respaldo-prueba.pdf",
+    mime: "application/pdf",
+    sizeBytes: 965,
+    sha256: "a".repeat(64),
+    createdAt: "2026-11-02T16:04:18Z",
+  }
+  const seccion4 = {
+    sector: "afiliados",
+    cuentaConRespaldoOrganizacion: "Sí",
+    nombreOrganizacion: "Organización de prueba",
+  }
+
+  it("cumple el contrato: la sección se puede guardar después de subir el PDF", () => {
+    const resultado = validarSeccionEF12(
+      { ...seccion4, documentoRespaldoPdf: referenciaDocumento(subido) },
+      4,
+    )
+    expect(resultado.esValido, JSON.stringify(resultado.errores)).toBe(true)
+  })
+
+  it("un campo fuera del contrato impide guardar la sección", () => {
+    const resultado = validarSeccionEF12(
+      {
+        ...seccion4,
+        documentoRespaldoPdf: {
+          ...referenciaDocumento(subido),
+          sizeBytes: subido.sizeBytes,
+        },
+      },
+      4,
+    )
+    expect(resultado.esValido).toBe(false)
   })
 })
