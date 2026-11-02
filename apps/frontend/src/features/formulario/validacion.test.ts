@@ -140,3 +140,61 @@ describe("referencia de respaldo PDF tras la subida", () => {
     expect(resultado.esValido).toBe(false)
   })
 })
+
+describe("mensajes de la experiencia profesional (sección 6)", () => {
+  const base = {
+    id: "exp-1",
+    tipo: "General",
+    cargo: "Analista",
+    institucion: "Institución de prueba",
+    fechaInicio: "2020-01-01",
+    fechaFin: "2022-01-01",
+    actualmenteLaborando: false,
+    actividades: "Finanzas",
+    descripcionFunciones: "Funciones de prueba",
+  }
+  const mensaje = (
+    cambios: Record<string, unknown>,
+    completo = false,
+  ): string | undefined =>
+    validarSeccionEF12(
+      { experiencias: [base, { ...base, id: "exp-2", ...cambios }] },
+      6,
+      completo,
+      new Date("2026-11-02T12:00:00Z"),
+    ).errores[0]?.mensaje
+
+  it("indica qué experiencia tiene el área fuera de la lista", () => {
+    expect(mensaje({ actividades: "Financiero" })).toBe(
+      "Experiencia 2: elija el área de actividades de la lista.",
+    )
+  })
+
+  it("indica fechas invertidas", () => {
+    expect(mensaje({ fechaInicio: "2023-01-01", fechaFin: "2021-01-01" })).toBe(
+      "Experiencia 2: la fecha de fin no puede ser anterior a la de inicio.",
+    )
+  })
+
+  it("indica fechas futuras", () => {
+    expect(mensaje({ fechaInicio: "2030-01-01" })).toBe(
+      "Experiencia 2: la fecha de inicio debe ser válida y no futura.",
+    )
+  })
+
+  it("indica que con empleo actual no lleva fecha de fin", () => {
+    expect(mensaje({ actualmenteLaborando: true })).toBe(
+      "Experiencia 2: si labora actualmente, deje vacía la fecha de fin.",
+    )
+  })
+
+  it("indica campos obligatorios vacíos al completar la sección", () => {
+    expect(mensaje({ cargo: "" }, true)).toBe(
+      "Experiencia 2: complete tipo, cargo, institución, fecha de inicio, actividades y funciones.",
+    )
+  })
+
+  it("acepta experiencias correctas", () => {
+    expect(mensaje({})).toBeUndefined()
+  })
+})
