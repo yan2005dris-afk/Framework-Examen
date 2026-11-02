@@ -234,6 +234,34 @@ describe("Rutas del portal (rutas.ts)", () => {
     })
   })
 
+  describe("destinos externos tras el login", () => {
+    it("no sigue destinos fuera del portal y usa la ruta inicial", () => {
+      for (const destino of [
+        "https://example.com/",
+        "//example.com/",
+        "/\\example.com",
+        "javascript:alert(1)",
+        "postulacion",
+      ]) {
+        expect(resolverDestinoLogin(destino, POSTULANTE), destino).toBe(
+          RUTAS.postulacion,
+        )
+        expect(resolverDestinoLogin(destino, ADMINISTRADOR), destino).toBe(
+          RUTAS.adminConvocatorias,
+        )
+      }
+    })
+
+    it("respeta los destinos internos", () => {
+      expect(
+        resolverDestinoLogin(
+          "/postulacion/revision?convocatoria=c1",
+          POSTULANTE,
+        ),
+      ).toBe("/postulacion/revision?convocatoria=c1")
+    })
+  })
+
   describe("helpers de rutas", () => {
     it("arma rutas con parámetros", () => {
       expect(rutaSeccion(4)).toBe("/postulacion/4")
