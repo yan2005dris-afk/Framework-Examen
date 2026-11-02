@@ -14,6 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { calcularDuracionExperiencia } from "@/helpers/experiencia"
 import { AdjuntoUploader, type AdjuntoInfo } from "./adjunto-uploader"
+import { AREAS_EF12 } from "./constantes"
 
 export interface ExperienciaItem {
   id: string
@@ -283,20 +284,26 @@ export function Seccion6Experiencia({
 
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-xs">
-                    Área de Actividades / Sector *
+                    Actividades relacionadas a *
                   </Label>
-                  <Input
+                  <Select
                     value={exp.actividades}
-                    onChange={(e) =>
-                      actualizarExperiencia(
-                        index,
-                        "actividades",
-                        e.target.value,
-                      )
+                    onValueChange={(val) =>
+                      actualizarExperiencia(index, "actividades", val)
                     }
                     disabled={disabled}
-                    placeholder="Financiero, Fiduciario, Inversiones, Auditoría..."
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione un área" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AREAS_EF12.map((area) => (
+                        <SelectItem key={area} value={area}>
+                          {area}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="flex flex-col gap-1.5">

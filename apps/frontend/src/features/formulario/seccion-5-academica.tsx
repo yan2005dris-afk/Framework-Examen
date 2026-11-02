@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { AdjuntoUploader, type AdjuntoInfo } from "./adjunto-uploader"
+import { AREAS_EF12 } from "./constantes"
 
 export interface TituloItem {
   id: string
@@ -43,14 +44,6 @@ const NIVELES_CATALOGO = [
   "Cuarto Nivel - Especialidad Académica",
   "Cuarto Nivel - Maestría Académica",
   "Cuarto Nivel PhD - Doctorado",
-]
-
-const AREAS_CATALOGO = [
-  "Finanzas",
-  "Mercado de Capitales",
-  "Administración de Empresas",
-  "Economía",
-  "Derecho o materias afines",
 ]
 
 export function Seccion5Academica({
@@ -249,7 +242,7 @@ export function Seccion5Academica({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {AREAS_CATALOGO.map((a) => (
+                      {AREAS_EF12.map((a) => (
                         <SelectItem key={a} value={a}>
                           {a}
                         </SelectItem>

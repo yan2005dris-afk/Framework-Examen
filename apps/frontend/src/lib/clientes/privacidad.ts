@@ -54,7 +54,7 @@ export async function obtenerPoliticaVigenteConvocatoria(
   convocatoriaId: string,
 ): Promise<PoliticaPrivacidadDto> {
   return apiGet<PoliticaPrivacidadDto>(
-    `/api/v1/public/privacy/competitions/${convocatoriaId}`,
+    `/public/privacy/competitions/${convocatoriaId}`,
   )
 }
 
@@ -65,9 +65,7 @@ export async function obtenerPoliticaVigenteConvocatoria(
 export async function obtenerPoliticaPorId(
   politicaId: string,
 ): Promise<PoliticaPrivacidadDto> {
-  return apiGet<PoliticaPrivacidadDto>(
-    `/api/v1/public/privacy/policies/${politicaId}`,
-  )
+  return apiGet<PoliticaPrivacidadDto>(`/public/privacy/policies/${politicaId}`)
 }
 
 /**
@@ -78,7 +76,7 @@ export async function publicarPoliticaPrivacidad(
   datos: PublicarPoliticaDto,
 ): Promise<PoliticaPrivacidadDto> {
   return apiPost<PoliticaPrivacidadDto>(
-    `/api/v1/admin/privacy/competitions/${convocatoriaId}/policies`,
+    `/admin/privacy/competitions/${convocatoriaId}/policies`,
     datos,
   )
 }
@@ -91,7 +89,7 @@ export async function restringirPoliticaPrivacidad(
   datos: RestringirPoliticaDto,
 ): Promise<{ restringido: boolean }> {
   return apiPost<{ restringido: boolean }>(
-    `/api/v1/admin/privacy/competitions/${convocatoriaId}/restriction`,
+    `/admin/privacy/competitions/${convocatoriaId}/restriction`,
     datos,
   )
 }
@@ -108,7 +106,7 @@ export async function listarPoliticasConvocatoria(
   if (params?.cursor) q.set("cursor", params.cursor)
   const qs = q.toString() ? `?${q.toString()}` : ""
   return apiGet<PaginaCursor<PoliticaPrivacidadDto>>(
-    `/api/v1/admin/privacy/competitions/${convocatoriaId}/policies${qs}`,
+    `/admin/privacy/competitions/${convocatoriaId}/policies${qs}`,
   )
 }
 
@@ -124,6 +122,6 @@ export async function listarRevisionesRetencion(
   if (params?.cursor) q.set("cursor", params.cursor)
   const qs = q.toString() ? `?${q.toString()}` : ""
   return apiGet<PaginaCursor<RevisionRetencionDto>>(
-    `/api/v1/admin/privacy/competitions/${convocatoriaId}/retention-review${qs}`,
+    `/admin/privacy/competitions/${convocatoriaId}/retention-review${qs}`,
   )
 }

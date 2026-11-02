@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  convocatoriasAbiertas,
   estadoRecepcion,
   estadoFase,
   validarConfiguracion,
@@ -82,6 +83,43 @@ describe("Límites de recepción FT14", () => {
     )
   })
 })
+describe("Convocatorias con recepción abierta", () => {
+  const cerrada: ConvocatoriaPublica = {
+    ...c,
+    id: "cerrada",
+    fases: [{ ...c.fases[0], cierre: "2026-10-20T05:00:00Z" }],
+  }
+  const deshabilitada: ConvocatoriaPublica = {
+    ...c,
+    id: "sin-formulario",
+    ef12Disponible: false,
+  }
+  const faseDeshabilitada: ConvocatoriaPublica = {
+    ...c,
+    id: "fase-off",
+    fases: [{ ...c.fases[0], habilitada: false }],
+  }
+
+  it("sin convocatorias no hay ninguna abierta", () => {
+    expect(convocatoriasAbiertas([], ahora)).toEqual([])
+  })
+
+  it("conserva sólo las abiertas, en el orden recibido", () => {
+    const otra = { ...c, id: "otra" }
+    expect(
+      convocatoriasAbiertas([cerrada, c, deshabilitada, otra], ahora).map(
+        (x) => x.id,
+      ),
+    ).toEqual(["periodo-qa", "otra"])
+  })
+
+  it("excluye formulario o fase deshabilitados", () => {
+    expect(
+      convocatoriasAbiertas([deshabilitada, faseDeshabilitada], ahora),
+    ).toEqual([])
+  })
+})
+
 describe("Validación preventiva de configuración T18", () => {
   it("acepta configuración coherente y conserva la versión", () => {
     const v = config()

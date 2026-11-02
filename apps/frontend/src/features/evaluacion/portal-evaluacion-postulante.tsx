@@ -25,7 +25,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { useListarPostulaciones } from "@/features/postulaciones/queries"
+import { usePostulacionActual } from "@/features/postulaciones/queries"
 import { useResultadoMeritosPostulante } from "@/features/revision/queries"
 import { useEstadoExamen } from "@/features/preguntas/queries"
 import { esErrorApi } from "@/lib/api-error"
@@ -39,9 +39,7 @@ import { formatearFechaEcuador } from "@/utils/fechas"
  * Valida elegibilidad, requisitos de méritos, horario oficial y sala de examen.
  */
 export function PortalEvaluacionPostulante() {
-  const { data: postulacionesData, isPending: cargandoPostulacion } =
-    useListarPostulaciones({ limit: 1 })
-  const postulacion = postulacionesData?.items?.[0]
+  const { postulacion, isPending: cargandoPostulacion } = usePostulacionActual()
   const submissionId = postulacion?.id ?? ""
 
   // Consultar méritos para verificar elegibilidad

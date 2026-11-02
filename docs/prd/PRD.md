@@ -370,7 +370,7 @@ destino del trabajo descrito en [`../tasks/`](../tasks/).
 | EF-12 | 1.7 — Publicaciones | HU-05 | `apps/backend/internal/submission/sections.go` | ⬜ Planificada |
 | EF-12 | 1.8 — Capacitación | HU-05 | `apps/backend/internal/submission/sections.go` | ⬜ Planificada |
 | EF-12 | 1.9 — Inhabilidades | HU-05 | `apps/backend/internal/submission/sections.go` | ⬜ Planificada |
-| EF-12 | 1.2.1–1.2.3 — Cascada geográfica | HU-06 | `apps/backend/internal/catalog/` · `apps/frontend/src/data/ecuadorGeo.ts` | 🟡 Parcial (solo frontend) |
+| EF-12 | 1.2.1–1.2.3 — Cascada geográfica | HU-06 | `apps/backend/internal/catalog/` · `apps/frontend/src/features/formulario/seccion-2-contacto.tsx` | ✅ Implementado (API de catálogos con caché Redis; lista local solo como respaldo con aviso) |
 | EF-12 | 1.1.6 — Nacionalidad | HU-06 | `apps/backend/internal/submission/rules.go` | ⬜ Planificada |
 | EF-12 | Adjuntos PDF y límites | HU-07 | `apps/backend/internal/document/` · `apps/backend/internal/platform/storage/local.go` | 🟡 Parcial (solo almacenamiento) |
 | EF-12 | Guardar progreso | HU-09 | `apps/backend/internal/submission/service.go` | ✅ Implementado (estado `draft`) |

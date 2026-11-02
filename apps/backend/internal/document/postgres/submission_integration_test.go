@@ -16,6 +16,7 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
 	submissionpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/postgres"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/testutil"
 )
 
 // Usa PostgreSQL real con DOCUMENT_TEST_DATABASE_URL y el esquema aislado de T4.
@@ -27,11 +28,13 @@ func TestSaveSubmissionCommitsAllTablesOrRollsBackOnDocumentFailure(t *testing.T
 			defer cancel()
 			submissions := submissionpostgres.NewRepository(sqlcgen.New(pool), db.NewTxManager(pool))
 			service := submission.NewService(submissions)
+			// El fixture ya tiene una postulación en su convocatoria; el agregado se crea en otra.
+			period := testutil.OpenCompetition(t, pool)
 			var submissionID, firstDocumentID uuid.UUID
 			code := "EF12-T5-AGGREGATE"
 			saved, err := service.SaveSubmission(ctx, submission.CreateInput{
 				ApplicantID:   existing.ApplicantID,
-				CompetitionID: existing.CompetitionID,
+				CompetitionID: &period,
 				Code:          code,
 				Content:       json.RawMessage(`{"seccion5":{"titulos":[{"id":"titulo-1"},{"id":"titulo-2"}]}}`),
 				SaveRelated: func(txctx context.Context, current *submission.Submission) error {

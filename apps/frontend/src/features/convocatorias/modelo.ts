@@ -38,6 +38,21 @@ export function estadoRecepcion(
   return c.ef12Disponible && fase.habilitada ? "abierta" : "suspendida"
 }
 
+/**
+ * Filtra las convocatorias cuya recepción del formulario está abierta ahora.
+ * Sirve para elegir convocatoria al entrar al formulario sin `?convocatoria=`:
+ * con una sola abierta se usa esa; con varias, el postulante elige.
+ * @param convocatorias - Listado público devuelto por el servidor
+ * @param ahora - Instante actual en milisegundos
+ * @returns Las convocatorias abiertas, en el orden del listado
+ */
+export function convocatoriasAbiertas(
+  convocatorias: ConvocatoriaPublica[],
+  ahora: number,
+): ConvocatoriaPublica[] {
+  return convocatorias.filter((c) => estadoRecepcion(c, ahora) === "abierta")
+}
+
 export const ETIQUETAS_RECEPCION: Record<EstadoCalendario, string> = {
   programada: "Apertura programada",
   abierta: "Postulaciones abiertas",

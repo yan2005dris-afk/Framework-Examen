@@ -10,6 +10,7 @@ import { AdminPreguntasView } from "@/pages/admin-preguntas-view"
 import { DashboardPostulacionDetalleView } from "@/pages/dashboard-postulacion-detalle-view"
 import { DashboardPostulacionesView } from "@/pages/dashboard-postulaciones-view"
 import { DashboardView } from "@/pages/dashboard-view"
+import { ErrorRutaView } from "@/pages/error-ruta-view"
 import { DashboardReportesView } from "@/pages/dashboard-reportes-view"
 import { EvaluacionExamenView } from "@/pages/evaluacion-examen-view"
 import { EvaluacionResultadoView } from "@/pages/evaluacion-resultado-view"
@@ -33,9 +34,14 @@ import { ACCESO_POR_RUTA, RUTAS } from "@/lib/rutas"
  * El acceso se declara una sola vez en {@link ACCESO_POR_RUTA} y el guard se
  * monta sobre el layout del grupo: así las rutas hijas heredan la misma regla y
  * no hay que repetirla en cada hoja.
+ *
+ * Cada grupo declara `errorElement`: si una vista falla al mostrarse (por
+ * ejemplo, porque una extensión modificó la página), se ve una pantalla
+ * recuperable en lugar del error técnico de React Router.
  */
 export const router = createBrowserRouter([
   {
+    errorElement: <ErrorRutaView />,
     element: <LayoutPublico />,
     children: [
       { path: RUTAS.inicio, element: <PortadaView /> },
@@ -47,6 +53,7 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    errorElement: <ErrorRutaView />,
     path: RUTAS.postulacion,
     element: (
       <GuardSesion acceso={ACCESO_POR_RUTA[RUTAS.postulacion]}>
@@ -61,6 +68,7 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    errorElement: <ErrorRutaView />,
     element: (
       <GuardSesion acceso="con-sesion">
         <LayoutPostulante />
@@ -80,6 +88,7 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    errorElement: <ErrorRutaView />,
     path: RUTAS.dashboard,
     element: (
       <GuardSesion acceso={ACCESO_POR_RUTA[RUTAS.dashboard]}>
@@ -97,6 +106,7 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    errorElement: <ErrorRutaView />,
     path: "/admin",
     element: (
       <GuardSesion acceso={ACCESO_POR_RUTA[RUTAS.adminConvocatorias]}>

@@ -13,7 +13,7 @@ import (
 )
 
 /**
- * 00020_seed_admin.go
+ * 00021_seed_admin.go
  *
  * Alta inicial del administrador de plataforma. Se aplica una sola vez, junto
  * con las migraciones de esquema, porque goose registra la versión aplicada:

@@ -13,8 +13,8 @@ import {
   PUNTOS_CONSENTIMIENTO_EF12,
   type ConsentimientoEF12Data,
 } from "@/features/formulario/constantes"
-import { useListarPostulaciones } from "@/features/postulaciones/queries"
-import { RUTAS } from "@/lib/rutas"
+import { usePostulacionActual } from "@/features/postulaciones/queries"
+import { RUTAS, rutaPostulacion } from "@/lib/rutas"
 import { calcularDuracionExperiencia } from "@/helpers/experiencia"
 import type {
   Seccion1Data,
@@ -34,14 +34,7 @@ import type {
  * el hash criptográfico inmutable y el espacio para la firma manuscrita.
  */
 export function ImprimirView() {
-  const {
-    data: postulacionesData,
-    isLoading,
-    error,
-    refetch,
-  } = useListarPostulaciones({ limit: 1 })
-
-  const postulacion = postulacionesData?.items?.[0]
+  const { postulacion, isLoading, error, refetch } = usePostulacionActual()
   const content = postulacion?.content || {}
 
   const s1 = (content.seccion1 || {}) as Partial<Seccion1Data>
@@ -100,13 +93,25 @@ export function ImprimirView() {
             size="sm"
             className="flex items-center gap-1.5"
           >
-            <Link to={RUTAS.postulacionRevision}>
+            <Link
+              to={rutaPostulacion(
+                RUTAS.postulacionRevision,
+                postulacion?.convocatoriaId,
+              )}
+            >
               <ArrowLeftIcon className="size-4" aria-hidden="true" />
               <span>Volver a la revisión</span>
             </Link>
           </Button>
           <Button asChild variant="ghost" size="sm">
-            <Link to={RUTAS.postulacion}>Ir al formulario</Link>
+            <Link
+              to={rutaPostulacion(
+                RUTAS.postulacion,
+                postulacion?.convocatoriaId,
+              )}
+            >
+              Ir al formulario
+            </Link>
           </Button>
         </div>
 
