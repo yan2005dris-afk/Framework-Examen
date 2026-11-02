@@ -337,6 +337,24 @@ func ApplicantFromContext(ctx context.Context) (*Applicant, bool) {
 	return applicant, ok
 }
 
+/**
+ * RequireActor devuelve el postulante autenticado de la petición. Si la
+ * petición no trae sesión resuelta, responde 401 y devuelve false para que
+ * el handler corte de inmediato en lugar de operar con un actor ausente.
+ *
+ * @param {http.ResponseWriter} writer - Respuesta HTTP en construcción.
+ * @param {http.Request} request - Petición entrante.
+ * @returns {*Applicant, bool} Postulante autenticado y true si existe.
+ */
+func RequireActor(writer http.ResponseWriter, request *http.Request) (*Applicant, bool) {
+	applicant, ok := ApplicantFromContext(request.Context())
+	if !ok || applicant == nil || applicant.ID == uuid.Nil {
+		httpx.RespondError(writer, request, http.StatusUnauthorized, "no_autenticado", "Debe iniciar sesión.")
+		return nil, false
+	}
+	return applicant, true
+}
+
 // ── Utility Helpers ──────────────────────────────────────────────────────────
 
 func decodeJSON(r *http.Request, target any) error {

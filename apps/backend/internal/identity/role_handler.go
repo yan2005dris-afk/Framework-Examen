@@ -33,7 +33,10 @@ func RegisterRoleRoutes(router chi.Router, service *RoleService) {
 			httpx.RespondError(w, r, 400, "cuerpo_invalido", "El cuerpo de la petición no es válido.")
 			return
 		}
-		actor, _ := ApplicantFromContext(r.Context())
+		actor, ok := RequireActor(w, r)
+		if !ok {
+			return
+		}
 		applicant, err := service.Change(r.Context(), actor, target, input.Role, input.Reason)
 		switch {
 		case errors.Is(err, ErrRoleForbidden):

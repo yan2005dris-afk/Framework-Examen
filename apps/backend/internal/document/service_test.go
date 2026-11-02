@@ -124,6 +124,7 @@ type memoryStorage struct {
 	mu                   sync.Mutex
 	objects              map[string][]byte
 	failSave, failDelete bool
+	failKeys             map[string]bool
 }
 
 func (s *memoryStorage) Save(_ context.Context, key string, content io.Reader) error {
@@ -139,7 +140,7 @@ func (s *memoryStorage) Save(_ context.Context, key string, content io.Reader) e
 func (s *memoryStorage) Delete(_ context.Context, key string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.failDelete {
+	if s.failDelete || s.failKeys[key] {
 		return errors.New("almacenamiento no disponible")
 	}
 	delete(s.objects, key)
@@ -397,5 +398,33 @@ func TestFailedStorageUploadReturnsUnavailableAndRetainsCompensation(t *testing.
 	store.failDelete = false
 	if err := s.Cleanup(context.Background()); err != nil || len(r.queued) != 0 {
 		t.Fatal("compensación no recuperada", err)
+	}
+}
+
+/**
+ * TestCleanupNoBloqueaLaCola comprueba que una clave que no se puede borrar
+ * no impide procesar las demás: la cola no puede quedar detenida por siempre
+ * detrás de un objeto problemático.
+ */
+func TestCleanupNoBloqueaLaCola(t *testing.T) {
+	ctx := context.Background()
+	service, repo, store, _ := fixture(t)
+
+	repo.queued = []string{"clave-rota", "clave-sana"}
+	store.objects["clave-rota"] = []byte("x")
+	store.objects["clave-sana"] = []byte("y")
+	store.failKeys = map[string]bool{"clave-rota": true}
+
+	if err := service.Cleanup(ctx); err == nil {
+		t.Fatal("se esperaba el fallo de la clave problemática")
+	}
+	if len(repo.queued) != 1 || repo.queued[0] != "clave-rota" {
+		t.Fatalf("la clave sana debió completarse y la rota permanecer: %v", repo.queued)
+	}
+	if _, ok := store.objects["clave-sana"]; ok {
+		t.Fatal("el objeto sano debió borrarse")
+	}
+	if _, ok := store.objects["clave-rota"]; !ok {
+		t.Fatal("el objeto problemático no debe borrarse")
 	}
 }

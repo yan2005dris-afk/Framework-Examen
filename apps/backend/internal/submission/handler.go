@@ -61,7 +61,10 @@ func (h *Handler) RegisterRoutes(router chi.Router) {
 
 /** review entrega el expediente sellado por una ruta administrativa separada. */
 func (h *Handler) review(w http.ResponseWriter, r *http.Request) {
-	actor, _ := identity.ApplicantFromContext(r.Context())
+	actor, ok := identity.RequireActor(w, r)
+	if !ok {
+		return
+	}
 	id, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		writeError(w, r, ErrInvalidIdentifier)
@@ -400,8 +403,11 @@ func (h *Handler) saveSection(w http.ResponseWriter, r *http.Request) {
 		httpx.RespondError(w, r, 400, "cuerpo_invalido", "El cuerpo de la petición no es válido.")
 		return
 	}
-	actor, _ := identity.ApplicantFromContext(r.Context())
-	if n == 1 && actor != nil && actor.IDCard.String() != "" {
+	actor, ok := identity.RequireActor(w, r)
+	if !ok {
+		return
+	}
+	if n == 1 && actor.IDCard.String() != "" {
 		var sec PersonalSection
 		if err := json.Unmarshal(content, &sec); err == nil && sec.IDCard != "" && sec.IDCard != actor.IDCard.String() {
 			writeError(w, r, ErrForbidden)
@@ -440,7 +446,10 @@ func (h *Handler) printFinal(w http.ResponseWriter, r *http.Request, admin bool)
 		writeError(w, r, ErrInvalidIdentifier)
 		return
 	}
-	actor, _ := identity.ApplicantFromContext(r.Context())
+	actor, ok := identity.RequireActor(w, r)
+	if !ok {
+		return
+	}
 	data, err := h.service.PrintFinal(r.Context(), actor, id, admin)
 	if err != nil {
 		writeError(w, r, err)

@@ -62,7 +62,10 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, domain.ErrInvalidCursor)
 		return
 	}
-	actor, _ := identity.ApplicantFromContext(r.Context())
+	actor, ok := identity.RequireActor(w, r)
+	if !ok {
+		return
+	}
 	result, err := h.service.List(r.Context(), actor, f, q)
 	if err != nil {
 		writeError(w, r, err)
@@ -77,7 +80,10 @@ func (h *Handler) stats(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
-	actor, _ := identity.ApplicantFromContext(r.Context())
+	actor, ok := identity.RequireActor(w, r)
+	if !ok {
+		return
+	}
 	result, err := h.service.Counts(r.Context(), actor, f)
 	if err != nil {
 		writeError(w, r, err)
@@ -96,7 +102,10 @@ func (h *Handler) competitions(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, domain.ErrInvalidCursor)
 		return
 	}
-	actor, _ := identity.ApplicantFromContext(r.Context())
+	actor, ok := identity.RequireActor(w, r)
+	if !ok {
+		return
+	}
 	result, err := h.service.Competitions(r.Context(), actor, q)
 	if err != nil {
 		writeError(w, r, err)
@@ -116,7 +125,10 @@ func (h *Handler) export(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, ErrInvalidFilter)
 		return
 	}
-	actor, _ := identity.ApplicantFromContext(r.Context())
+	actor, ok := identity.RequireActor(w, r)
+	if !ok {
+		return
+	}
 	data, err := h.service.Export(r.Context(), actor, f, format)
 	if err != nil {
 		writeError(w, r, err)

@@ -128,6 +128,29 @@ jobs:
           REDIS_TEST_URL: redis://localhost:6379
         run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
 
+      - name: Gate de cobertura
+        run: |
+          # Umbral deliberadamente por debajo de la cobertura actual (54%):
+          # detecta regresiones sin bloquear cambios legítimos. Súbelo junto con
+          # las pruebas que las justifican.
+          min=50
+          total=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub(/%/, "", $NF); print $NF}')
+          echo "Cobertura total: ${total}% (mínimo exigido: ${min}%)"
+          awk -v total="$total" -v min="$min" 'BEGIN {
+            if (total + 0 < min + 0) {
+              printf "::error::La cobertura %.1f%% es inferior al mínimo exigido (%.0f%%).\n", total, min
+              exit 1
+            }
+          }'
+          echo "Paquetes con menor cobertura:"
+          go test ./... -cover 2>&1 | grep "coverage:" | awk '{
+            pct = ""
+            if (match($0, /coverage: [0-9]+\.[0-9]+%/)) { pct = substr($0, RSTART + 9, RLENGTH - 9); gsub(/%/, "", pct) }
+            pkg = ""
+            for (i = 1; i <= NF; i++) { if ($i ~ /Framework-Examen\/apps\/backend\//) { pkg = $i; break } }
+            if (pct != "" && pkg != "") { sub(/github.com\/yan2005dris-afk\/Framework-Examen\/apps\/backend\//, "", pkg); printf "%s%% %s\n", pct, pkg }
+          }' | grep -v '^.*% cmd/' | sort -n | head -5
+
       - name: Código generado (sqlc) al día
         run: |
           go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1

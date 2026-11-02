@@ -70,8 +70,8 @@ func (r *Repository) Guard(next http.Handler) http.Handler {
 			handled = true
 		}
 		if !handled && path == "api/v1/submissions" {
-			a, _ := identity.ApplicantFromContext(ctx)
-			if a == nil {
+			a, ok := identity.ApplicantFromContext(ctx)
+			if !ok || a == nil {
 				err = privacy.ErrDenied
 			} else {
 				ids, e := r.q.PrivacyApplicantSubmissions(ctx, a.ID)
@@ -123,8 +123,8 @@ func (r *Repository) Guard(next http.Handler) http.Handler {
 			}
 		}
 		if err != nil {
-			a, _ := identity.ApplicantFromContext(ctx)
-			if a != nil && strings.Contains(path, "/admin/") {
+			a, ok := identity.ApplicantFromContext(ctx)
+			if ok && a != nil && strings.Contains(path, "/admin/") {
 				err = audit.Record(ctx, r.audit, audit.Event{ActorID: a.ID, Role: a.Role, SubmissionID: sub, ResourceID: sub, ResourceType: "postulacion", Action: "privacidad.acceso_denegado", CreatedAt: time.Now().UTC()}, err)
 			}
 			status, code := 409, "privacidad_pendiente"

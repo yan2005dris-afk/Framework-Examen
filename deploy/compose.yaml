@@ -59,6 +59,9 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-no-reply@biess.local}
       SMTP_TLS: ${SMTP_TLS:-true}
+      # Obligatoria para la migración 00020: crea el administrador inicial con
+      # esa contraseña. Sin ella la migración falla y la API no arranca.
+      INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD:?define INIT_ADMIN_PASSWORD en deploy/.env}
     volumes:
       - api-data:/app/data
     depends_on:
@@ -76,6 +79,48 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+
+  # El worker cumple las colas en segundo plano y no sirve tráfico HTTP. No
+  # aplica migraciones: el esquema lo aplica la API al arrancar, y el bloqueo
+  # consultivo serializa a varias réplicas que levantan a la vez.
+  worker:
+    build:
+      context: ../apps/backend
+      dockerfile: Dockerfile
+      target: worker
+    container_name: biess-worker
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?define DATABASE_URL en deploy/.env}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      DB_REQUIRED: "true"
+      STORAGE_DRIVER: s3
+      S3_ENDPOINT: http://rustfs:9000/biess
+      S3_PUBLIC_ENDPOINT: http://localhost:9000/biess
+      S3_ACCESS_KEY: rustfsadmin
+      S3_SECRET_KEY: rustfsadmin
+      S3_REGION: us-east-1
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # La cola se cifra con esta clave: la API y el worker deben compartirla.
+      MAIL_OUTBOX_KEY: ${MAIL_OUTBOX_KEY:?define MAIL_OUTBOX_KEY en deploy/.env}
+      OTP_RESEND_DELAY: ${OTP_RESEND_DELAY:-1m}
+      OTP_MAX_SENDS: ${OTP_MAX_SENDS:-3}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@biess.local}
+      SMTP_TLS: ${SMTP_TLS:-true}
+    volumes:
+      - api-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rustfs:
+        condition: service_started
 
   rustfs:
     image: rustfs/rustfs:latest
