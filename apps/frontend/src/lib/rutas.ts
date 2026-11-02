@@ -180,6 +180,18 @@ export function leerDestinoLogin(
 }
 
 /**
+ * Indica si un destino es una ruta de este portal. Un destino externo
+ * (`https://…`, `//otro-sitio`, `/\otro-sitio`) no se sigue tras el login.
+ */
+function esRutaInterna(destino: string): boolean {
+  return (
+    destino.startsWith("/") &&
+    !destino.startsWith("//") &&
+    !destino.startsWith("/\\")
+  )
+}
+
+/**
  * Resuelve la redirección posterior al login validando coherencia de rol.
  * Evita que usuarios administrativos (administrador/analista) terminen en el
  * formulario de postulación aunque el enlace de login trajera `?destino=/postulacion`.
@@ -196,7 +208,8 @@ export function resolverDestinoLogin(
   if (
     !destinoLimpio ||
     destinoLimpio === RUTAS.login ||
-    destinoLimpio === RUTAS.inicio
+    destinoLimpio === RUTAS.inicio ||
+    !esRutaInterna(destinoLimpio)
   ) {
     return rutaInicial(postulante)
   }

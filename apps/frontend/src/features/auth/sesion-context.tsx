@@ -7,9 +7,11 @@ import {
   useState,
   type ReactNode,
 } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 
 import { configurarManejadorNoAutorizado } from "@/lib/api"
 import { esErrorApi } from "@/lib/api-error"
+import { vaciarDatosDeSesion } from "@/lib/query-client"
 import {
   cerrarSesion,
   obtenerSesion,
@@ -70,6 +72,7 @@ type ProveedorSesionProps = {
  * no hay recarga de página ni doble navegación.
  */
 export function ProveedorSesion({ children }: ProveedorSesionProps) {
+  const queryClient = useQueryClient()
   const [postulante, setPostulante] = useState<PostulanteDto | null>(null)
   const [estado, setEstado] = useState<EstadoSesion>("cargando")
 
@@ -109,10 +112,12 @@ export function ProveedorSesion({ children }: ProveedorSesionProps) {
     return () => controlador.abort()
   }, [aplicarSesion, aplicarAnonimo])
 
+  // Cerrar sesión o perderla (401) descarta los datos de la cuenta anterior.
   const limpiarSesion = useCallback(() => {
+    vaciarDatosDeSesion(queryClient)
     setPostulante(null)
     setEstado("anonimo")
-  }, [])
+  }, [queryClient])
 
   useEffect(() => {
     configurarManejadorNoAutorizado(limpiarSesion)
@@ -141,10 +146,15 @@ export function ProveedorSesion({ children }: ProveedorSesionProps) {
     }
   }, [limpiarSesion])
 
-  const iniciarSesionCon = useCallback((nuevoPostulante: PostulanteDto) => {
-    setPostulante(nuevoPostulante)
-    setEstado("autenticado")
-  }, [])
+  // Una sesión nueva nunca reutiliza datos en caché de otra cuenta.
+  const iniciarSesionCon = useCallback(
+    (nuevoPostulante: PostulanteDto) => {
+      vaciarDatosDeSesion(queryClient)
+      setPostulante(nuevoPostulante)
+      setEstado("autenticado")
+    },
+    [queryClient],
+  )
 
   const valor = useMemo<ValorSesion>(
     () => ({

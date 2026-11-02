@@ -38,6 +38,18 @@ export function calcularRetrocesoExponencial(attemptIndex: number): number {
 }
 
 /**
+ * Descarta todos los datos en caché al terminar o cambiar la sesión. Las
+ * claves de consulta no incluyen la cuenta, así que sin este vaciado la
+ * siguiente persona que inicie sesión en el mismo navegador vería los datos
+ * de la anterior hasta que vencieran.
+ * @param cliente - QueryClient de la aplicación
+ */
+export function vaciarDatosDeSesion(cliente: QueryClient): void {
+  void cliente.cancelQueries()
+  cliente.clear()
+}
+
+/**
  * Crea una nueva instancia de QueryClient configurada con las políticas de
  * reintento, caché y staleTime del proyecto.
  */
