@@ -24,7 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { useListarPostulaciones } from "@/features/postulaciones/queries"
+import { usePostulacionActual } from "@/features/postulaciones/queries"
 import { useEstadoExamen } from "@/features/preguntas/queries"
 import { descargarReporteExamenPdf } from "@/lib/clientes/preguntas"
 import { RUTAS } from "@/lib/rutas"
@@ -36,9 +36,7 @@ import { formatearFechaEcuador } from "@/utils/fechas"
  * trazabilidad e integración al expediente general y descarga del reporte PDF.
  */
 export function ResultadoExamen() {
-  const { data: postulacionesData, isPending: cargandoPostulacion } =
-    useListarPostulaciones({ limit: 1 })
-  const postulacion = postulacionesData?.items?.[0]
+  const { postulacion, isPending: cargandoPostulacion } = usePostulacionActual()
   const submissionId = postulacion?.id ?? ""
 
   const consultaExamen = useEstadoExamen(submissionId, Boolean(submissionId))

@@ -28,6 +28,7 @@ import { useConvocatoriasPublicas } from "@/features/convocatorias/queries"
 import {
   ETIQUETAS_RECEPCION,
   SECTORES,
+  convocatoriasAbiertas,
   estadoFase,
   estadoRecepcion,
 } from "@/features/convocatorias/modelo"
@@ -43,13 +44,14 @@ export function PortadaView() {
   const [parametros, setParametros] = useSearchParams()
   const listado = useConvocatoriasPublicas()
   const items = listado.data?.pages.flatMap((p) => p.items) ?? []
+  const ahora = useAhora()
+  // Misma regla que el formulario: se prefiere una convocatoria con recepción abierta.
   const id =
     parametros.get("convocatoria") ||
-    items.find((c) => c.ef12Disponible)?.id ||
+    convocatoriasAbiertas(items, ahora)[0]?.id ||
     items[0]?.id
   const consulta = useDisponibilidadEF12(id)
   const convocatoria = consulta.data
-  const ahora = useAhora()
   const { estado: sesion } = useSesion()
   const { ruta } = useRutaInicial()
   const estado = estadoRecepcion(

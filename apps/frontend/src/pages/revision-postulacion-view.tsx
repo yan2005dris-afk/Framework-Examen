@@ -39,13 +39,13 @@ import {
 import { ConsentimientoEF12 } from "@/features/formulario/consentimiento"
 import { consentimientoParaEnvio } from "@/features/formulario/modelo"
 import {
-  useListarPostulaciones,
+  usePostulacionActual,
   useSellarPostulacion,
 } from "@/features/postulaciones/queries"
 import { useDisponibilidadEF12 } from "@/features/convocatorias/use-disponibilidad"
 import { usePoliticaVigente } from "@/features/privacidad/queries"
 import { esErrorApi } from "@/lib/api-error"
-import { RUTAS, rutaSeccion } from "@/lib/rutas"
+import { RUTAS, rutaPostulacion, rutaSeccion } from "@/lib/rutas"
 import { calcularDuracionExperiencia } from "@/helpers/experiencia"
 import type {
   Seccion1Data,
@@ -65,16 +65,10 @@ import type {
  * y realiza el sellado criptográfico inmutable.
  */
 export function RevisionPostulacionView() {
-  const {
-    data: postulacionesData,
-    isLoading,
-    error,
-    refetch,
-  } = useListarPostulaciones({ limit: 1 })
+  const { postulacion, isLoading, error, refetch } = usePostulacionActual()
 
   const sellarMutation = useSellarPostulacion()
 
-  const postulacion = postulacionesData?.items?.[0]
   const yaEnviada = postulacion?.status !== "draft"
   const disponibilidad = useDisponibilidadEF12(postulacion?.convocatoriaId)
   const { data: politicaVigente } = usePoliticaVigente(
@@ -332,7 +326,12 @@ export function RevisionPostulacionView() {
               size="sm"
               className="flex items-center gap-1.5"
             >
-              <Link to={RUTAS.postulacion}>
+              <Link
+                to={rutaPostulacion(
+                  RUTAS.postulacion,
+                  postulacion?.convocatoriaId,
+                )}
+              >
                 <ArrowLeftIcon className="size-4" aria-hidden="true" />
                 <span>Volver al formulario</span>
               </Link>
@@ -343,7 +342,12 @@ export function RevisionPostulacionView() {
               size="sm"
               className="flex items-center gap-1.5"
             >
-              <Link to={RUTAS.postulacionImprimir}>
+              <Link
+                to={rutaPostulacion(
+                  RUTAS.postulacionImprimir,
+                  postulacion?.convocatoriaId,
+                )}
+              >
                 <PrinterIcon className="size-4" aria-hidden="true" />
                 <span>Imprimir</span>
               </Link>
@@ -433,7 +437,12 @@ export function RevisionPostulacionView() {
               asChild
               className="flex items-center gap-2 bg-emerald-700 text-white hover:bg-emerald-800"
             >
-              <Link to={RUTAS.postulacionImprimir}>
+              <Link
+                to={rutaPostulacion(
+                  RUTAS.postulacionImprimir,
+                  postulacion?.convocatoriaId,
+                )}
+              >
                 <PrinterIcon className="size-4" aria-hidden="true" />
                 <span>Imprimir Formulario con Firma Manuscrita</span>
               </Link>
@@ -623,7 +632,12 @@ export function RevisionPostulacionView() {
                     size="sm"
                     className="h-7 text-xs"
                   >
-                    <Link to={rutaSeccion(1)}>
+                    <Link
+                      to={rutaPostulacion(
+                        rutaSeccion(1),
+                        postulacion?.convocatoriaId,
+                      )}
+                    >
                       <Edit3Icon className="mr-1 size-3" /> Editar sección
                     </Link>
                   </Button>
@@ -714,7 +728,12 @@ export function RevisionPostulacionView() {
                     size="sm"
                     className="h-7 text-xs"
                   >
-                    <Link to={rutaSeccion(2)}>
+                    <Link
+                      to={rutaPostulacion(
+                        rutaSeccion(2),
+                        postulacion?.convocatoriaId,
+                      )}
+                    >
                       <Edit3Icon className="mr-1 size-3" /> Editar sección
                     </Link>
                   </Button>
@@ -781,7 +800,12 @@ export function RevisionPostulacionView() {
                     size="sm"
                     className="h-7 text-xs"
                   >
-                    <Link to={rutaSeccion(3)}>
+                    <Link
+                      to={rutaPostulacion(
+                        rutaSeccion(3),
+                        postulacion?.convocatoriaId,
+                      )}
+                    >
                       <Edit3Icon className="mr-1 size-3" /> Editar sección
                     </Link>
                   </Button>
@@ -854,7 +878,12 @@ export function RevisionPostulacionView() {
                     size="sm"
                     className="h-7 text-xs"
                   >
-                    <Link to={rutaSeccion(4)}>
+                    <Link
+                      to={rutaPostulacion(
+                        rutaSeccion(4),
+                        postulacion?.convocatoriaId,
+                      )}
+                    >
                       <Edit3Icon className="mr-1 size-3" /> Editar sección
                     </Link>
                   </Button>
@@ -924,7 +953,12 @@ export function RevisionPostulacionView() {
                     size="sm"
                     className="h-7 text-xs"
                   >
-                    <Link to={rutaSeccion(5)}>
+                    <Link
+                      to={rutaPostulacion(
+                        rutaSeccion(5),
+                        postulacion?.convocatoriaId,
+                      )}
+                    >
                       <Edit3Icon className="mr-1 size-3" /> Editar sección
                     </Link>
                   </Button>
@@ -1016,7 +1050,12 @@ export function RevisionPostulacionView() {
                     size="sm"
                     className="h-7 text-xs"
                   >
-                    <Link to={rutaSeccion(6)}>
+                    <Link
+                      to={rutaPostulacion(
+                        rutaSeccion(6),
+                        postulacion?.convocatoriaId,
+                      )}
+                    >
                       <Edit3Icon className="mr-1 size-3" /> Editar sección
                     </Link>
                   </Button>
@@ -1083,7 +1122,12 @@ export function RevisionPostulacionView() {
                     size="sm"
                     className="h-7 text-xs"
                   >
-                    <Link to={rutaSeccion(7)}>
+                    <Link
+                      to={rutaPostulacion(
+                        rutaSeccion(7),
+                        postulacion?.convocatoriaId,
+                      )}
+                    >
                       <Edit3Icon className="mr-1 size-3" /> Editar sección
                     </Link>
                   </Button>
@@ -1149,7 +1193,12 @@ export function RevisionPostulacionView() {
                     size="sm"
                     className="h-7 text-xs"
                   >
-                    <Link to={rutaSeccion(8)}>
+                    <Link
+                      to={rutaPostulacion(
+                        rutaSeccion(8),
+                        postulacion?.convocatoriaId,
+                      )}
+                    >
                       <Edit3Icon className="mr-1 size-3" /> Editar sección
                     </Link>
                   </Button>
@@ -1236,7 +1285,12 @@ export function RevisionPostulacionView() {
                     size="sm"
                     className="h-7 text-xs"
                   >
-                    <Link to={rutaSeccion(9)}>
+                    <Link
+                      to={rutaPostulacion(
+                        rutaSeccion(9),
+                        postulacion?.convocatoriaId,
+                      )}
+                    >
                       <Edit3Icon className="mr-1 size-3" /> Editar sección
                     </Link>
                   </Button>
@@ -1281,7 +1335,9 @@ export function RevisionPostulacionView() {
           size="sm"
           className="flex items-center gap-1.5"
         >
-          <Link to={RUTAS.postulacion}>
+          <Link
+            to={rutaPostulacion(RUTAS.postulacion, postulacion?.convocatoriaId)}
+          >
             <ArrowLeftIcon className="size-4" aria-hidden="true" />
             <span>Volver al formulario</span>
           </Link>
@@ -1324,7 +1380,12 @@ export function RevisionPostulacionView() {
             asChild
             className="flex items-center gap-2 bg-emerald-700 text-white hover:bg-emerald-800"
           >
-            <Link to={RUTAS.postulacionImprimir}>
+            <Link
+              to={rutaPostulacion(
+                RUTAS.postulacionImprimir,
+                postulacion?.convocatoriaId,
+              )}
+            >
               <PrinterIcon className="size-4" aria-hidden="true" />
               <span>Imprimir Formulario Firmado</span>
             </Link>
