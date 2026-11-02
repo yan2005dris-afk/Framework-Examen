@@ -7,6 +7,7 @@ import {
 import { toast } from "sonner"
 
 import { esErrorApi } from "@/lib/api-error"
+import { deberiaReintentar } from "@/lib/query-client"
 import {
   obtenerCantones,
   obtenerPaises,
@@ -92,6 +93,14 @@ export function useDefinicionFormulario(
 }
 
 /**
+ * Los catálogos se reintentan una sola vez: si la API sigue sin responder, la
+ * vista muestra el catálogo local y avisa, en vez de esperar tres reintentos.
+ */
+function reintentarCatalogo(failureCount: number, error: unknown): boolean {
+  return failureCount < 1 && deberiaReintentar(failureCount, error)
+}
+
+/**
  * Hook para obtener la lista de países disponibles.
  */
 export function useCatalogosPaises() {
@@ -99,6 +108,7 @@ export function useCatalogosPaises() {
     queryKey: postulacionKeys.paises(),
     queryFn: ({ signal }) => obtenerPaises(signal),
     staleTime: Number.POSITIVE_INFINITY,
+    retry: reintentarCatalogo,
   })
 }
 
@@ -111,6 +121,7 @@ export function useCatalogosProvincias(pais = "Ecuador") {
     queryFn: ({ signal }) => obtenerProvincias(pais, signal),
     enabled: Boolean(pais),
     staleTime: Number.POSITIVE_INFINITY,
+    retry: reintentarCatalogo,
   })
 }
 
@@ -123,6 +134,7 @@ export function useCatalogosCantones(provincia?: string, pais = "Ecuador") {
     queryFn: ({ signal }) => obtenerCantones(provincia!, pais, signal),
     enabled: Boolean(provincia),
     staleTime: Number.POSITIVE_INFINITY,
+    retry: reintentarCatalogo,
   })
 }
 

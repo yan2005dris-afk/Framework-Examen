@@ -1,6 +1,8 @@
-import { MapPinIcon } from "lucide-react"
+import { MapPinIcon, RefreshCwIcon, TriangleAlertIcon } from "lucide-react"
 import { useEffect, useRef } from "react"
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -10,9 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { PROVINCIAS_ECUADOR } from "@/data/ecuadorGeo"
+import { LISTA_PROVINCIAS, PAISES, PROVINCIAS_ECUADOR } from "@/data/ecuadorGeo"
 import { useSesion } from "@/features/auth/sesion-context"
-import { useCatalogosPaises } from "@/features/postulaciones/queries"
+import {
+  useCatalogosCantones,
+  useCatalogosPaises,
+  useCatalogosProvincias,
+} from "@/features/postulaciones/queries"
 import { validarCorreoSecundario } from "./validacion"
 
 export interface Seccion2Data {
@@ -42,7 +48,7 @@ export function Seccion2Contacto({
   disabled = false,
 }: Seccion2ContactoProps) {
   const { postulante } = useSesion()
-  const { data: listaPaises = [] } = useCatalogosPaises()
+  const consultaPaises = useCatalogosPaises()
 
   const haPrecargadoRef = useRef(false)
 
@@ -61,11 +67,38 @@ export function Seccion2Contacto({
   const paisActual = datos.pais || "Ecuador"
   const esEcuador = paisActual.toLowerCase() === "ecuador"
 
-  const provinciasDisponibles = esEcuador ? Object.keys(PROVINCIAS_ECUADOR) : []
+  const consultaProvincias = useCatalogosProvincias(paisActual)
+  const consultaCantones = useCatalogosCantones(datos.provincia, paisActual)
+
+  // Si la API de catálogos no responde se usa la lista local, avisando al usuario.
+  const listaPaises = consultaPaises.isError
+    ? PAISES
+    : (consultaPaises.data ?? [])
+  const provinciasDisponibles = !esEcuador
+    ? []
+    : consultaProvincias.isError
+      ? LISTA_PROVINCIAS
+      : (consultaProvincias.data ?? [])
   const cantonesDisponibles =
-    esEcuador && datos.provincia
-      ? PROVINCIAS_ECUADOR[datos.provincia] || []
-      : []
+    !esEcuador || !datos.provincia
+      ? []
+      : consultaCantones.isError
+        ? (PROVINCIAS_ECUADOR[datos.provincia] ?? [])
+        : (consultaCantones.data ?? [])
+
+  const cargandoProvincias = esEcuador && consultaProvincias.isPending
+  const cargandoCantones =
+    esEcuador && Boolean(datos.provincia) && consultaCantones.isPending
+  const usandoCatalogoLocal =
+    consultaPaises.isError ||
+    (esEcuador && consultaProvincias.isError) ||
+    (esEcuador && Boolean(datos.provincia) && consultaCantones.isError)
+
+  function reintentarCatalogos() {
+    if (consultaPaises.isError) void consultaPaises.refetch()
+    if (consultaProvincias.isError) void consultaProvincias.refetch()
+    if (consultaCantones.isError) void consultaCantones.refetch()
+  }
 
   function actualizarCampo<K extends keyof Seccion2Data>(
     campo: K,
@@ -114,16 +147,44 @@ export function Seccion2Contacto({
         </div>
       </div>
 
+      {usandoCatalogoLocal && (
+        <Alert className="border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-300">
+          <TriangleAlertIcon className="size-4 shrink-0" />
+          <AlertTitle>Catálogo del servidor no disponible</AlertTitle>
+          <AlertDescription className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              No se pudo consultar el catálogo del servidor. Se muestra la lista
+              local.
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={reintentarCatalogos}
+            >
+              <RefreshCwIcon data-icon="inline-start" />
+              Reintentar
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="sec2-pais">País *</Label>
           <Select
             value={paisActual}
             onValueChange={(val) => actualizarCampo("pais", val)}
-            disabled={disabled}
+            disabled={disabled || consultaPaises.isPending}
           >
             <SelectTrigger id="sec2-pais">
-              <SelectValue placeholder="Seleccione país" />
+              <SelectValue
+                placeholder={
+                  consultaPaises.isPending
+                    ? "Cargando países…"
+                    : "Seleccione país"
+                }
+              />
             </SelectTrigger>
             <SelectContent className="max-h-60">
               {listaPaises.map((pais) => (
@@ -141,10 +202,16 @@ export function Seccion2Contacto({
             <Select
               value={datos.provincia || ""}
               onValueChange={(val) => actualizarCampo("provincia", val)}
-              disabled={disabled}
+              disabled={disabled || cargandoProvincias}
             >
               <SelectTrigger id="sec2-provincia">
-                <SelectValue placeholder="Seleccione provincia" />
+                <SelectValue
+                  placeholder={
+                    cargandoProvincias
+                      ? "Cargando provincias…"
+                      : "Seleccione provincia"
+                  }
+                />
               </SelectTrigger>
               <SelectContent className="max-h-60">
                 {provinciasDisponibles.map((prov) => (
@@ -171,14 +238,16 @@ export function Seccion2Contacto({
             <Select
               value={datos.canton || ""}
               onValueChange={(val) => actualizarCampo("canton", val)}
-              disabled={disabled || !datos.provincia}
+              disabled={disabled || !datos.provincia || cargandoCantones}
             >
               <SelectTrigger id="sec2-canton">
                 <SelectValue
                   placeholder={
-                    datos.provincia
-                      ? "Seleccione cantón"
-                      : "Elija primero provincia"
+                    !datos.provincia
+                      ? "Elija primero provincia"
+                      : cargandoCantones
+                        ? "Cargando cantones…"
+                        : "Seleccione cantón"
                   }
                 />
               </SelectTrigger>
