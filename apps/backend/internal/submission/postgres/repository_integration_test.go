@@ -24,6 +24,13 @@ import (
 // Usa únicamente una URL de pruebas explícita y un esquema aislado por ejecución.
 func integrationRepository(t *testing.T) (*Repository, *submission.Submission) {
 	t.Helper()
+	repo, item, _ := integrationEnvironment(t)
+	return repo, item
+}
+
+// integrationEnvironment expone además el pool del esquema aislado para crear convocatorias.
+func integrationEnvironment(t *testing.T) (*Repository, *submission.Submission, *pgxpool.Pool) {
+	t.Helper()
 	url := os.Getenv("SUBMISSION_TEST_DATABASE_URL")
 	if url == "" {
 		url = os.Getenv("TEST_DATABASE_URL")
@@ -99,7 +106,7 @@ func integrationRepository(t *testing.T) (*Repository, *submission.Submission) {
 	if err := repo.Create(ctx, item); err != nil {
 		t.Fatal(err)
 	}
-	return repo, item
+	return repo, item, pool
 }
 
 func TestPostgresSerializesMutationsAndRollsBack(t *testing.T) {

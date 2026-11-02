@@ -12,6 +12,7 @@ import {
   resolverDestinoLogin,
   rutaDetallePostulacion,
   rutaInicial,
+  rutaPostulacion,
   rutaSeccion,
   type TipoAcceso,
 } from "./rutas"
@@ -263,6 +264,22 @@ describe("Rutas del portal (rutas.ts)", () => {
       }
 
       expect(ACCESO_POR_RUTA).toEqual(esperado)
+    })
+  })
+
+  describe("rutaPostulacion", () => {
+    it("agrega la convocatoria a la ruta", () => {
+      expect(rutaPostulacion(RUTAS.postulacionRevision, "conv 1")).toBe(
+        "/postulacion/revision?convocatoria=conv%201",
+      )
+      expect(rutaPostulacion(rutaSeccion(3), "c1")).toBe(
+        "/postulacion/3?convocatoria=c1",
+      )
+    })
+
+    it("sin convocatoria devuelve la ruta sin parámetros", () => {
+      expect(rutaPostulacion(RUTAS.postulacion)).toBe("/postulacion")
+      expect(rutaPostulacion(RUTAS.postulacion, null)).toBe("/postulacion")
     })
   })
 })

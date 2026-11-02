@@ -222,7 +222,9 @@ func TestPostgresSealBlocksDocumentsAndCascadesQueueObjects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	second.CompetitionID = item.CompetitionID
+	// Otra convocatoria: un postulante tiene como máximo una postulación por convocatoria.
+	otherPeriod := testutil.OpenCompetition(t, pool)
+	second.CompetitionID = &otherPeriod
 	if err := subrepo.Create(ctx, second); err != nil {
 		t.Fatal(err)
 	}

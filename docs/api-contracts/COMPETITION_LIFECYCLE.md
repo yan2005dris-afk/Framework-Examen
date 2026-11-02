@@ -115,3 +115,30 @@ estados exitosos de correo.
   en nueva pestaña. Su publicación en IESS/BIESS requiere coordinación externa.
 
 Detalles y evidencia local en [FT14-FT15.md](../tasks/FT14-FT15.md).
+
+## Una postulación por convocatoria (2026-11-02)
+
+Regla: un postulante tiene **como máximo una postulación por convocatoria**.
+Puede postular a convocatorias distintas, y cada período nuevo es una
+convocatoria nueva. Fuente: RF 1.4 («a elegir una»: un cargo por postulación)
+y la práctica de un puesto por convocatoria de la Norma Técnica del Subsistema
+de Selección de Personal; la versión vigente de esa norma queda pendiente de
+validación institucional.
+
+- **Servidor.** Índice único parcial `submissions_one_per_competition`
+  (migración `00020`); el legado sin convocatoria queda fuera. Un duplicado
+  responde `409 postulacion_existente`. La migración se detiene, sin borrar
+  datos, si ya existen duplicados. `GET /submissions?convocatoriaId=` devuelve
+  la postulación de una convocatoria.
+- **Elección de convocatoria en el formulario.** Con `?convocatoria=` se usa esa.
+  Sin parámetro: una sola postulación propia se abre y su convocatoria se
+  escribe en la URL; con varias se muestra «Mis postulaciones»; sin
+  postulaciones y una sola convocatoria abierta se elige sola; con varias
+  abiertas el postulante elige y confirma antes de crear el borrador. El
+  sistema nunca toma «la primera» cuando hay más de una opción.
+- **Pantallas de lectura** (revisión, impresión, seguimiento, reconsideración y
+  evaluación) resuelven la postulación con la misma regla y nunca crean
+  borradores. Los enlaces conservan `?convocatoria=`.
+- **Descartar borrador.** Sólo en estado borrador y con confirmación. Tras
+  descartar se vuelve a elegir convocatoria sin recrear el borrador. Lo enviado
+  o cerrado por elegibilidad no se elimina ni se duplica (T9/T17).

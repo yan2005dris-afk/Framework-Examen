@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest"
 import compartidos from "../../../../backend/internal/submission/testdata/form_cases.json"
+import type { DocumentoDto } from "@/lib/clientes/documentos"
+import { referenciaDocumento } from "./modelo"
 import {
   validarCedulaPareja,
   validarCorreoSecundario,
@@ -95,5 +97,104 @@ describe("validaciones de campo extraídas de las secciones", () => {
 
   it("acepta un correo de confirmación válido", () => {
     expect(validarCorreoSecundario("maria.fernandez@example.com")).toBeNull()
+  })
+})
+
+describe("referencia de respaldo PDF tras la subida", () => {
+  const subido: DocumentoDto = {
+    id: "01a19cfc-42aa-79ef-a877-28f0a8a7fbe3",
+    submissionId: "01a19ce2-6213-7dc3-b8ec-7a7a8da4a62c",
+    section: 4,
+    recordId: "",
+    name: "respaldo-prueba.pdf",
+    mime: "application/pdf",
+    sizeBytes: 965,
+    sha256: "a".repeat(64),
+    createdAt: "2026-11-02T16:04:18Z",
+  }
+  const seccion4 = {
+    sector: "afiliados",
+    cuentaConRespaldoOrganizacion: "Sí",
+    nombreOrganizacion: "Organización de prueba",
+  }
+
+  it("cumple el contrato: la sección se puede guardar después de subir el PDF", () => {
+    const resultado = validarSeccionEF12(
+      { ...seccion4, documentoRespaldoPdf: referenciaDocumento(subido) },
+      4,
+    )
+    expect(resultado.esValido, JSON.stringify(resultado.errores)).toBe(true)
+  })
+
+  it("un campo fuera del contrato impide guardar la sección", () => {
+    const resultado = validarSeccionEF12(
+      {
+        ...seccion4,
+        documentoRespaldoPdf: {
+          ...referenciaDocumento(subido),
+          sizeBytes: subido.sizeBytes,
+        },
+      },
+      4,
+    )
+    expect(resultado.esValido).toBe(false)
+  })
+})
+
+describe("mensajes de la experiencia profesional (sección 6)", () => {
+  const base = {
+    id: "exp-1",
+    tipo: "General",
+    cargo: "Analista",
+    institucion: "Institución de prueba",
+    fechaInicio: "2020-01-01",
+    fechaFin: "2022-01-01",
+    actualmenteLaborando: false,
+    actividades: "Finanzas",
+    descripcionFunciones: "Funciones de prueba",
+  }
+  const mensaje = (
+    cambios: Record<string, unknown>,
+    completo = false,
+  ): string | undefined =>
+    validarSeccionEF12(
+      { experiencias: [base, { ...base, id: "exp-2", ...cambios }] },
+      6,
+      completo,
+      new Date("2026-11-02T12:00:00Z"),
+    ).errores[0]?.mensaje
+
+  it("indica qué experiencia tiene el área fuera de la lista", () => {
+    expect(mensaje({ actividades: "Financiero" })).toBe(
+      "Experiencia 2: elija el área de actividades de la lista.",
+    )
+  })
+
+  it("indica fechas invertidas", () => {
+    expect(mensaje({ fechaInicio: "2023-01-01", fechaFin: "2021-01-01" })).toBe(
+      "Experiencia 2: la fecha de fin no puede ser anterior a la de inicio.",
+    )
+  })
+
+  it("indica fechas futuras", () => {
+    expect(mensaje({ fechaInicio: "2030-01-01" })).toBe(
+      "Experiencia 2: la fecha de inicio debe ser válida y no futura.",
+    )
+  })
+
+  it("indica que con empleo actual no lleva fecha de fin", () => {
+    expect(mensaje({ actualmenteLaborando: true })).toBe(
+      "Experiencia 2: si labora actualmente, deje vacía la fecha de fin.",
+    )
+  })
+
+  it("indica campos obligatorios vacíos al completar la sección", () => {
+    expect(mensaje({ cargo: "" }, true)).toBe(
+      "Experiencia 2: complete tipo, cargo, institución, fecha de inicio, actividades y funciones.",
+    )
+  })
+
+  it("acepta experiencias correctas", () => {
+    expect(mensaje({})).toBeUndefined()
   })
 })

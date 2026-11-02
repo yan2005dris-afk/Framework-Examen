@@ -2,7 +2,7 @@ import { CheckCircle2Icon, CircleIcon } from "lucide-react"
 import { Link } from "react-router"
 
 import { Progress } from "@/components/ui/progress"
-import { rutaSeccion } from "@/lib/rutas"
+import { rutaPostulacion, rutaSeccion } from "@/lib/rutas"
 import { cn } from "@/lib/utils"
 import { SECCIONES_EF12_INFO } from "./constantes"
 
@@ -10,12 +10,15 @@ export interface BarraProgresoSeccionesProps {
   seccionActiva: number
   seccionesCompletadas: Record<number, boolean>
   onSeleccionarSeccion?: (numero: number) => void
+  /** Convocatoria de la postulación; los enlaces la conservan en la URL. */
+  convocatoriaId?: string
 }
 
 export function BarraProgresoSecciones({
   seccionActiva,
   seccionesCompletadas,
   onSeleccionarSeccion,
+  convocatoriaId,
 }: BarraProgresoSeccionesProps) {
   const totalCompletadas =
     Object.values(seccionesCompletadas).filter(Boolean).length
@@ -44,7 +47,7 @@ export function BarraProgresoSecciones({
           return (
             <Link
               key={sec.numero}
-              to={rutaSeccion(sec.numero)}
+              to={rutaPostulacion(rutaSeccion(sec.numero), convocatoriaId)}
               onClick={() => onSeleccionarSeccion?.(sec.numero)}
               className={cn(
                 "group flex min-w-16 shrink-0 flex-col items-center gap-1 rounded-md px-2 py-1.5 text-center text-xs transition-colors sm:min-w-20",

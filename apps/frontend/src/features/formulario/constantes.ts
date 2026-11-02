@@ -1,8 +1,17 @@
+import definicion from "../../../../backend/internal/submission/definition.json"
+
 export interface SeccionEstadoInfo {
   numero: number
   titulo: string
   tituloCorto: string
 }
+
+/**
+ * Áreas de estudio y de actividades del RF 1.5.1.4 y 1.6.6 («a elegir una»).
+ * Salen del contrato compartido con el servidor (`definition.json`), que las
+ * valida con la misma lista.
+ */
+export const AREAS_EF12: readonly string[] = definicion.opciones.areas
 
 export const SECCIONES_EF12_INFO: SeccionEstadoInfo[] = [
   { numero: 1, titulo: "Información personal", tituloCorto: "Personal" },

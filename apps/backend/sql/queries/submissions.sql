@@ -15,6 +15,9 @@ SELECT * FROM submissions WHERE applicant_id = $1 ORDER BY updated_at DESC LIMIT
 -- name: CountSubmissionsByApplicant :one
 SELECT count(*) FROM submissions WHERE applicant_id = $1;
 
+-- name: GetSubmissionByApplicantAndCompetition :one
+SELECT * FROM submissions WHERE applicant_id = $1 AND competition_id = $2;
+
 -- name: ListSubmissionsByApplicantCursorFirst :many
 SELECT * FROM submissions
 WHERE applicant_id = $1

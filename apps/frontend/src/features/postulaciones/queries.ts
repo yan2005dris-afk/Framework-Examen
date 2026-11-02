@@ -4,6 +4,8 @@ import {
   useQueryClient,
   type UseQueryOptions,
 } from "@tanstack/react-query"
+import { useEffect } from "react"
+import { useSearchParams } from "react-router"
 import { toast } from "sonner"
 
 import { esErrorApi } from "@/lib/api-error"
@@ -23,12 +25,14 @@ import {
   eliminarPostulacion,
   guardarSeccion,
   listarPostulaciones,
+  listarPostulacionesCursor,
   obtenerPostulacion,
   sellarPostulacion,
   type CrearPostulacionDto,
   type ListarPostulacionesParams,
   type PostulacionDto,
 } from "@/lib/clientes/postulaciones"
+import { resolverPostulacionActual } from "./modelo"
 import type { Pagina } from "@/types/api"
 
 /**
@@ -42,6 +46,8 @@ export const postulacionKeys = {
   detalles: () => [...postulacionKeys.todas, "detalle"] as const,
   detalle: (id: string) => [...postulacionKeys.detalles(), id] as const,
   miPostulacion: () => [...postulacionKeys.todas, "mi-postulacion"] as const,
+  actual: (convocatoriaId?: string) =>
+    [...postulacionKeys.todas, "actual", convocatoriaId ?? null] as const,
   definicion: () => ["formulario-definicion"] as const,
   paises: () => ["catalogos", "paises"] as const,
   provincias: (pais?: string) => ["catalogos", "provincias", pais] as const,
@@ -76,6 +82,64 @@ export function useListarPostulaciones(
     queryFn: ({ signal }) => listarPostulaciones(params, signal),
     ...opciones,
   })
+}
+
+/** Máximo de postulaciones propias que se leen para decidir sin `?convocatoria=`. */
+const LIMITE_POSTULACIONES_PROPIAS = 50
+
+/**
+ * Postulación que corresponde a la pantalla actual del postulante.
+ *
+ * Con `?convocatoria=X` consulta sólo la postulación de X. Sin parámetro lee
+ * las postulaciones propias: con una sola la usa y escribe su convocatoria en
+ * la URL (para recargar o compartir el enlace); con varias pide elegir. Nunca
+ * crea borradores: eso lo decide el formulario.
+ */
+export function usePostulacionActual() {
+  const [parametros, setParametros] = useSearchParams()
+  const convocatoriaParametro = parametros.get("convocatoria") || undefined
+
+  const consulta = useQuery({
+    queryKey: postulacionKeys.actual(convocatoriaParametro),
+    queryFn: ({ signal }) =>
+      listarPostulacionesCursor(
+        convocatoriaParametro
+          ? { convocatoriaId: convocatoriaParametro }
+          : { limit: LIMITE_POSTULACIONES_PROPIAS },
+        signal,
+      ),
+  })
+
+  const resolucion = consulta.data
+    ? resolverPostulacionActual(convocatoriaParametro, consulta.data.items)
+    : undefined
+  const convocatoriaResuelta =
+    resolucion?.estado === "encontrada"
+      ? resolucion.postulacion.convocatoriaId
+      : undefined
+
+  useEffect(() => {
+    if (convocatoriaParametro || !convocatoriaResuelta) return
+    setParametros(
+      (previos) => {
+        const siguientes = new URLSearchParams(previos)
+        siguientes.set("convocatoria", convocatoriaResuelta)
+        return siguientes
+      },
+      { replace: true },
+    )
+  }, [convocatoriaParametro, convocatoriaResuelta, setParametros])
+
+  return {
+    resolucion,
+    postulacion:
+      resolucion?.estado === "encontrada" ? resolucion.postulacion : undefined,
+    convocatoriaId: convocatoriaParametro ?? convocatoriaResuelta,
+    isPending: consulta.isPending,
+    isLoading: consulta.isLoading,
+    error: consulta.error,
+    refetch: consulta.refetch,
+  }
 }
 
 /**
@@ -152,6 +216,12 @@ export function useCrearPostulacion() {
       return nuevaPostulacion
     },
     onError: (error) => {
+      // Otra pestaña o un doble clic ya creó la postulación de esa convocatoria:
+      // se vuelve a consultar y se abre la existente, sin mostrar error.
+      if (esErrorApi(error) && error.codigo === "postulacion_existente") {
+        void queryClient.invalidateQueries({ queryKey: postulacionKeys.todas })
+        return
+      }
       const mensaje = esErrorApi(error)
         ? error.mensaje
         : "No se pudo crear el borrador de la postulación."
