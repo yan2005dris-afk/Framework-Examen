@@ -218,8 +218,24 @@ export function PostulacionView() {
   const descargarDocMutation = useDescargarDocumento()
   const [cargandoDocId, setCargandoDocId] = useState<string | null>(null)
 
+  /**
+   * Antes de guardar la sección para subir un respaldo se aplica la misma
+   * validación que «Guardar»: un dato inválido se informa aquí, con un mensaje
+   * concreto, en vez de llegar al servidor y bloquear la subida.
+   */
+  function validarAntesDeSubir(numero: number, contenido: unknown): boolean {
+    const resultado = validarSeccionEF12(contenido, numero, false)
+    if (resultado.esValido) return true
+    const mensaje =
+      resultado.errores[0]?.mensaje ?? "Revise los datos de la sección."
+    setErrorValidacion(mensaje)
+    toast.warning(`Atención en sección ${numero}: ${mensaje}`)
+    return false
+  }
+
   async function subirRespaldoSeccion4(archivo: File) {
     if (!postulacionActiva?.id) return
+    if (!validarAntesDeSubir(4, formData.seccion4)) return
     try {
       setCargandoDocId("sec4-org")
       await guardarSeccionMutation.mutateAsync({
@@ -267,6 +283,7 @@ export function PostulacionView() {
 
   async function subirRespaldoTitulo(tituloId: string, archivo: File) {
     if (!postulacionActiva?.id) return
+    if (!validarAntesDeSubir(5, formData.seccion5)) return
     try {
       setCargandoDocId(tituloId)
       await guardarSeccionMutation.mutateAsync({
@@ -323,6 +340,7 @@ export function PostulacionView() {
 
   async function subirRespaldoExperiencia(expId: string, archivo: File) {
     if (!postulacionActiva?.id) return
+    if (!validarAntesDeSubir(6, formData.seccion6)) return
     try {
       setCargandoDocId(expId)
       await guardarSeccionMutation.mutateAsync({
@@ -379,6 +397,7 @@ export function PostulacionView() {
 
   async function subirRespaldoPublicacion(pubId: string, archivo: File) {
     if (!postulacionActiva?.id) return
+    if (!validarAntesDeSubir(7, formData.seccion7)) return
     try {
       setCargandoDocId(pubId)
       await guardarSeccionMutation.mutateAsync({
@@ -435,6 +454,7 @@ export function PostulacionView() {
 
   async function subirRespaldoCapacitacion(capId: string, archivo: File) {
     if (!postulacionActiva?.id) return
+    if (!validarAntesDeSubir(8, formData.seccion8)) return
     try {
       setCargandoDocId(capId)
       await guardarSeccionMutation.mutateAsync({
