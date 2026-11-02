@@ -54,7 +54,10 @@ import {
 import { useDisponibilidadEF12 } from "@/features/convocatorias/use-disponibilidad"
 import { esErrorApi } from "@/lib/api-error"
 import { RUTAS, rutaSeccion } from "@/lib/rutas"
-import { referenciaDocumento } from "@/features/formulario/modelo"
+import {
+  aplicarValoresIniciales,
+  referenciaDocumento,
+} from "@/features/formulario/modelo"
 import { validarSeccionEF12 } from "@/features/formulario/validacion"
 
 export interface FormularioPostulacionState {
@@ -193,7 +196,9 @@ export function PostulacionView() {
     if (postulacionActiva.content) {
       setFormData((prev) => ({
         ...prev,
-        ...(postulacionActiva.content as unknown as Partial<FormularioPostulacionState>),
+        ...(aplicarValoresIniciales(
+          postulacionActiva.content,
+        ) as unknown as Partial<FormularioPostulacionState>),
       }))
     }
   }
