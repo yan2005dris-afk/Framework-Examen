@@ -18,13 +18,13 @@ Guía del entorno de desarrollo
 | Go | 1.27.3 o superior | Compilar y probar el backend |
 | Node.js | 22 LTS | Frontend |
 | pnpm | 12 | Gestor de paquetes del workspace |
-| Docker + Compose v2 | Reciente | PostgreSQL, Mailpit y los servicios del proyecto |
+| Docker + Compose v2 | Reciente | PostgreSQL, Redis, RustFS, Mailpit y los servicios del proyecto |
 | PostgreSQL (opcional) | 18+ | Solo si se trabaja **sin** Docker |
-| Redis (opcional) | 7 | Pendiente de implementar; ver [tareas](../tasks/backend-tasks.md) |
+| Redis (opcional) | 7 | Solo si se trabaja **sin** Docker. Bloqueo de intentos de login y caché de catálogos |
 
-> **Nota**: la versión de Redis no es requisito todavía: el módulo de caché y
-> bloqueo de intentos está **pendiente** de implementación. El compose de
-> desarrollo lo incorpora cuando exista.
+> **Nota**: sin Redis la API arranca, pero el inicio de sesión y el registro
+> fallan cerrados (no se pueden contar los intentos) y los catálogos se leen
+> directamente de PostgreSQL.
 
 Verificación rápida:
 
@@ -39,8 +39,8 @@ docker compose version
 
 ## 2. Opción A — Todo con Docker (recomendada)
 
-Levanta API, frontend, PostgreSQL y Mailpit. Es la forma más rápida de tener
-el entorno completo.
+Levanta API, frontend, PostgreSQL, Redis, RustFS y Mailpit. Es la forma más
+rápida de tener el entorno completo.
 
 ```bash
 # 1. Instalar las dependencias del frontend (el compose usa el lockfile)
@@ -53,11 +53,19 @@ docker compose up -d
 docker compose ps
 ```
 
+4. Cargar los **datos de prueba** (cuentas, convocatoria, bucket de documentos
+   y elegibilidad simulada): ver la sección
+   [Datos de prueba del README](../../README.md#datos-de-prueba-solo-desarrollo).
+   Sin ellos no hay con qué iniciar sesión ni a qué postular.
+
 | Servicio | URL | Puerto |
 |---|---|---|
 | Frontend (Vite) | http://localhost:5173 | 5173 |
 | API Go | http://localhost:8080 | 8080 |
 | PostgreSQL | `localhost:5432/biess` | 5432 |
+| Redis | `localhost:6379` | 6379 |
+| RustFS (API S3) | http://localhost:9000 | 9000 |
+| RustFS (consola) | http://localhost:9001 | 9001 |
 | Mailpit (bandeja) | http://localhost:8025 | 8025 |
 | Mailpit (SMTP) | `localhost:1025` | 1025 |
 
@@ -229,7 +237,14 @@ cp apps/backend/.env.example apps/backend/.env
 | `APP_URL` | `http://localhost:5173` | URL pública del frontend (enlaces de correo) |
 | `DATABASE_URL` | — | Cadena de conexión a PostgreSQL |
 | `DB_REQUIRED` | `false` | Si es `true`, la API no arranca sin base de datos |
-| `STORAGE_DIR` | `./data/uploads` | Directorio local de adjuntos |
+| `REDIS_URL` | `redis://localhost:6379/0` | Bloqueo de intentos y caché de catálogos (`redis://redis:6379/0` en Docker) |
+| `STORAGE_DRIVER` | `s3` | `s3` (RustFS en desarrollo) o almacenamiento local |
+| `S3_ENDPOINT` / `S3_PUBLIC_ENDPOINT` | `http://localhost:9000/biess` | Endpoint del bucket `biess`; hay que crearlo una vez |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | `rustfsadmin` | Credenciales de RustFS en desarrollo |
+| `STORAGE_DIR` | `./data/uploads` | Directorio de adjuntos con almacenamiento local |
+| `ELIGIBILITY_SIMULATION_FILE` | vacío | JSON de elegibilidad simulada; vacío = la sección 4 responde 503. Solo desarrollo |
+| `MAIL_OUTBOX_KEY` | — | Clave base64 de 32 bytes para cifrar la cola de correo |
+| `OTP_RESEND_DELAY` / `OTP_MAX_SENDS` | `1m` / `3` | Espera entre reenvíos y envíos máximos en 10 min |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Lista separada por comas; vacío = denegar todo |
 | `SESSION_TTL` | `24h` | Vigencia de la sesión |
 | `HTTP_READ_TIMEOUT` | `15s` | Timeout de lectura |
@@ -283,25 +298,33 @@ pnpm build
 
 ### 6.3 Smoke test manual
 
+Requiere los [datos de prueba](../../README.md#datos-de-prueba-solo-desarrollo):
+las rutas de postulación y catálogos exigen sesión.
+
 ```bash
 # Sondas de la API
 curl -s http://localhost:8080/healthz
 curl -s http://localhost:8080/readyz
 
-# Crear una postulación
-curl -s -X POST http://localhost:8080/api/v1/submissions \
-  -H 'Content-Type: application/json' \
-  -d '{"applicantId":"11111111-1111-1111-1111-111111111111",
-       "code":"EF12-2026-A1B2C3",
-       "content":{"seccion1":{"nombres":"Ana","nacionalidad":"ecuatoriana"}}}'
+# Iniciar sesión con el postulante de prueba (guarda la cookie de sesión)
+curl -s -c sesion.txt -H 'Content-Type: application/json' \
+  -d '{"cedula":"1710034008","password":"Password.2026*"}' \
+  http://localhost:8080/api/v1/auth/login
 
-# Listar (offset y cursor)
-curl -s 'http://localhost:8080/api/v1/submissions?applicantId=11111111-1111-1111-1111-111111111111'
-curl -s 'http://localhost:8080/api/v1/submissions?applicantId=11111111-1111-1111-1111-111111111111&limit=20'
+# Catálogos (servidos desde Redis tras la primera consulta)
+curl -s -b sesion.txt http://localhost:8080/api/v1/catalogs/provinces/Ecuador
+curl -s -b sesion.txt http://localhost:8080/api/v1/catalogs/cities/Ecuador/Guayas
+
+# Postulaciones del usuario y convocatorias publicadas
+curl -s -b sesion.txt 'http://localhost:8080/api/v1/submissions?limit=20'
+curl -s http://localhost:8080/api/v1/competitions
 ```
 
-> Si la base está vacía, insertar un postulante de prueba con el `id`
-> `11111111-1111-1111-1111-111111111111` y la cédula `1710034008`.
+### 6.4 Pruebas de punta a punta
+
+```bash
+pnpm --filter frontend test:e2e   # Playwright
+```
 
 ---
 
@@ -315,6 +338,12 @@ curl -s 'http://localhost:8080/api/v1/submissions?applicantId=11111111-1111-1111
 | `pnpm: command not found` | pnpm no está instalado | `corepack enable && corepack prepare pnpm@12 --activate` |
 | Los adjuntos no aparecen | `STORAGE_DIR` no existe o no es escribible | Crea el directorio o corrige la variable |
 | `cuerpo_muy_grande` (413) | El archivo supera `MAX_REQUEST_BODY_BYTES` | Sube el límite **y** el de nginx en producción |
+| El login responde 401 con las credenciales de prueba | No se cargaron las semillas, o se escribió el correo en lugar de la cédula | Cargar los [datos de prueba](../../README.md#datos-de-prueba-solo-desarrollo); el login pide la cédula |
+| «La recepción no está disponible» en el formulario | No hay convocatoria abierta | Cargar `competitions.sql` (datos de prueba) o crear una desde el panel |
+| `competitions.sql` falla con «La convocatoria con expedientes conserva su período e identidad» | La convocatoria ya tiene postulaciones y su historial está protegido | Nada que corregir: la semilla solo hace falta la primera vez y no modificó datos |
+| `503 almacenamiento_no_disponible` al subir un PDF | Falta el bucket `biess` en RustFS | Crearlo (ver datos de prueba) |
+| `503 elegibilidad_no_disponible` al guardar la sección 4 | `ELIGIBILITY_SIMULATION_FILE` vacío o la cuenta no figura en el JSON | Configurar la elegibilidad simulada (ver datos de prueba) |
+| Pruebas de integración fallan con `no se pudo crear el esquema aislado` | Otro PostgreSQL ocupa el puerto 5432 del equipo | Detener ese servicio o ejecutar las pruebas dentro de la red de Docker |
 
 ### Depurar un contenedor
 
@@ -339,9 +368,10 @@ docker compose down -v       # borra también los datos (DESTRUCTIVO)
 |---|---|
 | PostgreSQL 18 | ✅ Disponible |
 | Mailpit (SMTP de pruebas) | ✅ Disponible |
-| **Redis** (caché y bloqueo de intentos) | ❌ Pendiente de implementar |
-| MinIO / S3 (adjuntos en objetos) | ⚠️ Hoy se usa el backend local en disco |
-| E2E (Playwright) | ❌ Pendiente |
+| Redis (caché y bloqueo de intentos) | ✅ Disponible |
+| RustFS / S3 (adjuntos en objetos) | ✅ Disponible; el bucket `biess` se crea una vez |
+| E2E (Playwright) | ✅ Disponible (`pnpm --filter frontend test:e2e`) |
+| Datos de prueba automáticos | ⚠️ Manuales a propósito: ver [datos de prueba](../../README.md#datos-de-prueba-solo-desarrollo) |
 
 El detalle está en [`../tasks/backend-tasks.md`](../tasks/backend-tasks.md) y
 [`../tasks/frontend-tasks.md`](../tasks/frontend-tasks.md).
