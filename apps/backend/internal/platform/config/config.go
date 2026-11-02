@@ -123,8 +123,10 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	environment := getString("APP_ENV", "development")
+
 	return Config{
-		Environment:       getString("APP_ENV", "development"),
+		Environment:       environment,
 		Port:              port,
 		PublicURL:         getString("APP_URL", "http://localhost:5173"),
 		DatabaseURL:       getString("DATABASE_URL", ""),
@@ -140,7 +142,7 @@ func Load() (Config, error) {
 		S3AccessKey:       getString("S3_ACCESS_KEY", ""),
 		S3SecretKey:       getString("S3_SECRET_KEY", ""),
 		S3SessionToken:    getString("S3_SESSION_TOKEN", ""),
-		CORSOrigins:       getList("CORS_ALLOWED_ORIGINS", []string{"http://localhost:5173"}),
+		CORSOrigins:       loadOrigins(environment),
 		SessionTTL:        sessionTTL,
 		ReadTimeout:       readTimeout,
 		WriteTimeout:      writeTimeout,
@@ -277,27 +279,40 @@ func getDuration(key string, fallback time.Duration) (time.Duration, error) {
 }
 
 /**
- * getList lee una variable de entorno como lista separada por comas.
+ * loadOrigins resuelve la lista de orígenes permitidos. Una variable definida
+ * —incluso vacía— se respeta al pie de la letra: vacío significa denegar
+ * todo, tal como promete el contrato documentado. Sólo cuando la variable no
+ * existe se aplica el valor por defecto del entorno, que en producción es
+ * denegar todo y deja la API sirviéndose desde un único origen.
  *
- * @param {string} key - Nombre de la variable de entorno.
- * @param {string[]} fallback - Valor devuelto cuando la variable no existe.
- * @returns {string[]} Lista de valores sin espacios sobrantes.
+ * @param {string} environment - Entorno de la aplicación.
+ * @returns {string[]} Orígenes permitidos; una lista vacía deniega cualquier
+ * origen cruzado.
  */
-func getList(key string, fallback []string) []string {
-	value := strings.TrimSpace(os.Getenv(key))
-	if value == "" {
-		return fallback
+func loadOrigins(environment string) []string {
+	if value, ok := os.LookupEnv("CORS_ALLOWED_ORIGINS"); ok {
+		return parseList(value)
 	}
+	if environment == "production" || environment == "produccion" {
+		return []string{}
+	}
+	return []string{"http://localhost:5173"}
+}
 
+/**
+ * parseList divide una lista separada por comas y descarta los elementos
+ * vacíos.
+ *
+ * @param {string} value - Lista separada por comas.
+ * @returns {string[]} Valores sin espacios sobrantes.
+ */
+func parseList(value string) []string {
 	parts := strings.Split(value, ",")
 	result := make([]string, 0, len(parts))
 	for _, part := range parts {
 		if trimmed := strings.TrimSpace(part); trimmed != "" {
 			result = append(result, trimmed)
 		}
-	}
-	if len(result) == 0 {
-		return fallback
 	}
 	return result
 }

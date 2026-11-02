@@ -5,10 +5,11 @@
 DATABASE_URL ?= postgres://postgres@localhost:5432/biess?sslmode=disable
 MIGRATE_RUN := DATABASE_URL="$(DATABASE_URL)" go run ./cmd/migrate
 
-.PHONY: help run build test vet fmt tidy sqlc-generate catalog-seed user-seed db-schema db-migrate db-status db-down db-reset docker-up docker-down
+.PHONY: help run worker build test vet fmt tidy sqlc-generate catalog-seed user-seed user-seed-reset db-schema db-migrate db-status db-down db-reset docker-up docker-down
 
 help:
 	@echo "run             Arranca la API en modo desarrollo"
+	@echo "worker          Arranca sólo las colas en segundo plano"
 	@echo "build           Compila el binario de la API en bin/api"
 	@echo "test            Ejecuta los tests"
 	@echo "vet             Ejecuta go vet"
@@ -17,7 +18,8 @@ help:
 	@echo "sqlc-generate   Regenera el código de sqlc"
 	@echo "db-schema       Regenera sql/queries/schema.sql desde las migraciones"
 	@echo "catalog-seed    Regenera la migración y el SQL autónomo de catálogos"
-	@echo "user-seed       Inyecta las cuentas de prueba (postulante, analista, admin)"
+	@echo "user-seed       Crea las cuentas de prueba si no existen (sólo desarrollo)"
+	@echo "user-seed-reset Rota la contraseña de las cuentas de prueba (sólo desarrollo)"
 	@echo "db-migrate      Aplica las migraciones pendientes"
 	@echo "db-status       Muestra el estado de las migraciones"
 	@echo "db-down         Revierte la última migración aplicada"
@@ -28,8 +30,12 @@ help:
 run:
 	go run ./cmd/api
 
+worker:
+	go run ./cmd/worker
+
 build:
 	go build -o bin/api ./cmd/api
+	go build -o bin/worker ./cmd/worker
 
 test:
 	go test ./...
@@ -51,6 +57,9 @@ catalog-seed:
 
 user-seed:
 	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/user-seed
+
+user-seed-reset:
+	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/user-seed -reset-password
 
 db-schema:
 	@printf '%s\n' '-- Esquema que consume sqlc. Se regenera desde las migraciones con `make db-schema`.' > sql/queries/schema.sql

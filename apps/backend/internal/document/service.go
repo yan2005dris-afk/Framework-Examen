@@ -266,20 +266,34 @@ func (s *Service) Delete(ctx context.Context, actor, id uuid.UUID) error {
 /** Cleanup reintenta bajas persistidas, incluidas las cascadas al borrar borradores.
  * @returns {error} Primer fallo; las operaciones pendientes sobreviven al reinicio.
  */
+/**
+ * Cleanup procesa la cola persistente de bajas.
+ *
+ * Un objeto que no se puede eliminar no debe bloquear al resto de la cola:
+ * se registra el primer fallo y se continúa con los demás. La clave
+ * problemática permanece en la cola y se reintenta en el siguiente ciclo.
+ *
+ * @param {Context} ctx - Contexto de la operación.
+ * @returns {error} El primer fallo encontrado, si hubo.
+ */
 func (s *Service) Cleanup(ctx context.Context) error {
 	keys, err := s.repo.PendingDeletions(ctx)
 	if err != nil {
 		return err
 	}
+	var firstErr error
 	for _, key := range keys {
 		if err := s.storage.Delete(ctx, key); err != nil {
-			return err
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
 		}
-		if err := s.repo.CompleteDeletion(ctx, key); err != nil {
-			return err
+		if err := s.repo.CompleteDeletion(ctx, key); err != nil && firstErr == nil {
+			firstErr = err
 		}
 	}
-	return nil
+	return firstErr
 }
 
 func (s *Service) removeObject(key string) {

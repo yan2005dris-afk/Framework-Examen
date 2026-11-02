@@ -61,8 +61,52 @@ services:
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_FROM: no-reply@biess.local
+      # Contraseña del administrador que crea la migración 00020 al aplicar el
+      # esquema. Sólo para desarrollo: en producción es obligatoria y sin
+      # valor por defecto (ver deploy/compose.yaml).
+      INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD:-AdminLocal2026!}
     ports:
       - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+      rustfs:
+        condition: service_started
+    volumes:
+      - ./apps/backend/data:/app/data
+
+  # El worker cumple las colas en segundo plano: correo, purga de sesiones,
+  # limpieza de respaldos y cierre de exámenes. No sirve tráfico HTTP y no
+  # aplica migraciones, de modo que puede escalar por separado de la API.
+  worker:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+      target: worker
+    container_name: biess-worker
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgres://postgres@postgres:5432/biess?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: info
+      STORAGE_DRIVER: s3
+      S3_ENDPOINT: http://rustfs:9000/biess
+      S3_PUBLIC_ENDPOINT: http://localhost:9000/biess
+      S3_ACCESS_KEY: rustfsadmin
+      S3_SECRET_KEY: rustfsadmin
+      S3_REGION: us-east-1
+      # La cola se cifra con esta clave: la API y el worker deben compartirla.
+      MAIL_OUTBOX_KEY: ${MAIL_OUTBOX_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+      OTP_RESEND_DELAY: ${OTP_RESEND_DELAY:-1m}
+      OTP_MAX_SENDS: ${OTP_MAX_SENDS:-3}
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_FROM: no-reply@biess.local
     depends_on:
       postgres:
         condition: service_healthy

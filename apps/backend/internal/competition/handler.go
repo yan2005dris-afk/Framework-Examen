@@ -51,7 +51,10 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.ID = id
-	actor, _ := identity.ApplicantFromContext(r.Context())
+	actor, ok := identity.RequireActor(w, r)
+	if !ok {
+		return
+	}
 	if err = h.service.Create(r.Context(), actor, &c); err != nil {
 		writeError(w, r, err)
 		return
@@ -83,7 +86,10 @@ func (h *Handler) configure(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, ErrInvalid)
 		return
 	}
-	actor, _ := identity.ApplicantFromContext(r.Context())
+	actor, ok := identity.RequireActor(w, r)
+	if !ok {
+		return
+	}
 	c, err := h.service.Configure(r.Context(), actor, id, config)
 	if err != nil {
 		writeError(w, r, err)

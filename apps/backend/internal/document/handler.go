@@ -38,7 +38,10 @@ func (h *Handler) listForReview(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, _ := identity.ApplicantFromContext(r.Context())
+	actor, ok := identity.RequireActor(w, r)
+	if !ok {
+		return
+	}
 	items, err := h.service.ListForReview(r.Context(), actor, id)
 	if err != nil {
 		writeError(w, r, err)
@@ -53,7 +56,10 @@ func (h *Handler) downloadForReview(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	actor, _ := identity.ApplicantFromContext(r.Context())
+	actor, ok := identity.RequireActor(w, r)
+	if !ok {
+		return
+	}
 	result, err := h.service.DownloadForReview(r.Context(), actor, id)
 	if err != nil {
 		writeError(w, r, err)

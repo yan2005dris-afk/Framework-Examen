@@ -83,7 +83,17 @@ func (s *Service) Download(ctx context.Context, a *identity.Applicant, id, evide
 	return s.storage.PresignGet(ctx, e.StorageKey, e.Name, 5*time.Minute)
 }
 
-/** CleanupUploads retira sólo intentos vencidos; los objetos de evidencia confirmada nunca se purgan automáticamente. */
+/**
+ * CleanupUploads retira sólo intentos vencidos; los objetos de evidencia
+ * confirmada nunca se purgan automáticamente.
+ *
+ * Un objeto que no se puede eliminar no bloquea al resto: se registra el
+ * primer fallo y se continúa, de modo que el intento problemático se reintenta
+ * en el siguiente ciclo sin detener los demás.
+ *
+ * @param {Context} ctx - Contexto de la operación.
+ * @returns {error} El primer fallo encontrado, si hubo.
+ */
 func (s *Service) CleanupUploads(ctx context.Context) error {
 	if s.storage == nil {
 		return ErrUnavailable
@@ -92,13 +102,17 @@ func (s *Service) CleanupUploads(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	var firstErr error
 	for _, e := range items {
-		if err = s.storage.Delete(ctx, e.StorageKey); err != nil {
-			return err
+		if err := s.storage.Delete(ctx, e.StorageKey); err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
 		}
-		if err = s.repo.CompleteUpload(ctx, e.ID); err != nil {
-			return err
+		if err := s.repo.CompleteUpload(ctx, e.ID); err != nil && firstErr == nil {
+			firstErr = err
 		}
 	}
-	return nil
+	return firstErr
 }
