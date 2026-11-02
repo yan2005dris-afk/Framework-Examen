@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
-import { aplicarValoresIniciales } from "./modelo"
+import definicion from "../../../../backend/internal/submission/definition.json"
+import { aplicarValoresIniciales, consentimientoParaEnvio } from "./modelo"
 import { validarSeccionEF12 } from "./validacion"
 
 describe("aplicarValoresIniciales", () => {
@@ -36,5 +37,35 @@ describe("aplicarValoresIniciales", () => {
       seccion2: { correo1: "postulante@biess.local", pais: "" },
     })
     expect(validarSeccionEF12(seccion2, 2).esValido).toBe(true)
+  })
+})
+
+describe("consentimientoParaEnvio", () => {
+  const camposContrato = Object.keys(definicion.tipos.Consent)
+  const enPantalla = {
+    aceptacionTratamientoDatos: true,
+    declaracionVeracidad: true,
+    aceptacionNormasConcurso: true,
+    autorizacionPublicacionNombre: true,
+    constanciaEntregaFisica: true,
+    versionPolitica: 2,
+    referenciaAprobacion: "Resolución de prueba",
+  }
+
+  it("envía sólo campos del contrato Consent del servidor", () => {
+    const enviado = consentimientoParaEnvio(enPantalla, {
+      id: "politica-1",
+      hash: "b".repeat(64),
+    })
+    for (const campo of Object.keys(enviado))
+      expect(camposContrato, campo).toContain(campo)
+    expect(enviado).toMatchObject({
+      politicaPrivacidadId: "politica-1",
+      hashPoliticaPrivacidad: "b".repeat(64),
+    })
+  })
+
+  it("sin política vigente envía sólo los cinco puntos", () => {
+    expect(Object.keys(consentimientoParaEnvio(enPantalla))).toHaveLength(5)
   })
 })

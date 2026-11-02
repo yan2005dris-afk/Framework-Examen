@@ -37,6 +37,7 @@ import {
   type ConsentimientoEF12Data,
 } from "@/features/formulario/constantes"
 import { ConsentimientoEF12 } from "@/features/formulario/consentimiento"
+import { consentimientoParaEnvio } from "@/features/formulario/modelo"
 import {
   useListarPostulaciones,
   useSellarPostulacion,
@@ -248,18 +249,11 @@ export function RevisionPostulacionView() {
       return
     }
 
-    const payloadConsentimiento: ConsentimientoEF12Data = {
-      ...consentimiento,
-      ...(politicaVigente
-        ? {
-            politicaPrivacidadId: politicaVigente.id,
-            hashPoliticaPrivacidad: politicaVigente.hash,
-            versionPolitica: politicaVigente.version,
-            referenciaAprobacion:
-              politicaVigente.definicion.referenciaAprobacion,
-          }
-        : {}),
-    }
+    // Sólo los campos del contrato Consent: el servidor rechaza los demás.
+    const payloadConsentimiento = consentimientoParaEnvio(
+      consentimiento,
+      politicaVigente,
+    )
 
     sellarMutation.mutate(
       {

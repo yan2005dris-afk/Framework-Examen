@@ -3,6 +3,7 @@ import {
   type DocumentoDto,
 } from "@/lib/clientes/documentos"
 import type { AdjuntoInfo } from "./adjunto-uploader"
+import type { ConsentimientoEF12Data } from "./constantes"
 
 /**
  * Referencia que el formulario guarda tras subir un respaldo PDF. Contiene
@@ -58,4 +59,43 @@ export function aplicarValoresIniciales(
     resultado[seccion] = completa
   }
   return resultado
+}
+
+/** Consentimiento tal como lo admite el contrato `Consent` del servidor al enviar. */
+export interface ConsentimientoEnvio {
+  aceptacionTratamientoDatos: boolean
+  declaracionVeracidad: boolean
+  aceptacionNormasConcurso: boolean
+  autorizacionPublicacionNombre: boolean
+  constanciaEntregaFisica: boolean
+  politicaPrivacidadId?: string
+  hashPoliticaPrivacidad?: string
+}
+
+/**
+ * Arma el consentimiento que se envía al sellar la postulación: los cinco
+ * puntos y, si hay política vigente, su ID y hash. El servidor rechaza campos
+ * fuera del contrato (400 `cuerpo_invalido`) y completa por sí mismo versión,
+ * textos y fecha de aceptación, así que no se envían.
+ * @param consentimiento - Estado de los cinco puntos en la pantalla
+ * @param politica - Política de privacidad vigente de la convocatoria, si existe
+ * @returns Consentimiento con sólo los campos del contrato
+ */
+export function consentimientoParaEnvio(
+  consentimiento: ConsentimientoEF12Data,
+  politica?: { id: string; hash: string },
+): ConsentimientoEnvio {
+  return {
+    aceptacionTratamientoDatos: consentimiento.aceptacionTratamientoDatos,
+    declaracionVeracidad: consentimiento.declaracionVeracidad,
+    aceptacionNormasConcurso: consentimiento.aceptacionNormasConcurso,
+    autorizacionPublicacionNombre: consentimiento.autorizacionPublicacionNombre,
+    constanciaEntregaFisica: consentimiento.constanciaEntregaFisica,
+    ...(politica
+      ? {
+          politicaPrivacidadId: politica.id,
+          hashPoliticaPrivacidad: politica.hash,
+        }
+      : {}),
+  }
 }
