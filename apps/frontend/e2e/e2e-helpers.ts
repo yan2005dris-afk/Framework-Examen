@@ -31,7 +31,7 @@ export function generarCedulaValida(): string {
 export async function esperarOTPdeMailpit(
   correo: string,
   subjectFilter?: string,
-  maxIntentos = 10,
+  maxIntentos = 30,
 ): Promise<string> {
   for (let i = 0; i < maxIntentos; i++) {
     try {
