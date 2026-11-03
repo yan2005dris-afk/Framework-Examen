@@ -57,7 +57,7 @@ services:
       MAIL_OUTBOX_KEY: ${MAIL_OUTBOX_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
       OTP_RESEND_DELAY: ${OTP_RESEND_DELAY:-1m}
       OTP_MAX_SENDS: ${OTP_MAX_SENDS:-3}
-      ELIGIBILITY_SIMULATION_FILE: ${ELIGIBILITY_SIMULATION_FILE:-}
+      ELIGIBILITY_SIMULATION_FILE: /app/e2e/eligibility.json
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_FROM: no-reply@biess.local
@@ -74,6 +74,10 @@ services:
         condition: service_started
     volumes:
       - ./apps/backend/data:/app/data
+      # Simulación controlada de elegibilidad: la publica cmd/e2e-seed y la
+      # API la carga al arrancar. Sin ella el formulario EF-12 no se puede
+      # completar en el stack de desarrollo.
+      - ./apps/backend/e2e-data:/app/e2e:ro
 
   rustfs:
     image: rustfs/rustfs:latest
@@ -118,9 +122,11 @@ services:
     image: axllent/mailpit:latest
     container_name: biess-mailpit
     restart: unless-stopped
+    # Mailpit vive en la red del compose: la API le entrega el correo por su
+    # nombre de servicio y el equipo abre su interfaz por el puerto publicado.
     ports:
-      - "8025:8025" # interfaz web
-      - "1025:1025" # SMTP
+      - "8025:8025"
+      - "1025:1025"
     volumes:
       - mailpit-data:/data
 
