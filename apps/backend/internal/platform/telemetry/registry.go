@@ -21,6 +21,7 @@ type sample struct {
 type Registry struct {
 	mu     sync.Mutex
 	values map[string]sample
+	gauges map[string]float64
 }
 
 var Default = &Registry{values: map[string]sample{}}
@@ -63,6 +64,12 @@ func (r *Registry) Handler() http.Handler {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 		r.mu.Lock()
 		defer r.mu.Unlock()
+		_, _ = fmt.Fprintln(w, "# TYPE backend_queue_pending gauge")
+		for _, name := range []string{"outbox", "failed_mail", "object_deletions", "upload_intents"} {
+			if v, ok := r.gauges[name]; ok {
+				_, _ = fmt.Fprintf(w, "backend_queue_pending{queue=%q} %g\n", name, v)
+			}
+		}
 		keys := make([]string, 0, len(r.values))
 		for k := range r.values {
 			keys = append(keys, k)
@@ -120,4 +127,17 @@ func SafeRoute(route string) string {
 		return "unmatched"
 	}
 	return route
+}
+
+/** QueuePending publica sólo colas cerradas y cantidades agregadas, nunca IDs o errores SQL. */
+func (r *Registry) QueuePending(name string, value float64) {
+	if !allowed(name, []string{"outbox", "failed_mail", "object_deletions", "upload_intents"}) || value < 0 {
+		return
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.gauges == nil {
+		r.gauges = map[string]float64{}
+	}
+	r.gauges[name] = value
 }

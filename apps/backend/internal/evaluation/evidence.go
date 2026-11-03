@@ -54,7 +54,7 @@ func (s *Service) withEvidence(ctx context.Context, a *identity.Applicant, id uu
 	return s.repo.Execute(ctx, a, id, cmd, func(c *Case) (Change, error) { return mutate(c, e) })
 }
 
-/** Download exige titularidad o lectura administrativa auditada y emite URL de cinco minutos, nunca proxy del PDF. */
+/** Download exige titularidad o lectura administrativa auditada y emite capacidad de cinco minutos; el adaptador de producción revalida al descargar. */
 func (s *Service) Download(ctx context.Context, a *identity.Applicant, id, evidenceID uuid.UUID, administrative bool) (url string, err error) {
 	if _, err = s.Read(ctx, a, id, uuid.Nil, administrative); err != nil {
 		return "", err

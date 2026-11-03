@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main, develop]
@@ -33,6 +36,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$EVENT_NAME" = "pull_request" ]; then
             base="$BASE_SHA"
           elif [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
@@ -51,7 +59,7 @@ jobs:
           frontend=false
 
           # El workflow mismo es transversal: si cambia, se valida todo.
-          if grep -qE '^apps/backend/|^[.]github/workflows/ci[.]yml$' cambios.txt; then
+          if grep -qE '^apps/backend/|^scripts/(backend-demo|cross-cutting)/|^deploy/|^[.]github/workflows/ci[.]yml$' cambios.txt; then
             backend=true
           fi
 

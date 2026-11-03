@@ -860,3 +860,14 @@ atajos no sustituyen estos requisitos.
 **Ver también**: [frontend-tasks.md](frontend-tasks.md) ·
 [`../architecture/ARQUITECTURA.md`](../architecture/ARQUITECTURA.md) ·
 [`../api-contracts/API_CONTRACT.md`](../api-contracts/API_CONTRACT.md)
+
+
+## Integración transversal (2026-11-02)
+
+La entrega transversal añade Origin estricto, rotación atómica de sesiones,
+cuota OTP por correo, readiness y colas observables, cifrado/restauración y
+descargas inmediatamente revocables mediante listener privado (migración 00020).
+No reescribir migraciones desplegadas ni emitir firmas S3 al navegador.
+
+Ver [tareas transversales](cross-cutting-tasks.md) y
+[informe y límites](../deployment/CROSS_CUTTING_COMPLETION_REPORT.md).

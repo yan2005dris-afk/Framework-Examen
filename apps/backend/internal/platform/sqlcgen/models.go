@@ -123,6 +123,28 @@ type DocumentDeletion struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
+type DownloadAccessEvent struct {
+	ID           uuid.UUID          `json:"id"`
+	ActorID      uuid.UUID          `json:"actor_id"`
+	ActorRole    string             `json:"actor_role"`
+	SubmissionID uuid.UUID          `json:"submission_id"`
+	ResourceID   uuid.UUID          `json:"resource_id"`
+	RequestID    pgtype.UUID        `json:"request_id"`
+	Action       string             `json:"action"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
+type DownloadGrant struct {
+	TokenHash     string             `json:"token_hash"`
+	ActorID       uuid.UUID          `json:"actor_id"`
+	SessionHash   string             `json:"session_hash"`
+	StorageKey    string             `json:"storage_key"`
+	ActorRole     string             `json:"actor_role"`
+	PolicyVersion int64              `json:"policy_version"`
+	ExpiresAt     pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+}
+
 type EligibilityCheck struct {
 	ID            uuid.UUID          `json:"id"`
 	SubmissionID  uuid.UUID          `json:"submission_id"`

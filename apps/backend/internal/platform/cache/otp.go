@@ -95,6 +95,9 @@ if old and cjson.decode(old).attempts>=tonumber(ARGV[5]) then return -2 end
 if redis.call('EXISTS',KEYS[2])==1 then return -1 end
 local sends=tonumber(redis.call('GET',KEYS[3]) or '0')
 if sends>=tonumber(ARGV[4]) then return -1 end
+local emailSends=tonumber(redis.call('GET',KEYS[4]) or '0')
+if emailSends>=tonumber(ARGV[4]) then return -3 end
+emailSends=redis.call('INCR',KEYS[4]);if emailSends==1 then redis.call('PEXPIRE',KEYS[4],ARGV[2]) end
 sends=redis.call('INCR',KEYS[3])
 if sends==1 then redis.call('PEXPIRE',KEYS[3],ARGV[2]) end
 redis.call('SET',KEYS[1],ARGV[1],'PX',ARGV[2])
@@ -132,9 +135,13 @@ func (s *OTPStore) Issue(ctx context.Context, purpose, identifier, email, code s
 		return Challenge{}, ErrUnavailable
 	}
 	key := challengeKey(purpose, identifier)
-	result, err := a.RunScript(ctx, issueOTP, []string{key, key + ":resend", key + ":sends"}, string(raw), OTPTTL.Milliseconds(), s.resendDelay.Milliseconds(), s.maxSends, MaxOTPAttempts)
+	emailKey := "identity:otp-email:{" + digest(purpose+"|"+strings.ToLower(strings.TrimSpace(email))) + "}:sends"
+	result, err := a.RunScript(ctx, issueOTP, []string{key, key + ":resend", key + ":sends", emailKey}, string(raw), OTPTTL.Milliseconds(), s.resendDelay.Milliseconds(), s.maxSends, MaxOTPAttempts)
 	if err != nil {
 		return Challenge{}, ErrUnavailable
+	}
+	if result == -3 {
+		return Challenge{}, s.retryError(ctx, ErrResendLimited, emailKey)
 	}
 	if result == -2 {
 		return Challenge{}, s.retryError(ctx, ErrOTPLocked, key)

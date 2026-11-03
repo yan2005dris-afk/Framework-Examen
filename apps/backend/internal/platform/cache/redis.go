@@ -140,3 +140,6 @@ func (r *RedisClient) RunScript(ctx context.Context, script string, keys []strin
 	}
 	return result, nil
 }
+
+/** Ping verifica el adaptador de seguridad usado por la API, sin leer claves de postulantes. */
+func (r *RedisClient) Ping(ctx context.Context) error { return r.client.Ping(ctx).Err() }

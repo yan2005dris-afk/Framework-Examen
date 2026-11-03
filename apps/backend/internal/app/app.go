@@ -9,6 +9,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -52,6 +53,7 @@ type App struct {
 	Pool   *pgxpool.Pool
 	Router chi.Router
 
+	dependencies   map[string]httpx.Dependency
 	queries        *sqlcgen.Queries
 	cacheClient    cache.Cache
 	attemptsStore  *cache.AttemptsStore
@@ -86,10 +88,33 @@ func New(ctx context.Context, cfg config.Config, mode Mode) (*App, error) {
 		return nil, err
 	}
 
+	dependencies := map[string]httpx.Dependency{
+		"database": {
+			Required: true,
+			Probe: func(ctx context.Context) error {
+				if a.Pool == nil {
+					return errors.New("no configurada")
+				}
+				return a.Pool.Ping(ctx)
+			},
+		},
+		"redis": {
+			Required: false,
+			Probe: func(ctx context.Context) error {
+				if rc, ok := a.cacheClient.(*cache.RedisClient); ok {
+					return rc.Ping(ctx)
+				}
+				return errors.New("redis no conectado")
+			},
+		},
+	}
+	a.dependencies = dependencies
+
 	a.Router = httpx.NewRouter(httpx.RouterDependencies{
-		Logger:  log,
-		Pool:    a.Pool,
-		Version: cfg.Version,
+		Dependencies: dependencies,
+		Logger:       log,
+		Pool:         a.Pool,
+		Version:      cfg.Version,
 	})
 
 	if a.Pool == nil {

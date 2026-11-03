@@ -77,7 +77,7 @@ func main() {
 	result["tableCounts"] = counts
 	var version int64
 	must(p.QueryRow(ctx, `SELECT max(version_id) FROM goose_db_version WHERE is_applied`).Scan(&version))
-	if version < 19 {
+	if version < 20 {
 		panic("Migraciones incompletas")
 	}
 	result["migrationVersion"] = version
