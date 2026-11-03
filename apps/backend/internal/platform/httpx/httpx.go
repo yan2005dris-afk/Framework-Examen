@@ -240,7 +240,9 @@ func CSRF(next http.Handler, origins []string) http.Handler {
 		// La protección importa sólo cuando la petición lleva credenciales
 		// ambientales: sin cookies no hay estado de sesión que otro sitio
 		// pueda falsificar, y el control de sesión responderá 401 por su cuenta.
-		if len(r.Cookies()) == 0 {
+		// En endpoints de autenticación (/auth/login, /auth/register), las cookies
+		// previas no representan una sesión activa que pueda ser falsificada por CSRF.
+		if len(r.Cookies()) == 0 || strings.HasSuffix(r.URL.Path, "/auth/login") || strings.HasSuffix(r.URL.Path, "/auth/register/verify") {
 			next.ServeHTTP(w, r)
 			return
 		}
