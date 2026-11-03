@@ -230,3 +230,56 @@
     @apply font-sans;
   }
 }
+
+/* Composición del set docs/mockups, aplicada sólo al portal; no editar las primitivas shadcn. */
+@media screen {
+  .portal-shell {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+  .portal-shell [data-slot="card"] {
+    --card-spacing: 1.25rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+  }
+  .portal-shell [data-slot="card-title"] {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  :is(.portal-shell, [data-slot="dialog-content"]) [data-slot="input"],
+  :is(.portal-shell, [data-slot="dialog-content"])
+    [data-slot="select-trigger"] {
+    min-height: 2.5rem;
+    border-radius: var(--radius-md);
+    background-color: var(--card);
+  }
+  :is(.portal-shell, [data-slot="dialog-content"])
+    [data-slot="select-trigger"] {
+    width: 100%;
+  }
+  :is(.portal-shell, [data-slot="dialog-content"])
+    [data-slot="input"]:disabled {
+    background-color: var(--muted);
+    color: var(--muted-foreground);
+    opacity: 1;
+  }
+  :is(.portal-shell, [data-slot="dialog-content"]) [data-slot="button"] {
+    min-height: 2.25rem;
+  }
+  .portal-shell [data-slot="card-footer"] {
+    background-color: color-mix(in oklch, var(--muted) 20%, var(--card));
+  }
+  .portal-shell table th {
+    background-color: var(--muted);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .portal-shell table th,
+  .portal-shell table td {
+    padding: 0.75rem;
+    vertical-align: top;
+  }
+}

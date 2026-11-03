@@ -77,7 +77,7 @@ export function PortadaView() {
         className="border-b bg-brand-900 text-background"
         aria-labelledby="titulo-concurso"
       >
-        <div className="mx-auto max-w-6xl space-y-6 px-4 py-10 sm:px-6 md:py-16">
+        <div className="mx-auto max-w-6xl space-y-5 px-5 py-10 md:py-12">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-xs font-semibold tracking-widest uppercase">
               Directorio del BIESS · Concurso público
@@ -90,11 +90,11 @@ export function PortadaView() {
           </div>
           <h1
             id="titulo-concurso"
-            className="max-w-4xl text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl"
+            className="max-w-[30ch] text-3xl leading-[1.15] font-bold tracking-tight md:text-[2.75rem]"
           >
             {convocatoria?.titulo ?? "Concurso Público de Méritos y Oposición"}
           </h1>
-          <p className="max-w-3xl text-base leading-relaxed opacity-90 sm:text-lg">
+          <p className="max-w-[58ch] text-base leading-relaxed opacity-90 sm:text-[17px]">
             Selección de los Miembros Principales y Alternos del Directorio del
             BIESS, en representación de Afiliados, Jubilados y Empleadores.
           </p>
@@ -162,7 +162,7 @@ export function PortadaView() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6 md:space-y-10 md:py-10">
+      <div className="mx-auto max-w-6xl space-y-8 px-5 pt-8 pb-16">
         <section aria-labelledby="convocatoria-publicada" className="space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>

@@ -56,7 +56,7 @@ export function SeguimientoView() {
   )
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 pt-8 pb-16">
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">

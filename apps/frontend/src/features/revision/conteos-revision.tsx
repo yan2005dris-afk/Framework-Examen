@@ -78,14 +78,14 @@ export function ConteosRevisionPanel({
           const cuentas = conteos.filter((c) => c.sector === s.valor)
           return (
             <Card key={s.valor}>
-              <CardHeader className="flex-row items-center justify-between">
-                <CardTitle className="text-sm font-medium">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
                   {s.etiqueta}
                 </CardTitle>
                 <UsersIcon className="size-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-semibold tabular-nums">
+                <p className="font-mono text-3xl font-bold tracking-tight text-brand-900 tabular-nums dark:text-foreground">
                   {cuentas.reduce((n, c) => n + c.postulantes, 0)}
                 </p>
                 <p className="text-sm text-muted-foreground">

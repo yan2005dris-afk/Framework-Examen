@@ -819,7 +819,7 @@ export function PostulacionView() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 pt-8 pb-16">
       {/* Banner de POSTULACIÓN SELLADA */}
       {yaEnviada && (
         <div
@@ -976,248 +976,270 @@ export function PostulacionView() {
         </div>
       )}
 
-      {/* Stepper y barra de progreso */}
-      <BarraProgresoSecciones
-        seccionActiva={numeroSeccion}
-        seccionesCompletadas={seccionesCompletadas}
-        convocatoriaId={periodo}
-      />
+      <h1 className="sr-only">Formulario de postulación</h1>
+      <div className="grid items-start gap-8 min-[60rem]:grid-cols-[17rem_minmax(0,1fr)]">
+        {/* Stepper lateral; en móvil se desplaza horizontalmente sin tapar el formulario. */}
+        <BarraProgresoSecciones
+          seccionActiva={numeroSeccion}
+          seccionesCompletadas={seccionesCompletadas}
+          convocatoriaId={periodo}
+        />
 
-      {/* Indicador de cuota total de documentos (FT18) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/20 px-3.5 py-2 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-foreground">
-            Cuota de respaldos PDF:
-          </span>
-          <span className="text-muted-foreground">{cuota.formateado}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-28 overflow-hidden rounded-full bg-muted">
-            <div
-              className={`h-full transition-all ${cuota.excedida ? "bg-destructive" : cuota.porcentaje > 80 ? "bg-amber-500" : "bg-primary"}`}
-              style={{ width: `${cuota.porcentaje}%` }}
-            />
+        <div className="min-w-0 space-y-5">
+          {/* Indicador de cuota total de documentos (FT18) */}
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/20 px-3.5 py-2 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-foreground">
+                Cuota de respaldos PDF:
+              </span>
+              <span className="text-muted-foreground">{cuota.formateado}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-28 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full transition-all ${cuota.excedida ? "bg-destructive" : cuota.porcentaje > 80 ? "bg-amber-500" : "bg-primary"}`}
+                  style={{ width: `${cuota.porcentaje}%` }}
+                />
+              </div>
+              <span
+                className={`font-mono text-2xs ${cuota.excedida ? "font-bold text-destructive" : "text-muted-foreground"}`}
+              >
+                {cuota.porcentaje}%
+              </span>
+            </div>
           </div>
-          <span
-            className={`font-mono text-2xs ${cuota.excedida ? "font-bold text-destructive" : "text-muted-foreground"}`}
-          >
-            {cuota.porcentaje}%
-          </span>
+
+          {errorValidacion && (
+            <div
+              role="alert"
+              className="flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-400"
+            >
+              <span>{errorValidacion}</span>
+            </div>
+          )}
+
+          {/* Tarjeta contenedora de la sección activa */}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
+                <span className="rounded-md bg-brand-100 px-2.5 py-1 text-primary">
+                  Sección {numeroSeccion} de 9
+                </span>
+                <span className="rounded-md bg-muted px-2.5 py-1 text-muted-foreground">
+                  {yaEnviada
+                    ? "Enviada · Sólo lectura"
+                    : estaCerrada
+                      ? "Cerrada"
+                      : "Borrador"}
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {numeroSeccion === 1 && (
+                <Seccion1Personal
+                  datos={formData.seccion1}
+                  onChange={(s1) =>
+                    setFormData((prev) => ({ ...prev, seccion1: s1 }))
+                  }
+                  disabled={noModificable}
+                  onBloqueoNacionalidad={setBloqueadoNacionalidad}
+                />
+              )}
+
+              {numeroSeccion === 2 && (
+                <Seccion2Contacto
+                  datos={formData.seccion2 as Seccion2Data}
+                  onChange={(s2) =>
+                    setFormData((prev) => ({ ...prev, seccion2: s2 }))
+                  }
+                  disabled={noModificable}
+                />
+              )}
+
+              {numeroSeccion === 3 && (
+                <Seccion3Adicional
+                  datos={formData.seccion3 as Seccion3Data}
+                  onChange={(s3) =>
+                    setFormData((prev) => ({ ...prev, seccion3: s3 }))
+                  }
+                  disabled={noModificable}
+                />
+              )}
+
+              {numeroSeccion === 4 && (
+                <Seccion4Cargo
+                  datos={formData.seccion4 as Seccion4Data}
+                  onChange={(s4) =>
+                    setFormData((prev) => ({ ...prev, seccion4: s4 }))
+                  }
+                  disabled={noModificable}
+                  elegibilidad={postulacionActiva?.elegibilidad}
+                  onSubirRespaldo={subirRespaldoSeccion4}
+                  onEliminarRespaldo={eliminarRespaldoSeccion4}
+                  onDescargarRespaldo={
+                    formData.seccion4.documentoRespaldoPdf?.id
+                      ? () =>
+                          descargarDocMutation.mutate(
+                            formData.seccion4.documentoRespaldoPdf!.id!,
+                          )
+                      : undefined
+                  }
+                  cargandoRespaldo={cargandoDocId === "sec4-org"}
+                />
+              )}
+
+              {numeroSeccion === 5 && (
+                <Seccion5Academica
+                  datos={formData.seccion5 as Seccion5Data}
+                  onChange={(s5) =>
+                    setFormData((prev) => ({ ...prev, seccion5: s5 }))
+                  }
+                  disabled={noModificable}
+                  onSubirRespaldo={subirRespaldoTitulo}
+                  onEliminarRespaldo={eliminarRespaldoTitulo}
+                  onDescargarRespaldo={(id) => descargarDocMutation.mutate(id)}
+                  cargandoRespaldoId={cargandoDocId}
+                />
+              )}
+
+              {numeroSeccion === 6 && (
+                <Seccion6Experiencia
+                  datos={formData.seccion6 as Seccion6Data}
+                  onChange={(s6) =>
+                    setFormData((prev) => ({ ...prev, seccion6: s6 }))
+                  }
+                  disabled={noModificable}
+                  onSubirRespaldo={subirRespaldoExperiencia}
+                  onEliminarRespaldo={eliminarRespaldoExperiencia}
+                  onDescargarRespaldo={(id) => descargarDocMutation.mutate(id)}
+                  cargandoRespaldoId={cargandoDocId}
+                />
+              )}
+
+              {numeroSeccion === 7 && (
+                <Seccion7Publicaciones
+                  datos={formData.seccion7 as Seccion7Data}
+                  onChange={(s7) =>
+                    setFormData((prev) => ({ ...prev, seccion7: s7 }))
+                  }
+                  disabled={noModificable}
+                  onSubirRespaldo={subirRespaldoPublicacion}
+                  onEliminarRespaldo={eliminarRespaldoPublicacion}
+                  onDescargarRespaldo={(id) => descargarDocMutation.mutate(id)}
+                  cargandoRespaldoId={cargandoDocId}
+                />
+              )}
+
+              {numeroSeccion === 8 && (
+                <Seccion8Capacitacion
+                  datos={formData.seccion8 as Seccion8Data}
+                  onChange={(s8) =>
+                    setFormData((prev) => ({ ...prev, seccion8: s8 }))
+                  }
+                  disabled={noModificable}
+                  onSubirRespaldo={subirRespaldoCapacitacion}
+                  onEliminarRespaldo={eliminarRespaldoCapacitacion}
+                  onDescargarRespaldo={(id) => descargarDocMutation.mutate(id)}
+                  cargandoRespaldoId={cargandoDocId}
+                />
+              )}
+
+              {numeroSeccion === 9 && (
+                <Seccion9Inhabilidades
+                  datos={formData.seccion9 as Seccion9Data}
+                  onChange={(s9) =>
+                    setFormData((prev) => ({ ...prev, seccion9: s9 }))
+                  }
+                  disabled={noModificable}
+                />
+              )}
+            </CardContent>
+
+            <CardFooter className="flex flex-wrap items-center justify-between gap-3 border-t bg-muted/10 p-4">
+              <div className="flex items-center gap-2">
+                {numeroSeccion > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      navegar(
+                        rutaPostulacion(
+                          rutaSeccion(numeroSeccion - 1),
+                          periodo,
+                        ),
+                      )
+                    }
+                    disabled={guardarSeccionMutation.isPending}
+                    className="flex items-center gap-1.5"
+                  >
+                    <ArrowLeftIcon className="size-4" aria-hidden="true" />
+                    <span>Anterior</span>
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {!noModificable && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => guardarSeccionActual(false)}
+                      disabled={
+                        guardarSeccionMutation.isPending ||
+                        bloqueadoNacionalidad ||
+                        !abiertaConvocatoria
+                      }
+                      className="flex items-center gap-1.5"
+                    >
+                      <SaveIcon className="size-4" aria-hidden="true" />
+                      <span>
+                        {guardarSeccionMutation.isPending
+                          ? "Guardando…"
+                          : "Guardar borrador"}
+                      </span>
+                    </Button>
+                  </>
+                )}
+
+                {numeroSeccion < 9 ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => guardarSeccionActual(true)}
+                    disabled={
+                      guardarSeccionMutation.isPending ||
+                      bloqueadoNacionalidad ||
+                      !abiertaConvocatoria
+                    }
+                    className="flex items-center gap-1.5"
+                  >
+                    <span>Siguiente</span>
+                    <ArrowRightIcon className="size-4" aria-hidden="true" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => guardarSeccionActual(true)}
+                    disabled={
+                      guardarSeccionMutation.isPending ||
+                      bloqueadoNacionalidad ||
+                      !abiertaConvocatoria
+                    }
+                    className="flex items-center gap-1.5 bg-emerald-700 text-white hover:bg-emerald-800"
+                  >
+                    <CheckCircleIcon className="size-4" aria-hidden="true" />
+                    <span>Ir a Revisión y Envío</span>
+                  </Button>
+                )}
+              </div>
+            </CardFooter>
+          </Card>
         </div>
       </div>
-
-      {errorValidacion && (
-        <div
-          role="alert"
-          className="flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-400"
-        >
-          <span>{errorValidacion}</span>
-        </div>
-      )}
-
-      {/* Tarjeta contenedora de la sección activa */}
-      <Card className="shadow-xs">
-        <CardContent className="pt-6">
-          {numeroSeccion === 1 && (
-            <Seccion1Personal
-              datos={formData.seccion1}
-              onChange={(s1) =>
-                setFormData((prev) => ({ ...prev, seccion1: s1 }))
-              }
-              disabled={noModificable}
-              onBloqueoNacionalidad={setBloqueadoNacionalidad}
-            />
-          )}
-
-          {numeroSeccion === 2 && (
-            <Seccion2Contacto
-              datos={formData.seccion2 as Seccion2Data}
-              onChange={(s2) =>
-                setFormData((prev) => ({ ...prev, seccion2: s2 }))
-              }
-              disabled={noModificable}
-            />
-          )}
-
-          {numeroSeccion === 3 && (
-            <Seccion3Adicional
-              datos={formData.seccion3 as Seccion3Data}
-              onChange={(s3) =>
-                setFormData((prev) => ({ ...prev, seccion3: s3 }))
-              }
-              disabled={noModificable}
-            />
-          )}
-
-          {numeroSeccion === 4 && (
-            <Seccion4Cargo
-              datos={formData.seccion4 as Seccion4Data}
-              onChange={(s4) =>
-                setFormData((prev) => ({ ...prev, seccion4: s4 }))
-              }
-              disabled={noModificable}
-              elegibilidad={postulacionActiva?.elegibilidad}
-              onSubirRespaldo={subirRespaldoSeccion4}
-              onEliminarRespaldo={eliminarRespaldoSeccion4}
-              onDescargarRespaldo={
-                formData.seccion4.documentoRespaldoPdf?.id
-                  ? () =>
-                      descargarDocMutation.mutate(
-                        formData.seccion4.documentoRespaldoPdf!.id!,
-                      )
-                  : undefined
-              }
-              cargandoRespaldo={cargandoDocId === "sec4-org"}
-            />
-          )}
-
-          {numeroSeccion === 5 && (
-            <Seccion5Academica
-              datos={formData.seccion5 as Seccion5Data}
-              onChange={(s5) =>
-                setFormData((prev) => ({ ...prev, seccion5: s5 }))
-              }
-              disabled={noModificable}
-              onSubirRespaldo={subirRespaldoTitulo}
-              onEliminarRespaldo={eliminarRespaldoTitulo}
-              onDescargarRespaldo={(id) => descargarDocMutation.mutate(id)}
-              cargandoRespaldoId={cargandoDocId}
-            />
-          )}
-
-          {numeroSeccion === 6 && (
-            <Seccion6Experiencia
-              datos={formData.seccion6 as Seccion6Data}
-              onChange={(s6) =>
-                setFormData((prev) => ({ ...prev, seccion6: s6 }))
-              }
-              disabled={noModificable}
-              onSubirRespaldo={subirRespaldoExperiencia}
-              onEliminarRespaldo={eliminarRespaldoExperiencia}
-              onDescargarRespaldo={(id) => descargarDocMutation.mutate(id)}
-              cargandoRespaldoId={cargandoDocId}
-            />
-          )}
-
-          {numeroSeccion === 7 && (
-            <Seccion7Publicaciones
-              datos={formData.seccion7 as Seccion7Data}
-              onChange={(s7) =>
-                setFormData((prev) => ({ ...prev, seccion7: s7 }))
-              }
-              disabled={noModificable}
-              onSubirRespaldo={subirRespaldoPublicacion}
-              onEliminarRespaldo={eliminarRespaldoPublicacion}
-              onDescargarRespaldo={(id) => descargarDocMutation.mutate(id)}
-              cargandoRespaldoId={cargandoDocId}
-            />
-          )}
-
-          {numeroSeccion === 8 && (
-            <Seccion8Capacitacion
-              datos={formData.seccion8 as Seccion8Data}
-              onChange={(s8) =>
-                setFormData((prev) => ({ ...prev, seccion8: s8 }))
-              }
-              disabled={noModificable}
-              onSubirRespaldo={subirRespaldoCapacitacion}
-              onEliminarRespaldo={eliminarRespaldoCapacitacion}
-              onDescargarRespaldo={(id) => descargarDocMutation.mutate(id)}
-              cargandoRespaldoId={cargandoDocId}
-            />
-          )}
-
-          {numeroSeccion === 9 && (
-            <Seccion9Inhabilidades
-              datos={formData.seccion9 as Seccion9Data}
-              onChange={(s9) =>
-                setFormData((prev) => ({ ...prev, seccion9: s9 }))
-              }
-              disabled={noModificable}
-            />
-          )}
-        </CardContent>
-
-        <CardFooter className="flex flex-wrap items-center justify-between gap-3 border-t bg-muted/10 p-4">
-          <div className="flex items-center gap-2">
-            {numeroSeccion > 1 && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  navegar(
-                    rutaPostulacion(rutaSeccion(numeroSeccion - 1), periodo),
-                  )
-                }
-                disabled={guardarSeccionMutation.isPending}
-                className="flex items-center gap-1.5"
-              >
-                <ArrowLeftIcon className="size-4" aria-hidden="true" />
-                <span>Anterior</span>
-              </Button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {!noModificable && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => guardarSeccionActual(false)}
-                  disabled={
-                    guardarSeccionMutation.isPending ||
-                    bloqueadoNacionalidad ||
-                    !abiertaConvocatoria
-                  }
-                  className="flex items-center gap-1.5"
-                >
-                  <SaveIcon className="size-4" aria-hidden="true" />
-                  <span>
-                    {guardarSeccionMutation.isPending
-                      ? "Guardando…"
-                      : "Guardar borrador"}
-                  </span>
-                </Button>
-              </>
-            )}
-
-            {numeroSeccion < 9 ? (
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => guardarSeccionActual(true)}
-                disabled={
-                  guardarSeccionMutation.isPending ||
-                  bloqueadoNacionalidad ||
-                  !abiertaConvocatoria
-                }
-                className="flex items-center gap-1.5"
-              >
-                <span>Siguiente</span>
-                <ArrowRightIcon className="size-4" aria-hidden="true" />
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => guardarSeccionActual(true)}
-                disabled={
-                  guardarSeccionMutation.isPending ||
-                  bloqueadoNacionalidad ||
-                  !abiertaConvocatoria
-                }
-                className="flex items-center gap-1.5 bg-emerald-700 text-white hover:bg-emerald-800"
-              >
-                <CheckCircleIcon className="size-4" aria-hidden="true" />
-                <span>Ir a Revisión y Envío</span>
-              </Button>
-            )}
-          </div>
-        </CardFooter>
-      </Card>
     </div>
   )
 }
