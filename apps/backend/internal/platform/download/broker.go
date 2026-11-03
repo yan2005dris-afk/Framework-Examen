@@ -62,7 +62,7 @@ func (b *Broker) Ready(ctx context.Context) error {
 	}
 	return nil
 }
-func digest(v string) string                                   { h := sha256.Sum256([]byte(v)); return hex.EncodeToString(h[:]) }
+func digest(v string) string { h := sha256.Sum256([]byte(v)); return hex.EncodeToString(h[:]) }
 func lookupError(e error) error {
 	if errors.Is(e, pgx.ErrNoRows) {
 		return ErrDenied

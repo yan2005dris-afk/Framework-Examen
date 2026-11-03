@@ -73,8 +73,12 @@ func TestRuntimeCrossCuttingSessionCSRFAndSMTP(t *testing.T) {
 			t.Fatal("dependencia de integración no comprobada", name)
 		}
 	}
-	call(client, "POST", "/api/v1/auth/register/request", "", map[string]string{}, 403)
-	call(client, "POST", "/api/v1/auth/register/request", "https://evil.invalid", map[string]string{}, 403)
+	csrfJar, _ := cookiejar.New(nil)
+	targetURL, _ := url.Parse(base)
+	csrfJar.SetCookies(targetURL, []*http.Cookie{{Name: "session", Value: "probe"}})
+	csrfClient := &http.Client{Jar: csrfJar, Timeout: 8 * time.Second}
+	call(csrfClient, "POST", "/api/v1/auth/register/request", "", map[string]string{}, 403)
+	call(csrfClient, "POST", "/api/v1/auth/register/request", "https://evil.invalid", map[string]string{}, 403)
 	random := uuid.New()
 	n := int(random[0])<<16 | int(random[1])<<8 | int(random[2])
 	cedula := fmt.Sprintf("240%06d", n%900000+100000)
