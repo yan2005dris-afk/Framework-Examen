@@ -276,6 +276,10 @@ func (h *Handler) resetPassword(w http.ResponseWriter, r *http.Request) {
 // ── Cookie Helpers ───────────────────────────────────────────────────────────
 
 func (h *Handler) setSessionCookie(w http.ResponseWriter, token string, maxAge int) {
+	sameSite := http.SameSiteLaxMode
+	if h.isProduction {
+		sameSite = http.SameSiteNoneMode
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    token,
@@ -283,11 +287,15 @@ func (h *Handler) setSessionCookie(w http.ResponseWriter, token string, maxAge i
 		MaxAge:   maxAge,
 		HttpOnly: true,
 		Secure:   h.isProduction,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: sameSite,
 	})
 }
 
 func (h *Handler) clearSessionCookie(w http.ResponseWriter) {
+	sameSite := http.SameSiteLaxMode
+	if h.isProduction {
+		sameSite = http.SameSiteNoneMode
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    "",
@@ -295,7 +303,7 @@ func (h *Handler) clearSessionCookie(w http.ResponseWriter) {
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   h.isProduction,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: sameSite,
 	})
 }
 
