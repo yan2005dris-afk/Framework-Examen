@@ -18,6 +18,8 @@ coverage/
 *.tsbuildinfo
 test-results/
 playwright-report/
+# Artefacto del seed E2E: lo genera apps/backend/cmd/e2e-seed en cada corrida.
+apps/frontend/e2e/.estado/
 
 # Go
 apps/backend/bin/
