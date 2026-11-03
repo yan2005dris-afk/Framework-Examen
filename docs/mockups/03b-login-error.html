@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Iniciar sesión · Credenciales incorrectas</title>
+    <link rel="stylesheet" href="assets/tokens.css" />
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <div class="mockbar no-print">
+      <a href="index.html">← Galería</a>
+      <span class="mockbar-current">03b-login-error · ruta /login</span>
+      <span class="mockbar-tag">Mockup estático · sin lógica</span>
+    </div>
+
+    <header class="govbar">
+      <div class="container">
+        <span>REPÚBLICA DEL ECUADOR <span class="govbar-sep">|</span> Comisión Especial de Selección y Designación</span>
+        <span class="govbar-note">BIESS — IESS</span>
+      </div>
+    </header>
+
+    <header class="siteheader">
+      <div class="container">
+        <a class="brand" href="01-portal.html">
+          <span class="brand-mark" aria-hidden="true">BIESS</span>
+          <span>
+            <span class="brand-name">Directorio del BIESS</span><br />
+            <span class="brand-sub">Concurso Público de Méritos y Oposición</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Navegación">
+          <a href="01-portal.html">Convocatoria</a>
+          <a href="03a-login.html" aria-current="page">Iniciar sesión</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" class="container container-narrow page">
+      <div class="card">
+        <div class="card-head">
+          <p class="tag">EF-11 · HU-03</p>
+          <h1 class="card-title mt-3">Inicio de sesión</h1>
+          <p class="card-sub">Ingrese con la cédula y la contraseña de su registro.</p>
+        </div>
+
+        <form class="card-body stack" action="#" method="post" novalidate>
+          <div class="alert alert-danger" role="alert">
+            <div>
+              <p class="alert-title">sus credenciales de ingreso son incorrectas</p>
+              <p class="text-sm">
+                Verifique la cédula y la contraseña. Le quedan
+                <strong>2 intentos</strong> antes del bloqueo temporal.
+              </p>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="cedula-login-error">Cédula de ciudadanía <span class="req" aria-hidden="true">*</span></label>
+            <input
+              class="input"
+              id="cedula-login-error"
+              name="cedula"
+              type="text"
+              inputmode="numeric"
+              autocomplete="username"
+              maxlength="10"
+              value="1713849204"
+              aria-invalid="true"
+            />
+          </div>
+
+          <div class="field">
+            <label class="label" for="password-login-error">Contraseña <span class="req" aria-hidden="true">*</span></label>
+            <input
+              class="input"
+              id="password-login-error"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              aria-invalid="true"
+            />
+            <div class="cluster between">
+              <span class="hint">Revise mayúsculas, minúsculas y símbolos.</span>
+              <button
+                class="btn btn-link"
+                type="button"
+                data-password-toggle
+                aria-controls="password-login-error"
+              >
+                Mostrar
+              </button>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-block" type="submit">Ingresar al sistema</button>
+
+          <p class="center">
+            <a class="text-sm" href="04a-recuperar-identidad.html">¿Olvidaste tu contraseña?</a>
+          </p>
+        </form>
+
+        <div class="card-foot">
+          <span class="text-sm muted">¿Aún no tienes cuenta?</span>
+          <a class="btn btn-secondary btn-sm" href="02a-registro-identidad.html">Registrarse</a>
+        </div>
+      </div>
+    </main>
+
+    <footer class="sitefooter">
+      <div class="container">
+        <span>Banco del Instituto Ecuatoriano de Seguridad Social</span>
+        <span>Canal seguro · Datos protegidos</span>
+      </div>
+    </footer>
+    <script src="assets/mock.js"></script>
+  </body>
+</html>

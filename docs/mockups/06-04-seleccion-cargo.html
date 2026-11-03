@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EF-12 · 4. Selección del cargo</title>
+    <link rel="stylesheet" href="assets/tokens.css" />
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <div class="mockbar no-print">
+      <a href="index.html">← Galería</a>
+      <span class="mockbar-current">06-04-seleccion-cargo · ruta /postulacion/4</span>
+      <span class="mockbar-tag">Mockup estático · sin lógica</span>
+    </div>
+
+    <header class="govbar">
+      <div class="container">
+        <span>REPÚBLICA DEL ECUADOR <span class="govbar-sep">|</span> Comisión Especial de Selección y Designación</span>
+        <span class="govbar-note">BIESS — IESS</span>
+      </div>
+    </header>
+
+    <header class="siteheader">
+      <div class="container">
+        <a class="brand" href="05-panel-postulante.html">
+          <span class="brand-mark" aria-hidden="true">BIESS</span>
+          <span>
+            <span class="brand-name">Directorio del BIESS</span><br />
+            <span class="brand-sub">Concurso Público de Méritos y Oposición</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Navegación del postulante">
+          <a href="05-panel-postulante.html">Mi panel</a>
+          <a href="06-04-seleccion-cargo.html" aria-current="page">Formulario EF-12</a>
+        </nav>
+        <div class="user-chip">
+          <span class="user-avatar" aria-hidden="true">CM</span>
+          <span>
+            <span class="user-name">Carlos Mendoza</span><br />
+            <span class="user-doc">C.I. 1713849204</span>
+          </span>
+          <a class="btn btn-ghost btn-sm" href="01-portal.html">Salir</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="container page">
+      <div class="sidebar-layout">
+        <aside class="stepper no-print" aria-label="Secciones del formulario">
+          <p class="stepper-title">Formulario EF-12</p>
+          <ol>
+            <li><a class="step is-done" href="06-01-informacion-personal.html"><span class="step-num">✓</span> Información personal<span class="step-state">Completada</span></a></li>
+            <li><a class="step is-done" href="06-02-domicilio-contacto.html"><span class="step-num">✓</span> Domicilio y contacto<span class="step-state">Completada</span></a></li>
+            <li><a class="step is-done" href="06-03-informacion-adicional.html"><span class="step-num">✓</span> Información adicional<span class="step-state">Completada</span></a></li>
+            <li><a class="step" href="06-04-seleccion-cargo.html" aria-current="step"><span class="step-num">4</span> Selección del cargo</a></li>
+            <li><a class="step" href="06-05-formacion-academica.html"><span class="step-num">5</span> Formación académica</a></li>
+            <li><a class="step" href="06-06-experiencia-profesional.html"><span class="step-num">6</span> Experiencia profesional</a></li>
+            <li><a class="step" href="06-07-publicaciones.html"><span class="step-num">7</span> Publicaciones</a></li>
+            <li><a class="step" href="06-08-capacitacion.html"><span class="step-num">8</span> Capacitación</a></li>
+            <li><a class="step" href="06-09-inhabilidades.html"><span class="step-num">9</span> Inhabilidades</a></li>
+          </ol>
+          <div class="stepper-progress">
+            Avance: 3 de 9 secciones
+            <div class="progress"><div class="progress-bar" data-level="3"></div></div>
+          </div>
+        </aside>
+
+        <div class="stack">
+          <div class="card">
+            <div class="card-head">
+              <div class="cluster between">
+                <span class="badge badge-info">Sección 4 de 9</span>
+                <span class="badge badge-success">Elegibilidad verificada</span>
+              </div>
+              <h1 class="card-title mt-3">4. Selección del cargo al que postula</h1>
+              <p class="card-sub">Elija uno de los tres cargos convocados.</p>
+            </div>
+
+            <form class="card-body stack" action="#" method="post">
+              <fieldset class="fieldset">
+                <legend>Cargo <span class="req" aria-hidden="true">*</span></legend>
+                <div class="stack stack-sm">
+                  <label class="radio">
+                    <input type="radio" name="sector" value="afiliados" checked />
+                    Miembro Principal y Alterno en Representación del Sector de Afiliados ante el
+                    Directorio del BIESS
+                  </label>
+                  <label class="radio">
+                    <input type="radio" name="sector" value="jubilados" />
+                    Miembro Principal y Alterno en Representación del Sector de los Jubilados ante
+                    el Directorio del BIESS
+                  </label>
+                  <label class="radio">
+                    <input type="radio" name="sector" value="empleadores" />
+                    Miembro Principal y Alterno en Representación del Sector Empleador ante el
+                    Directorio del BIESS
+                  </label>
+                </div>
+              </fieldset>
+
+              <div class="alert alert-success">
+                <div>
+                  <p class="alert-title">Postulante afiliado al IESS</p>
+                  <p class="text-sm">
+                    Verificado automáticamente con el Historial Laboral del IESS para la cédula
+                    <span class="mono">1713849204</span>.
+                  </p>
+                </div>
+              </div>
+
+              <fieldset class="fieldset has-si">
+                <legend>
+                  ¿Se encuentra respaldada por una organización de trabajadores de representación
+                  nacional legalmente constituida ante autoridad competente?
+                  <span class="req" aria-hidden="true">*</span>
+                </legend>
+                <div class="radio-row">
+                  <label class="radio">
+                    <input type="radio" name="respaldo" value="si" checked />
+                    Sí
+                  </label>
+                  <label class="radio">
+                    <input type="radio" name="respaldo" value="no" />
+                    No
+                  </label>
+                </div>
+
+                <div class="conditional" data-when="si">
+                  <div class="field">
+                    <label class="label" for="organizacion">Nombre de la organización <span class="req" aria-hidden="true">*</span></label>
+                    <input class="input" id="organizacion" name="organizacion" type="text" value="Federación Nacional de Afiliados al IESS" />
+                  </div>
+
+                  <div class="field">
+                    <span class="label">Documento de respaldo <span class="req" aria-hidden="true">*</span></span>
+                    <div class="cluster between">
+                      <span class="text-sm">
+                        <span class="mono">respaldo-organizacion.pdf</span> · 1,8 MB
+                      </span>
+                      <div class="cluster">
+                        <button class="btn btn-secondary btn-sm" type="button">Reemplazar PDF</button>
+                        <button class="btn btn-ghost btn-sm" type="button">Eliminar</button>
+                      </div>
+                    </div>
+                    <p class="hint">PDF de máximo 4 MB, emitido por la organización.</p>
+                  </div>
+                </div>
+              </fieldset>
+
+              <div class="alert">
+                <div>
+                  <p class="alert-title">Si no mantiene la calidad declarada</p>
+                  <p class="text-sm">
+                    El sistema despliega el mensaje del RF y cierra la postulación
+                    automáticamente.
+                    <a href="06-04b-cargo-no-elegible.html">Ver ese estado</a>.
+                  </p>
+                </div>
+              </div>
+            </form>
+
+            <div class="card-foot">
+              <a class="btn btn-ghost" href="06-03-informacion-adicional.html">← Anterior</a>
+              <button class="btn btn-secondary" type="button">Editar seleccionado</button>
+              <button class="btn btn-secondary" type="button">Eliminar seleccionado</button>
+              <button class="btn btn-secondary" type="button">Guardar progreso</button>
+              <a class="btn btn-primary" href="06-05-formacion-academica.html">Guardar y continuar →</a>
+            </div>
+          </div>
+
+          <div class="alert alert-info">
+            <div>
+              <p class="alert-title">Elegibilidad por sector</p>
+              <p class="text-sm">
+                Afiliados valida «Postulante afiliado al IESS»; Jubilados, «Postulante acredita
+                jubilación»; Empleadores, «Postulante es empleador». Cada uno con su propio
+                mensaje de cierre.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="sitefooter">
+      <div class="container">
+        <span>Banco del Instituto Ecuatoriano de Seguridad Social</span>
+        <span>Código único EF12-2026-004821</span>
+      </div>
+    </footer>
+  </body>
+</html>

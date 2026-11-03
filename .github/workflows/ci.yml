@@ -1,0 +1,207 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Cambios detectados
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.detect.outputs.backend }}
+      frontend: ${{ steps.detect.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detectar qué stacks cambió
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            base="$BASE_SHA"
+          elif [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            base="$HEAD_SHA~1"
+          else
+            base="$BEFORE_SHA"
+          fi
+
+          git diff --name-only "$base" "$HEAD_SHA" > cambios.txt || \
+            git diff --name-only "$base~1" "$HEAD_SHA" > cambios.txt
+
+          echo "Archivos modificados:"
+          cat cambios.txt
+
+          backend=false
+          frontend=false
+
+          # El workflow mismo es transversal: si cambia, se valida todo.
+          if grep -qE '^apps/backend/|^scripts/(backend-demo|cross-cutting)/|^deploy/|^[.]github/workflows/ci[.]yml$' cambios.txt; then
+            backend=true
+          fi
+
+          # El frontend depende del lockfile y de los scripts de la raíz.
+          if grep -qE '^apps/frontend/|^apps/backend/internal/submission/(definition[.]json|testdata/)|^package[.]json$|^pnpm-lock[.]yaml$|^pnpm-workspace[.]yaml$|^[.]github/workflows/ci[.]yml$' cambios.txt; then
+            frontend=true
+          fi
+
+          echo "backend=$backend" >> "$GITHUB_OUTPUT"
+          echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
+
+  backend:
+    name: Backend (Go)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: framework_examen_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: apps/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+          cache-dependency-path: apps/backend/go.sum
+
+      - name: Formato (gofmt)
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::Archivos sin gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Análisis estático (go vet)
+        run: go vet ./...
+
+      - name: Tests y cobertura
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          AUDIT_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          REVIEW_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          CATALOG_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          DOCUMENT_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          AUTHORIZATION_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          SUBMISSION_TEST_DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/framework_examen_test?sslmode=disable
+          REDIS_URL: redis://localhost:6379
+          REDIS_TEST_URL: redis://localhost:6379
+        run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
+
+      - name: Gate de cobertura
+        run: |
+          # Umbral deliberadamente por debajo de la cobertura actual (50%):
+          # detecta regresiones sin bloquear cambios legítimos. Súbelo junto con
+          # las pruebas que las justifican.
+          min=48
+          total=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub(/%/, "", $NF); print $NF}')
+          echo "Cobertura total: ${total}% (mínimo exigido: ${min}%)"
+          awk -v total="$total" -v min="$min" 'BEGIN {
+            if (total + 0 < min + 0) {
+              printf "::error::La cobertura %.1f%% es inferior al mínimo exigido (%.0f%%).\n", total, min
+              exit 1
+            }
+          }'
+          echo "Paquetes con menor cobertura:"
+          go test ./... -cover 2>&1 | grep "coverage:" | awk '{
+            pct = ""
+            if (match($0, /coverage: [0-9]+\.[0-9]+%/)) { pct = substr($0, RSTART + 9, RLENGTH - 9); gsub(/%/, "", pct) }
+            pkg = ""
+            for (i = 1; i <= NF; i++) { if ($i ~ /Framework-Examen\/apps\/backend\//) { pkg = $i; break } }
+            if (pct != "" && pkg != "") { sub(/github.com\/yan2005dris-afk\/Framework-Examen\/apps\/backend\//, "", pkg); printf "%s%% %s\n", pct, pkg }
+          }' | grep -v '^.*% cmd/' | sort -n | head -5
+
+      - name: Código generado (sqlc) al día
+        run: |
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
+          sqlc generate
+          if ! git diff --quiet -- internal/platform/sqlcgen; then
+            echo "::error::El código de sqlc está desactualizado. Ejecuta 'make sqlc-generate' y versiona el resultado."
+            git diff -- internal/platform/sqlcgen
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: apps/backend/coverage.out
+
+  frontend:
+    name: Frontend (React)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.16.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Formato (prettier)
+        run: pnpm format:check
+
+      - name: Lint (eslint)
+        run: pnpm lint
+
+      - name: Tests unitarios (vitest)
+        run: pnpm test
+
+      - name: Build y verificación de tipos (tsc + vite)
+        run: pnpm build

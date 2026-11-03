@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Matriz Comparativa y Exportación · EF-13</title>
+    <link rel="stylesheet" href="assets/tokens.css" />
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <div class="mockbar no-print">
+      <a href="index.html">← Galería</a>
+      <span class="mockbar-current">10d-matriz · ruta /dashboard/matriz</span>
+      <span class="mockbar-tag">Mockup estático · sin lógica</span>
+    </div>
+
+    <header class="govbar">
+      <div class="container">
+        <span>REPÚBLICA DEL ECUADOR <span class="govbar-sep">|</span> Comisión Especial de Selección y Designación</span>
+        <span class="govbar-note">BIESS — IESS</span>
+      </div>
+    </header>
+
+    <header class="siteheader">
+      <div class="container">
+        <a class="brand" href="10a-panel-admin.html">
+          <span class="brand-mark" aria-hidden="true">BIESS</span>
+          <span>
+            <span class="brand-name">Directorio del BIESS</span><br />
+            <span class="brand-sub">Módulo de administración · Talento Humano</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Navegación de administración">
+          <a href="10a-panel-admin.html">Dashboard</a>
+          <a href="10b-postulaciones.html">Postulaciones</a>
+          <a href="10d-matriz.html" aria-current="page">Matriz</a>
+        </nav>
+        <div class="user-chip">
+          <span class="user-avatar" aria-hidden="true">AT</span>
+          <span>
+            <span class="user-name">Ana Torres</span><br />
+            <span class="user-doc">Analista TH · rol admin</span>
+          </span>
+          <a class="btn btn-ghost btn-sm" href="11c-sesion-expirada.html">Salir</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="container page stack">
+      <div class="cluster between">
+        <div>
+          <h1 class="title-page">Matriz comparativa de postulaciones</h1>
+          <p class="muted">Consolidado general de méritos y cumplimiento normativo para la Comisión. HU-12.</p>
+        </div>
+        <div class="cluster">
+          <button class="btn btn-secondary" type="button">Descargar reporte PDF</button>
+          <button class="btn btn-primary" type="button">Exportar matriz completa (.xlsx)</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <form class="grid-3" action="#" method="post">
+            <div class="field">
+              <label class="label" for="matriz-sector">Sector convocado</label>
+              <select class="select" id="matriz-sector">
+                <option value="todos">Todos los sectores</option>
+                <option value="afiliados">Afiliados</option>
+                <option value="jubilados">Jubilados</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="label" for="matriz-orden">Criterio de ordenamiento</label>
+              <select class="select" id="matriz-orden">
+                <option value="fecha">Fecha de postulación (FIFO)</option>
+                <option value="experiencia-dir">Años de experiencia de dirección</option>
+                <option value="titulo">Mayor nivel académico</option>
+              </select>
+            </div>
+            <div class="field self-end">
+              <button class="btn btn-secondary btn-block" type="submit">Actualizar vista previa</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table">
+            <caption>Vista previa de la matriz (10 primeros expedientes)</caption>
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Código</th>
+                <th scope="col">Cédula</th>
+                <th scope="col">Postulante</th>
+                <th scope="col">Sector</th>
+                <th scope="col">Máximo Título</th>
+                <th scope="col">Exp. Total</th>
+                <th scope="col">Exp. Dirección</th>
+                <th scope="col">Inhabilidades</th>
+                <th scope="col">Dictamen TH</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td class="mono">EF12-2026-004821</td>
+                <td class="mono">1713849204</td>
+                <td>Carlos Alberto Mendoza Andrade</td>
+                <td>Afiliados</td>
+                <td>Cuarto Nivel (Maestría)</td>
+                <td>12 a 3 m</td>
+                <td><strong>7 a 7 m</strong></td>
+                <td><span class="badge badge-warning">2 declaradas · 1.9.7, 1.9.12</span></td>
+                <td><span class="badge badge-warning">Observado</span></td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td class="mono">EF12-2026-004820</td>
+                <td class="mono">0928374615</td>
+                <td>Elena Morales Vivanco</td>
+                <td>Jubilados</td>
+                <td>Cuarto Nivel (PhD)</td>
+                <td>18 a 5 m</td>
+                <td><strong>11 a 2 m</strong></td>
+                <td><span class="badge badge-success">0 declaradas</span></td>
+                <td><span class="badge badge-success">Cumple</span></td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td class="mono">EF12-2026-004819</td>
+                <td class="mono">0102938475</td>
+                <td>Mario Andrés Vega</td>
+                <td>Afiliados</td>
+                <td>Tercer Nivel (Economía)</td>
+                <td>8 a 1 m</td>
+                <td><strong>4 a 2 m</strong></td>
+                <td><span class="badge badge-success">0 declaradas</span></td>
+                <td><span class="badge badge-warning">Observado</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <footer class="sitefooter">
+      <div class="container">
+        <span>Banco del Instituto Ecuatoriano de Seguridad Social</span>
+        <span>Generación de Informes y Matrices Oficiales</span>
+      </div>
+    </footer>
+  </body>
+</html>

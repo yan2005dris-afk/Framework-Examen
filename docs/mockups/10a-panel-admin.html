@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard de Talento Humano · EF-13</title>
+    <link rel="stylesheet" href="assets/tokens.css" />
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <div class="mockbar no-print">
+      <a href="index.html">← Galería</a>
+      <span class="mockbar-current">10a-panel-admin · ruta /dashboard</span>
+      <span class="mockbar-tag">Mockup estático · sin lógica</span>
+    </div>
+
+    <header class="govbar">
+      <div class="container">
+        <span>REPÚBLICA DEL ECUADOR <span class="govbar-sep">|</span> Comisión Especial de Selección y Designación</span>
+        <span class="govbar-note">BIESS — IESS</span>
+      </div>
+    </header>
+
+    <header class="siteheader">
+      <div class="container">
+        <a class="brand" href="10a-panel-admin.html">
+          <span class="brand-mark" aria-hidden="true">BIESS</span>
+          <span>
+            <span class="brand-name">Directorio del BIESS</span><br />
+            <span class="brand-sub">Módulo de administración · Talento Humano</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Navegación de administración">
+          <a href="10a-panel-admin.html" aria-current="page">Dashboard</a>
+          <a href="10b-postulaciones.html">Postulaciones</a>
+          <a href="10d-matriz.html">Matriz</a>
+        </nav>
+        <div class="user-chip">
+          <span class="user-avatar" aria-hidden="true">AT</span>
+          <span>
+            <span class="user-name">Ana Torres</span><br />
+            <span class="user-doc">Analista TH · rol admin</span>
+          </span>
+          <a class="btn btn-ghost btn-sm" href="11c-sesion-expirada.html">Salir</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="container page stack">
+      <div class="cluster between">
+        <div>
+          <h1 class="title-page">Dashboard del concurso</h1>
+          <p class="muted">
+            Cifras en tiempo real del periodo 2026 – 2030. Última actualización hace 2 minutos.
+          </p>
+        </div>
+        <div class="cluster">
+          <a class="btn btn-secondary" href="10d-matriz.html">Generar matriz</a>
+          <a class="btn btn-primary" href="10b-postulaciones.html">Ver postulaciones</a>
+        </div>
+      </div>
+
+      <div class="grid-4">
+        <div class="stat">
+          <p class="stat-label">Postulantes totales</p>
+          <p class="stat-value">1 284</p>
+          <p class="stat-note">Expedientes recibidos</p>
+        </div>
+        <div class="stat">
+          <p class="stat-label">Postulaciones enviadas</p>
+          <p class="stat-value">1 147</p>
+          <p class="stat-note">89 % del total registrado</p>
+        </div>
+        <div class="stat">
+          <p class="stat-label">Postulaciones no elegibles</p>
+          <p class="stat-value">137</p>
+          <p class="stat-note">Cerradas sin admitir la postulación</p>
+        </div>
+        <div class="stat">
+          <p class="stat-label">Cierre de postulaciones</p>
+          <p class="stat-value">15 nov</p>
+          <p class="stat-note">2026 · 23:59 (ECT)</p>
+        </div>
+      </div>
+
+      <div class="sidebar-layout">
+        <div class="stack">
+          <div class="card">
+            <div class="card-head">
+              <h2 class="card-title">Postulantes por cargo</h2>
+              <p class="card-sub">Distribución en tiempo real de los tres sectores convocados.</p>
+            </div>
+            <div class="card-body stack">
+              <div class="stack stack-sm">
+                <div class="cluster between">
+                  <span class="text-sm strong">Afiliados</span>
+                  <span class="num text-sm">612</span>
+                </div>
+                <div class="progress" aria-hidden="true">
+                  <div class="progress-bar" data-level="4"></div>
+                </div>
+              </div>
+              <div class="stack stack-sm">
+                <div class="cluster between">
+                  <span class="text-sm strong">Jubilados</span>
+                  <span class="num text-sm">358</span>
+                </div>
+                <div class="progress" aria-hidden="true">
+                  <div class="progress-bar" data-level="3"></div>
+                </div>
+              </div>
+              <div class="stack stack-sm">
+                <div class="cluster between">
+                  <span class="text-sm strong">Empleadores</span>
+                  <span class="num text-sm">177</span>
+                </div>
+                <div class="progress" aria-hidden="true">
+                  <div class="progress-bar" data-level="2"></div>
+                </div>
+              </div>
+
+              <div class="table-wrap mt-2">
+                <table class="table">
+                  <caption>Detalle por cargo convocado</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Cargo</th>
+                      <th scope="col">Postulantes</th>
+                      <th scope="col">Enviadas</th>
+                      <th scope="col">Elegibles</th>
+                      <th scope="col"><span class="sr-only">Acciones</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row">Miembro Principal y Alterno · Afiliados</th>
+                      <td class="num">612</td>
+                      <td class="num">548</td>
+                      <td class="num">511</td>
+                      <td><a class="btn btn-ghost btn-sm" href="10b-postulaciones.html">Abrir</a></td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Miembro Principal y Alterno · Jubilados</th>
+                      <td class="num">358</td>
+                      <td class="num">322</td>
+                      <td class="num">298</td>
+                      <td><a class="btn btn-ghost btn-sm" href="10b-postulaciones.html">Abrir</a></td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Miembro Principal y Alterno · Empleadores</th>
+                      <td class="num">177</td>
+                      <td class="num">152</td>
+                      <td class="num">139</td>
+                      <td><a class="btn btn-ghost btn-sm" href="10b-postulaciones.html">Abrir</a></td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Postulaciones no elegibles (cerradas)</th>
+                      <td class="num">137</td>
+                      <td class="num">125</td>
+                      <td class="num">0</td>
+                      <td><a class="btn btn-ghost btn-sm" href="10b-postulaciones.html">Abrir</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2 class="card-title">Publicación de fases</h2>
+              <p class="card-sub">
+                El administrador habilita cada fase del concurso y el apartado EF-12.
+              </p>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table class="table">
+                  <caption>Fases del concurso y visibilidad para el postulante</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Fase</th>
+                      <th scope="col">Estado</th>
+                      <th scope="col">Desde</th>
+                      <th scope="col">Hasta</th>
+                      <th scope="col"><span class="sr-only">Acciones</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row">EF-12 · Formulario de postulación</th>
+                      <td><span class="badge badge-success">Habilitada</span></td>
+                      <td class="num">01/09/2026</td>
+                      <td class="num">15/11/2026</td>
+                      <td><button class="btn btn-secondary btn-sm" type="button">Deshabilitar</button></td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Fase 1 · Méritos y oposición</th>
+                      <td><span class="badge badge-success">Habilitada</span></td>
+                      <td class="num">01/09/2026</td>
+                      <td class="num">15/11/2026</td>
+                      <td><button class="btn btn-secondary btn-sm" type="button">Deshabilitar</button></td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Fase 2 · Evaluación técnica</th>
+                      <td><span class="badge">No habilitada</span></td>
+                      <td class="muted">—</td>
+                      <td class="muted">—</td>
+                      <td><button class="btn btn-primary btn-sm" type="button">Publicar fase</button></td>
+                    </tr>
+                    <tr>
+                      <th scope="row">Fase 3 · Entrevista</th>
+                      <td><span class="badge">No habilitada</span></td>
+                      <td class="muted">—</td>
+                      <td class="muted">—</td>
+                      <td><button class="btn btn-primary btn-sm" type="button">Publicar fase</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="alert alert-warning mt-4">
+                <div>
+                  <p class="alert-title">Habilitar el EF-12 es una acción con efecto inmediato</p>
+                  <p class="text-sm">
+                    Al deshabilitarlo, los postulantes pierden el acceso al formulario y solo
+                    conservan la lectura de lo ya guardado.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="card">
+            <div class="card-head">
+              <h2 class="card-title">Estado del proceso</h2>
+            </div>
+            <div class="card-body stack stack-sm">
+              <div class="cluster between">
+                <span class="text-sm">Periodo</span>
+                <span class="badge badge-info">2026 – 2030</span>
+              </div>
+              <div class="cluster between">
+                <span class="text-sm">Resolución</span>
+                <span class="mono text-xs">C.D. 701</span>
+              </div>
+              <div class="cluster between">
+                <span class="text-sm">Cargos convocados</span>
+                <span class="num text-sm">3</span>
+              </div>
+              <div class="cluster between">
+                <span class="text-sm">Días restantes</span>
+                <span class="num text-sm">15</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2 class="card-title">Actividad reciente</h2>
+            </div>
+            <div class="card-body stack stack-sm">
+              <div class="cluster between">
+                <span class="text-sm">EF12-2026-004821 · 1713849204 enviada</span>
+                <span class="text-xs muted num">21:04</span>
+              </div>
+              <div class="cluster between">
+                <span class="text-sm">EF12-2026-004820 enviada</span>
+                <span class="text-xs muted num">21:39</span>
+              </div>
+              <div class="cluster between">
+                <span class="text-sm">EF12-2026-004819 enviada</span>
+                <span class="text-xs muted num">21:35</span>
+              </div>
+              <div class="cluster between">
+                <span class="text-sm">EF12-2026-004818 en borrador</span>
+                <span class="text-xs muted num">21:31</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2 class="card-title">Exportaciones</h2>
+            </div>
+            <div class="card-body stack stack-sm">
+              <a class="btn btn-secondary btn-block" href="10d-matriz.html">Cuadro comparativo (.xlsx)</a>
+              <a class="btn btn-secondary btn-block" href="10d-matriz.html">Cuadro comparativo (PDF)</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="sitefooter">
+      <div class="container">
+        <span>Banco del Instituto Ecuatoriano de Seguridad Social</span>
+        <span>Módulo de administración · EF-13</span>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,97 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+.vite/
+.codegraph
+# Lockfiles de otros gestores. Este proyecto usa pnpm, asi que pnpm-lock.yaml
+# SI se versiona (reproducibilidad de instalaciones).
+package-lock.json
+yarn.lock
+bun.lockb
+bun.lock
+
+# Builds y cobertura
+dist/
+dist-ssr/
+build/
+coverage/
+*.tsbuildinfo
+test-results/
+playwright-report/
+
+# Go
+apps/backend/bin/
+*.exe
+
+# Secretos y credenciales — nunca versionar (solo .env.example)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# Documentos y adjuntos. Los postulantes suben titulos, certificados y
+# documentos de identidad: contienen datos personales y no van al repositorio.
+apps/backend/data/
+/data/uploads/
+/uploads/
+/storage/
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+# Mockup original en React (raiz): ya no esta en el repo, fue reemplazado por
+# el set versionado de docs/mockups/. La regla se conserva como red de seguridad
+# para que una copia local nunca se versione por accidente.
+# El ancla ^ mantiene docs/mockups/ versionable.
+/mockups/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Caché local del registro de skills (la crea el runtime, no es del proyecto)
+.atl/
+
+# Archivos temporales de correcciones e informes
+CORRECCIONES*.md
+INFORME*.md
+docs/tasks/*-IMPLEMENTACION.md
+
+# Plan local de cierre del backend
+COMPLETAR-BACKEND.md
+
+# Plan local de cierre del frontend
+COMPLETAR-FRONTEND.md
+
+# Enunciado del examen, transcripción del RF y auditoría: referencia local, no se versionan
+/EXAMEN.md
+/REQUERIMIENTO.md
+/AUDITORIA.md
+
+# Guias locales de despliegue
+SUBIR_CAMBIOS*.md
+
+# Evidencia visual local (no se versiona)
+docs/design/evidence/
+

@@ -1,0 +1,7 @@
+**
+!apps/
+!apps/backend/
+!apps/backend/data/
+!apps/backend/data/synthetic-demo/
+!apps/backend/data/synthetic-demo/api
+!apps/backend/data/synthetic-demo/migrate

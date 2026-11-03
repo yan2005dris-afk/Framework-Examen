@@ -1,0 +1,178 @@
+# Compose de PRODUCCIÓN.
+#
+# Se ejecuta desde esta carpeta para que compose lea las variables de
+# deploy/.env:
+#
+#   docker compose -f deploy/compose.yaml up -d
+#
+# Nginx sirve la SPA compilada y reenvía /api a la API Go. RustFS publica
+# los puertos 9000 (S3) y 9001 (consola). Para terminar TLS, basta montar los certificados y añadir el
+# bloque server de https al lado de este.
+
+services:
+  frontend:
+    build:
+      context: ..
+      dockerfile: apps/frontend/Dockerfile
+      target: prod
+    container_name: biess-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  api:
+    build:
+      context: ../apps/backend
+      dockerfile: Dockerfile
+    container_name: biess-api
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      PORT: "8080"
+      DATABASE_URL: ${DATABASE_URL:?define DATABASE_URL en deploy/.env}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      DB_REQUIRED: "true"
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      DOWNLOAD_PUBLIC_URL: ${APP_URL}/downloads
+      DOWNLOAD_LISTEN_ADDR: 0.0.0.0:8082
+      STORAGE_DRIVER: s3
+      S3_ENDPOINT: http://rustfs:9000/biess
+      S3_PUBLIC_ENDPOINT: http://localhost:9000/biess
+      S3_ACCESS_KEY: rustfsadmin
+      S3_SECRET_KEY: rustfsadmin
+      S3_REGION: us-east-1
+      MAX_REQUEST_BODY_BYTES: ${MAX_REQUEST_BODY_BYTES:-10485760}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      MAIL_OUTBOX_KEY: ${MAIL_OUTBOX_KEY:?define MAIL_OUTBOX_KEY en deploy/.env}
+      OTP_RESEND_DELAY: ${OTP_RESEND_DELAY:-1m}
+      OTP_MAX_SENDS: ${OTP_MAX_SENDS:-3}
+      ELIGIBILITY_SIMULATION_FILE: ${ELIGIBILITY_SIMULATION_FILE:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@biess.local}
+      SMTP_TLS: ${SMTP_TLS:-true}
+      # Obligatoria para la migración 00020: crea el administrador inicial con
+      # esa contraseña. Sin ella la migración falla y la API no arranca.
+      INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD:?define INIT_ADMIN_PASSWORD en deploy/.env}
+    volumes:
+      - api-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rustfs:
+        condition: service_started
+    healthcheck:
+      # La imagen es distroless: no hay shell ni curl, así que el propio
+      # binario actúa como sonda de salud.
+      test: ["CMD", "/app/api", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # El worker cumple las colas en segundo plano y no sirve tráfico HTTP. No
+  # aplica migraciones: el esquema lo aplica la API al arrancar, y el bloqueo
+  # consultivo serializa a varias réplicas que levantan a la vez.
+  worker:
+    build:
+      context: ../apps/backend
+      dockerfile: Dockerfile
+      target: worker
+    container_name: biess-worker
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?define DATABASE_URL en deploy/.env}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      DB_REQUIRED: "true"
+      STORAGE_DRIVER: s3
+      S3_ENDPOINT: http://rustfs:9000/biess
+      S3_PUBLIC_ENDPOINT: http://localhost:9000/biess
+      S3_ACCESS_KEY: rustfsadmin
+      S3_SECRET_KEY: rustfsadmin
+      S3_REGION: us-east-1
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # La cola se cifra con esta clave: la API y el worker deben compartirla.
+      MAIL_OUTBOX_KEY: ${MAIL_OUTBOX_KEY:?define MAIL_OUTBOX_KEY en deploy/.env}
+      OTP_RESEND_DELAY: ${OTP_RESEND_DELAY:-1m}
+      OTP_MAX_SENDS: ${OTP_MAX_SENDS:-3}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@biess.local}
+      SMTP_TLS: ${SMTP_TLS:-true}
+    volumes:
+      - api-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rustfs:
+        condition: service_started
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    restart: unless-stopped
+    environment:
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_ACCESS_KEY: rustfsadmin
+      RUSTFS_SECRET_KEY: rustfsadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - rustfs-data:/data
+
+  postgres:
+    image: postgres:18-alpine
+    container_name: biess-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en deploy/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-biess}
+    volumes:
+      # PostgreSQL 18 usa un directorio por versión mayor
+      # (/var/lib/postgresql/18/docker). El montaje va en /var/lib/postgresql
+      # y no en .../data, que es lo que exige la imagen desde la 18.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d biess"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
+  redis:
+    image: redis:7-alpine
+    container_name: biess-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  redis-data:
+  postgres-data:
+  api-data:
+  rustfs-data:

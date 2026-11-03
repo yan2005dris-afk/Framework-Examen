@@ -1,0 +1,105 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "sql/queries"
+    schema: "sql/queries/schema.sql"
+    gen:
+      go:
+        package: "sqlcgen"
+        out: "internal/platform/sqlcgen"
+        sql_package: "pgx/v5"
+        emit_interface: false
+        emit_json_tags: true
+        emit_prepared_queries: false
+        emit_db_tags: false
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
+        # Los UUID y las fechas se mapean a tipos nativos de Go para que los
+        # adaptadores no tengan que desempaquetar pgtype en cada lectura.
+        overrides:
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "administrative_access_events.created_at"
+            go_type: "time.Time"
+          - column: "applicants.id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "applicants.fecha_registro"
+            go_type: "time.Time"
+          - column: "applicants.created_at"
+            go_type: "time.Time"
+          - column: "applicants.updated_at"
+            go_type: "time.Time"
+          - column: "submissions.id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "submissions.applicant_id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "submissions.created_at"
+            go_type: "time.Time"
+          - column: "submissions.updated_at"
+            go_type: "time.Time"
+          - column: "sessions.id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "sessions.applicant_id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "sessions.expires_at"
+            go_type: "time.Time"
+          - column: "sessions.created_at"
+            go_type: "time.Time"
+          - column: "password_resets.id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "password_resets.applicant_id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "password_resets.expires_at"
+            go_type: "time.Time"
+          - column: "password_resets.created_at"
+            go_type: "time.Time"
+
+          - column: "documents.id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+
+          - column: "documents.submission_id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+
+          - column: "documents.created_at"
+            go_type: "time.Time"
+
+          - column: "document_deletions.created_at"
+            go_type: "time.Time"
+
+          - column: "submission_events.id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+
+          - column: "submission_events.submission_id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+
+          - column: "submission_events.applicant_id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+
+          - column: "submission_events.created_at"
+            go_type: "time.Time"

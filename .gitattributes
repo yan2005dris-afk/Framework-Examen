@@ -1,0 +1,9 @@
+# Mantener LF también en los archivos del frontend al clonar en Windows.
+* text=auto eol=lf
+
+# Go files must always have LF line endings for gofmt consistency
+*.go text eol=lf
+*.sql text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf

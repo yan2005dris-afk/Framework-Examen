@@ -1,0 +1,385 @@
+import { MapPinIcon, RefreshCwIcon, TriangleAlertIcon } from "lucide-react"
+import { useEffect, useRef } from "react"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { LISTA_PROVINCIAS, PAISES, PROVINCIAS_ECUADOR } from "@/data/ecuadorGeo"
+import { useSesion } from "@/features/auth/sesion-context"
+import {
+  useCatalogosCantones,
+  useCatalogosPaises,
+  useCatalogosProvincias,
+} from "@/features/postulaciones/queries"
+import { validarCorreoSecundario } from "./validacion"
+
+export interface Seccion2Data {
+  pais: string
+  provincia: string
+  canton: string
+  telefonoCelular: string
+  correo1: string
+  correo2?: string
+  callePrincipal: string
+  numero: string
+  calleSecundaria: string
+  sector: string
+  referencia: string
+  telefonoDomiciliario: string
+}
+
+export interface Seccion2ContactoProps {
+  datos: Seccion2Data
+  onChange: (nuevosDatos: Seccion2Data) => void
+  disabled?: boolean
+}
+
+export function Seccion2Contacto({
+  datos,
+  onChange,
+  disabled = false,
+}: Seccion2ContactoProps) {
+  const { postulante } = useSesion()
+  const consultaPaises = useCatalogosPaises()
+
+  const haPrecargadoRef = useRef(false)
+
+  useEffect(() => {
+    if (haPrecargadoRef.current) return
+    if (postulante?.correo && !datos.correo1) {
+      haPrecargadoRef.current = true
+      onChange({
+        ...datos,
+        correo1: postulante.correo,
+        pais: datos.pais || "Ecuador",
+      })
+    }
+  }, [postulante, datos, onChange])
+
+  // Se muestra el dato real: el valor inicial «Ecuador» ya viene en los datos.
+  const paisActual = datos.pais
+  const esEcuador = paisActual.toLowerCase() === "ecuador"
+
+  const consultaProvincias = useCatalogosProvincias(paisActual)
+  const consultaCantones = useCatalogosCantones(datos.provincia, paisActual)
+
+  // Si la API de catálogos no responde se usa la lista local, avisando al usuario.
+  const listaPaises = consultaPaises.isError
+    ? PAISES
+    : (consultaPaises.data ?? [])
+  const provinciasDisponibles = !esEcuador
+    ? []
+    : consultaProvincias.isError
+      ? LISTA_PROVINCIAS
+      : (consultaProvincias.data ?? [])
+  const cantonesDisponibles =
+    !esEcuador || !datos.provincia
+      ? []
+      : consultaCantones.isError
+        ? (PROVINCIAS_ECUADOR[datos.provincia] ?? [])
+        : (consultaCantones.data ?? [])
+
+  const cargandoProvincias = esEcuador && consultaProvincias.isPending
+  const cargandoCantones =
+    esEcuador && Boolean(datos.provincia) && consultaCantones.isPending
+  const usandoCatalogoLocal =
+    consultaPaises.isError ||
+    (esEcuador && consultaProvincias.isError) ||
+    (esEcuador && Boolean(datos.provincia) && consultaCantones.isError)
+
+  function reintentarCatalogos() {
+    if (consultaPaises.isError) void consultaPaises.refetch()
+    if (consultaProvincias.isError) void consultaProvincias.refetch()
+    if (consultaCantones.isError) void consultaCantones.refetch()
+  }
+
+  function actualizarCampo<K extends keyof Seccion2Data>(
+    campo: K,
+    valor: Seccion2Data[K],
+  ) {
+    if (campo === "pais") {
+      // Al cambiar de país, resetear provincia y cantón
+      onChange({
+        ...datos,
+        pais: valor as string,
+        provincia: "",
+        canton: "",
+      })
+      return
+    }
+
+    if (campo === "provincia" && esEcuador) {
+      // Al cambiar provincia en Ecuador, resetear cantón
+      onChange({
+        ...datos,
+        provincia: valor as string,
+        canton: "",
+      })
+      return
+    }
+
+    onChange({
+      ...datos,
+      [campo]: valor,
+    })
+  }
+
+  const errorCorreo2 = validarCorreoSecundario(datos.correo2)
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center gap-2 border-b pb-3">
+        <MapPinIcon className="size-5 text-primary" aria-hidden="true" />
+        <div>
+          <h2 className="text-lg font-semibold">
+            2. Información Domiciliaria y de Contacto
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Lugar de residencia habitual y canales oficiales de comunicación.
+          </p>
+        </div>
+      </div>
+
+      {usandoCatalogoLocal && (
+        <Alert className="border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-300">
+          <TriangleAlertIcon className="size-4 shrink-0" />
+          <AlertTitle>Catálogo del servidor no disponible</AlertTitle>
+          <AlertDescription className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              No se pudo consultar el catálogo del servidor. Se muestra la lista
+              local.
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={reintentarCatalogos}
+            >
+              <RefreshCwIcon data-icon="inline-start" />
+              Reintentar
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sec2-pais">País *</Label>
+          <Select
+            value={paisActual}
+            onValueChange={(val) => actualizarCampo("pais", val)}
+            disabled={disabled || consultaPaises.isPending}
+          >
+            <SelectTrigger id="sec2-pais">
+              <SelectValue
+                placeholder={
+                  consultaPaises.isPending
+                    ? "Cargando países…"
+                    : "Seleccione país"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              {listaPaises.map((pais) => (
+                <SelectItem key={pais} value={pais}>
+                  {pais}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sec2-provincia">Provincia / Estado *</Label>
+          {esEcuador ? (
+            <Select
+              value={datos.provincia || ""}
+              onValueChange={(val) => actualizarCampo("provincia", val)}
+              disabled={disabled || cargandoProvincias}
+            >
+              <SelectTrigger id="sec2-provincia">
+                <SelectValue
+                  placeholder={
+                    cargandoProvincias
+                      ? "Cargando provincias…"
+                      : "Seleccione provincia"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {provinciasDisponibles.map((prov) => (
+                  <SelectItem key={prov} value={prov}>
+                    {prov}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              id="sec2-provincia"
+              value={datos.provincia || ""}
+              onChange={(e) => actualizarCampo("provincia", e.target.value)}
+              disabled={disabled}
+              placeholder="Escriba la provincia o estado"
+            />
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sec2-canton">Cantón / Ciudad *</Label>
+          {esEcuador ? (
+            <Select
+              value={datos.canton || ""}
+              onValueChange={(val) => actualizarCampo("canton", val)}
+              disabled={disabled || !datos.provincia || cargandoCantones}
+            >
+              <SelectTrigger id="sec2-canton">
+                <SelectValue
+                  placeholder={
+                    !datos.provincia
+                      ? "Elija primero provincia"
+                      : cargandoCantones
+                        ? "Cargando cantones…"
+                        : "Seleccione cantón"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {cantonesDisponibles.map((cant) => (
+                  <SelectItem key={cant} value={cant}>
+                    {cant}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              id="sec2-canton"
+              value={datos.canton || ""}
+              onChange={(e) => actualizarCampo("canton", e.target.value)}
+              disabled={disabled}
+              placeholder="Escriba la ciudad o cantón"
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sec2-correo1">Correo Principal (Cuenta OTP) *</Label>
+          <Input
+            id="sec2-correo1"
+            value={datos.correo1}
+            disabled
+            readOnly
+            className="bg-muted font-mono"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sec2-correo2">Correo Alternativo (Opcional)</Label>
+          <Input
+            id="sec2-correo2"
+            type="email"
+            value={datos.correo2 || ""}
+            onChange={(e) => actualizarCampo("correo2", e.target.value)}
+            disabled={disabled}
+            placeholder="correo.alternativo@example.com"
+          />
+          {errorCorreo2 && (
+            <span className="text-[11px] text-destructive">{errorCorreo2}</span>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sec2-celular">Teléfono Celular *</Label>
+          <Input
+            id="sec2-celular"
+            value={datos.telefonoCelular}
+            onChange={(e) => actualizarCampo("telefonoCelular", e.target.value)}
+            disabled={disabled}
+            placeholder="0999999999"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sec2-convencional">Teléfono Domiciliario *</Label>
+          <Input
+            id="sec2-convencional"
+            value={datos.telefonoDomiciliario}
+            onChange={(e) =>
+              actualizarCampo("telefonoDomiciliario", e.target.value)
+            }
+            disabled={disabled}
+            placeholder="022222222"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <Label htmlFor="sec2-calle-principal">Calle Principal *</Label>
+          <Input
+            id="sec2-calle-principal"
+            value={datos.callePrincipal}
+            onChange={(e) => actualizarCampo("callePrincipal", e.target.value)}
+            disabled={disabled}
+            placeholder="Av. 10 de Agosto"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sec2-numero">Número *</Label>
+          <Input
+            id="sec2-numero"
+            value={datos.numero}
+            onChange={(e) => actualizarCampo("numero", e.target.value)}
+            disabled={disabled}
+            placeholder="N24-12 o S/N"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <Label htmlFor="sec2-calle-secundaria">Calle Secundaria *</Label>
+          <Input
+            id="sec2-calle-secundaria"
+            value={datos.calleSecundaria}
+            onChange={(e) => actualizarCampo("calleSecundaria", e.target.value)}
+            disabled={disabled}
+            placeholder="Intersección o transversal"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sec2-sector">Sector / Barrio *</Label>
+          <Input
+            id="sec2-sector"
+            value={datos.sector}
+            onChange={(e) => actualizarCampo("sector", e.target.value)}
+            disabled={disabled}
+            placeholder="Centro Norte"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5 sm:col-span-3">
+          <Label htmlFor="sec2-referencia">Referencia de Ubicación *</Label>
+          <Input
+            id="sec2-referencia"
+            value={datos.referencia}
+            onChange={(e) => actualizarCampo("referencia", e.target.value)}
+            disabled={disabled}
+            placeholder="Junto al parque, frente a la farmacia..."
+          />
+        </div>
+      </div>
+    </div>
+  )
+}

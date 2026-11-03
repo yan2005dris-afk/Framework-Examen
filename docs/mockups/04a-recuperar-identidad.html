@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Recuperar contraseña · Verificación de identidad</title>
+    <link rel="stylesheet" href="assets/tokens.css" />
+    <link rel="stylesheet" href="assets/app.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al contenido</a>
+
+    <div class="mockbar no-print">
+      <a href="index.html">← Galería</a>
+      <span class="mockbar-current">04a-recuperar-identidad · ruta /recuperar-contrasena</span>
+      <span class="mockbar-tag">Mockup estático · sin lógica</span>
+    </div>
+
+    <header class="govbar">
+      <div class="container">
+        <span>REPÚBLICA DEL ECUADOR <span class="govbar-sep">|</span> Comisión Especial de Selección y Designación</span>
+        <span class="govbar-note">BIESS — IESS</span>
+      </div>
+    </header>
+
+    <header class="siteheader">
+      <div class="container">
+        <a class="brand" href="01-portal.html">
+          <span class="brand-mark" aria-hidden="true">BIESS</span>
+          <span>
+            <span class="brand-name">Directorio del BIESS</span><br />
+            <span class="brand-sub">Concurso Público de Méritos y Oposición</span>
+          </span>
+        </a>
+        <nav class="nav" aria-label="Navegación">
+          <a href="01-portal.html">Convocatoria</a>
+          <a href="03a-login.html">Iniciar sesión</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main" class="container container-narrow page">
+      <div class="card">
+        <div class="card-head">
+          <p class="tag">EF-11 · HU-04</p>
+          <h1 class="card-title mt-3">Recuperar contraseña</h1>
+          <p class="card-sub">Confirme su identidad para recibir el enlace de restablecimiento.</p>
+          <ol class="steps-inline mt-4" aria-label="Pasos de la recuperación">
+            <li aria-current="step">
+              <span class="step-num" aria-hidden="true">1</span> Identidad
+            </li>
+            <li>
+              <span class="step-num" aria-hidden="true">2</span> Correo
+            </li>
+            <li>
+              <span class="step-num" aria-hidden="true">3</span> Nueva contraseña
+            </li>
+            <li>
+              <span class="step-num" aria-hidden="true">4</span> Listo
+            </li>
+          </ol>
+        </div>
+
+        <form class="card-body stack" action="#" method="post">
+          <div class="field">
+            <label class="label" for="cedula-recuperar">Cédula de ciudadanía <span class="req" aria-hidden="true">*</span></label>
+            <input
+              class="input"
+              id="cedula-recuperar"
+              name="cedula"
+              type="text"
+              inputmode="numeric"
+              maxlength="10"
+              placeholder="1712345675"
+              aria-describedby="cedula-recuperar-hint"
+            />
+            <p class="hint" id="cedula-recuperar-hint">La cédula con la que se registró.</p>
+          </div>
+
+          <fieldset class="fieldset has-metodo">
+            <legend>Método de validación <span class="req" aria-hidden="true">*</span></legend>
+            <div class="radio-row">
+              <label class="radio">
+                <input type="radio" name="metodo" value="dactilar" checked />
+                Código dactilar
+              </label>
+              <label class="radio">
+                <input type="radio" name="metodo" value="expedicion" />
+                Fecha de expedición
+              </label>
+            </div>
+            <div class="conditional" data-when="dactilar">
+              <div class="field">
+                <label class="label" for="dactilar-recuperar">Código dactilar</label>
+                <input
+                  class="input mono"
+                  id="dactilar-recuperar"
+                  name="dactilar"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="10"
+                  pattern="[0-9]{10}"
+                  placeholder="1234567890"
+                  aria-describedby="dactilar-recuperar-hint"
+                />
+                <p class="hint" id="dactilar-recuperar-hint">10 dígitos, tal como aparece impreso.</p>
+              </div>
+            </div>
+            <div class="conditional" data-when="expedicion">
+              <div class="field">
+                <label class="label" for="expedicion-recuperar">Fecha de expedición</label>
+                <input class="input" id="expedicion-recuperar" name="expedicion" type="date" />
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="alert alert-info">
+            <div>
+              <p class="alert-title">El enlace se envía al correo registrado</p>
+              <p class="text-sm">
+                Por seguridad no mostramos la dirección completa. El enlace vence en 30
+                minutos.
+              </p>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-block" type="submit">Enviar enlace de recuperación</button>
+        </form>
+
+        <div class="card-foot">
+          <a class="btn btn-ghost btn-sm" href="03a-login.html">← Volver al inicio de sesión</a>
+        </div>
+      </div>
+    </main>
+
+    <footer class="sitefooter">
+      <div class="container">
+        <span>Banco del Instituto Ecuatoriano de Seguridad Social</span>
+        <span>Canal seguro · Datos protegidos</span>
+      </div>
+    </footer>
+    <script src="assets/mock.js"></script>
+  </body>
+</html>
