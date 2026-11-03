@@ -211,12 +211,12 @@ export function ResultadosPublicosView() {
       </Alert>
 
       {/* Estado y contenido */}
-      {consulta.isPending ? (
+      {consulta.isLoading ? (
         <EstadoCargando mensaje="Cargando nómina pública de resultados…" />
       ) : consulta.isError &&
         (!esErrorApi(consulta.error) ||
           (consulta.error.codigo !== "lista_no_encontrada" &&
-            consulta.error.status !== 404)) ? (
+            consulta.error.estado !== 404)) ? (
         <EstadoError
           error={consulta.error}
           titulo="No fue posible consultar la lista pública"
