@@ -70,6 +70,19 @@ export function rutaSeccion(seccion: number | string): string {
   return `${RUTAS.postulacion}/${seccion}`
 }
 
+/**
+ * Agrega `?convocatoria=` a una ruta del postulante para que formulario,
+ * revisión, impresión y seguimiento muestren la postulación de esa convocatoria.
+ * Sin convocatoria devuelve la ruta tal cual.
+ */
+export function rutaPostulacion(
+  ruta: string,
+  convocatoriaId?: string | null,
+): string {
+  if (!convocatoriaId) return ruta
+  return `${ruta}?convocatoria=${encodeURIComponent(convocatoriaId)}`
+}
+
 /** Ruta del detalle de una postulación en el panel del analista. */
 export function rutaDetallePostulacion(id: string): string {
   return `${RUTAS.dashboardPostulaciones}/${id}`
@@ -167,6 +180,18 @@ export function leerDestinoLogin(
 }
 
 /**
+ * Indica si un destino es una ruta de este portal. Un destino externo
+ * (`https://…`, `//otro-sitio`, `/\otro-sitio`) no se sigue tras el login.
+ */
+function esRutaInterna(destino: string): boolean {
+  return (
+    destino.startsWith("/") &&
+    !destino.startsWith("//") &&
+    !destino.startsWith("/\\")
+  )
+}
+
+/**
  * Resuelve la redirección posterior al login validando coherencia de rol.
  * Evita que usuarios administrativos (administrador/analista) terminen en el
  * formulario de postulación aunque el enlace de login trajera `?destino=/postulacion`.
@@ -183,7 +208,8 @@ export function resolverDestinoLogin(
   if (
     !destinoLimpio ||
     destinoLimpio === RUTAS.login ||
-    destinoLimpio === RUTAS.inicio
+    destinoLimpio === RUTAS.inicio ||
+    !esRutaInterna(destinoLimpio)
   ) {
     return rutaInicial(postulante)
   }

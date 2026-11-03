@@ -42,8 +42,18 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.With(identity.RequirePermission(identity.PermissionGrades)).Get("/api/v1/admin/grades/submissions/{id}/exam", h.read(true))
 	r.With(identity.RequirePermission(identity.PermissionGrades)).Get("/api/v1/admin/grades/submissions/{id}/exam/report.pdf", h.report(true))
 }
+
+/**
+ * actor devuelve el postulante autenticado o nil cuando la petición no trae
+ * sesión resuelta. El error de contexto no se descarta: un actor ausente se
+ * propaga como nil y los servicios niegan la operación, de modo que nunca se
+ * opera como si fuera un actor válido.
+ */
 func actor(r *http.Request) *identity.Applicant {
-	a, _ := identity.ApplicantFromContext(r.Context())
+	a, ok := identity.ApplicantFromContext(r.Context())
+	if !ok {
+		return nil
+	}
 	return a
 }
 func id(r *http.Request, key string) (uuid.UUID, error) {

@@ -254,21 +254,36 @@ function errorSeccion(
       )
         return "La formación académica no es válida."
       break
-    case 6:
+    case 6: {
       if (completo && !registros.length) return "Agregue una experiencia."
-      if (
-        registros.some(
-          (r) =>
-            !requeridos(r, meta.registroObligatorios ?? []) ||
-            (r.actualmenteLaborando !== true && !requeridos(r, ["fechaFin"])) ||
-            !opcion(r, "tipo", "tiposExperiencia") ||
-            !opcion(r, "actividades", "areas") ||
-            [...texto(r, "descripcionFunciones")].length > 1000 ||
-            !rango(r, r.actualmenteLaborando === true),
-        )
-      )
-        return "La experiencia profesional no es válida."
+      // Cada mensaje dice qué experiencia y qué campo corregir; la validez es
+      // la misma que aplica el servidor (rules.go).
+      for (const [indice, r] of registros.entries()) {
+        const experiencia = `Experiencia ${indice + 1}`
+        const actual = r.actualmenteLaborando === true
+        const inicio = texto(r, "fechaInicio")
+        const fin = texto(r, "fechaFin")
+        if (!requeridos(r, meta.registroObligatorios ?? []))
+          return `${experiencia}: complete tipo, cargo, institución, fecha de inicio, actividades y funciones.`
+        if (!actual && !requeridos(r, ["fechaFin"]))
+          return `${experiencia}: indique la fecha de fin o marque que labora actualmente.`
+        if (!opcion(r, "tipo", "tiposExperiencia"))
+          return `${experiencia}: elija el tipo de experiencia de la lista.`
+        if (!opcion(r, "actividades", "areas"))
+          return `${experiencia}: elija el área de actividades de la lista.`
+        if ([...texto(r, "descripcionFunciones")].length > 1000)
+          return `${experiencia}: la descripción de funciones admite máximo 1000 caracteres.`
+        if (!fechaValida(inicio, hoy))
+          return `${experiencia}: la fecha de inicio debe ser válida y no futura.`
+        if (actual && fin)
+          return `${experiencia}: si labora actualmente, deje vacía la fecha de fin.`
+        if (!actual && !fechaValida(fin, hoy))
+          return `${experiencia}: la fecha de fin debe ser válida y no futura.`
+        if (!actual && inicio && fin && fin < inicio)
+          return `${experiencia}: la fecha de fin no puede ser anterior a la de inicio.`
+      }
       break
+    }
     case 7:
       if (
         !opcion(seccion, "cuentaConPublicaciones", "respuestas") ||
@@ -435,4 +450,24 @@ export function validarCorreoSecundario(
   correo: string | undefined,
 ): string | null {
   return correo && !validarEmail(correo) ? "Correo inválido" : null
+}
+
+/** Valida un registro completo del modal sin exigir PDF previo ni las otras secciones. */
+export function validarRegistroFormulario(
+  numero: 5 | 6 | 7 | 8,
+  registro: unknown,
+): string | null {
+  const lista = definicion.secciones.find(
+    (seccion) => seccion.numero === numero,
+  )?.lista
+  if (!lista) return "La sección de registros no es válida."
+  const resultado = validarSeccionEF12(
+    {
+      [lista]: [registro],
+      ...(numero === 7 ? { cuentaConPublicaciones: "Sí" } : {}),
+    },
+    numero,
+    true,
+  )
+  return resultado.errores[0]?.mensaje ?? null
 }

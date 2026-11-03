@@ -21,6 +21,15 @@ func TestPostgresReviewKeepsClosedPeriodRosterSnapshotAndCertificate(t *testing.
 	if _, err := pool.Exec(ctx, `INSERT INTO applicants(id,cedula,nombres,apellidos,correo) VALUES($1,'1710034008','Nombre actual','Distinto','review@example.test')`, owner); err != nil {
 		t.Fatal(err)
 	}
+	// Una postulación por postulante y convocatoria: el borrador y la segunda
+	// postulación enviada del período pertenecen a otras cuentas.
+	drafter, peer, late := uuid.New(), uuid.New(), uuid.New()
+	for index, id := range []uuid.UUID{drafter, peer, late} {
+		if _, err := pool.Exec(ctx, `INSERT INTO applicants(id,cedula,nombres,apellidos,correo) VALUES($1,$2,'Otra','Cuenta',$3)`, id, fmt.Sprintf("091003400%d", index), fmt.Sprintf("review-%d@example.test", index)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	applicantOf := []uuid.UUID{owner, drafter, owner, owner, peer}
 	for index, id := range []uuid.UUID{period, otherPeriod} {
 		if _, err := pool.Exec(ctx, `INSERT INTO competitions(id,code,title,opens_at,closes_at) VALUES($1,$2,'Prueba',now()-interval '1 day',now()+interval '1 day')`, id, fmt.Sprintf("TEST-%d", index)); err != nil {
 			t.Fatal(err)
@@ -42,7 +51,7 @@ func TestPostgresReviewKeepsClosedPeriodRosterSnapshotAndCertificate(t *testing.
 			} else if i == 2 {
 				competition = &otherPeriod
 			}
-			if _, err := pool.Exec(ctx, `INSERT INTO submissions(id,applicant_id,competition_id,code,content,created_at) VALUES($1,$2,$3,$4,$5,$6)`, id, owner, competition, fmt.Sprintf("REV-%d", i), canonical, createdAt); err != nil {
+			if _, err := pool.Exec(ctx, `INSERT INTO submissions(id,applicant_id,competition_id,code,content,created_at) VALUES($1,$2,$3,$4,$5,$6)`, id, applicantOf[i], competition, fmt.Sprintf("REV-%d", i), canonical, createdAt); err != nil {
 				t.Fatal(err)
 			}
 			if i == 0 {
@@ -87,7 +96,7 @@ func TestPostgresReviewKeepsClosedPeriodRosterSnapshotAndCertificate(t *testing.
 		t.Fatal("snapshot perdido")
 	}
 	counts, err := repo.Counts(ctx, f)
-	if err != nil || len(counts) != 1 || counts[0].Applicants != 1 || counts[0].Submissions != 2 {
+	if err != nil || len(counts) != 1 || counts[0].Applicants != 2 || counts[0].Submissions != 2 {
 		t.Fatal(counts, err)
 	}
 	next, err := repo.List(ctx, f, domain.Position{At: rows[0].CreatedAt, ID: rows[0].ID}, 1)
@@ -101,7 +110,7 @@ func TestPostgresReviewKeepsClosedPeriodRosterSnapshotAndCertificate(t *testing.
 	if _, err := pool.Exec(ctx, `UPDATE submissions SET status='submitted',hash=$2,submitted_at=now() WHERE id=$1`, ids[1], submission.HashContent(canonical)); err == nil {
 		t.Fatal("envío tardío admitido")
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO submissions(id,applicant_id,competition_id,code) VALUES($1,$2,$3,'FUERA-PLAZO')`, uuid.New(), owner, period); err == nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO submissions(id,applicant_id,competition_id,code) VALUES($1,$2,$3,'FUERA-PLAZO')`, uuid.New(), late, period); err == nil {
 		t.Fatal("alta en período cerrado admitida")
 	}
 	legacy, err := repo.List(ctx, review.Filter{Legacy: true}, domain.Position{}, 20)

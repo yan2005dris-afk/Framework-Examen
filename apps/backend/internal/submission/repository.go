@@ -20,6 +20,7 @@ type Repository interface {
 	SaveSubmission(ctx context.Context, item *Submission, related RelatedChanges) error
 	Create(ctx context.Context, item *Submission) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Submission, error)
+	FindByApplicantAndCompetition(ctx context.Context, applicantID uuid.UUID, competitionID uuid.UUID) (*Submission, error)
 	ListByApplicant(ctx context.Context, applicantID uuid.UUID, limit int, offset int) ([]*Submission, int64, error)
 	ListByApplicantCursor(ctx context.Context, applicantID uuid.UUID, before time.Time, beforeID uuid.UUID, limit int) ([]*Submission, error)
 	Update(ctx context.Context, item *Submission) error

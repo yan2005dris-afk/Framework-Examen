@@ -710,3 +710,14 @@ atajos no sustituyen estos requisitos.
 **Ver también**: [backend-tasks.md](backend-tasks.md) ·
 [`../architecture/ARQUITECTURA.md`](../architecture/ARQUITECTURA.md) ·
 [`../api-contracts/API_CONTRACT.md`](../api-contracts/API_CONTRACT.md)
+
+
+## Integración transversal (2026-11-02)
+
+Las descargas conservan `{url, expiresAt}`, pero la URL es una capacidad opaca
+revocable; seguirla sin reconstruirla ni persistirla. Vite/proxy reenvía
+`/downloads` al listener privado. El navegador envía Origin en mutaciones;
+401, 403 y 503 no son intercambiables. No se guardan cookies/OTP en storage.
+
+Ver [tareas transversales](cross-cutting-tasks.md) y
+[informe y límites](../deployment/CROSS_CUTTING_COMPLETION_REPORT.md).

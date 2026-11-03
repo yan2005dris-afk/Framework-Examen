@@ -2,6 +2,7 @@ import { ShieldXIcon } from "lucide-react"
 import { Link } from "react-router"
 
 import { Button } from "@/components/ui/button"
+import { MarcoEstadoPortal } from "@/components/cabecera-portal"
 import {
   Card,
   CardContent,
@@ -29,13 +30,15 @@ export function SinPermisoView({
       : "El panel de revisión está reservado a las cuentas con rol de analista de Talento Humano o Administrador."
 
   return (
-    <div className="mx-auto flex min-h-svh w-full max-w-lg items-center justify-center p-6">
+    <MarcoEstadoPortal>
       <Card className="w-full">
         <CardHeader>
           <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             <ShieldXIcon className="size-5" aria-hidden="true" />
           </div>
-          <CardTitle>No tiene permisos para esta sección</CardTitle>
+          <CardTitle>
+            <h1>No tiene permisos para esta sección</h1>
+          </CardTitle>
           <CardDescription>{descripcion}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
@@ -47,6 +50,6 @@ export function SinPermisoView({
           </Button>
         </CardContent>
       </Card>
-    </div>
+    </MarcoEstadoPortal>
   )
 }

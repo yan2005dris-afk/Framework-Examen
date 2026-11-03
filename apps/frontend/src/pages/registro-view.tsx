@@ -1,3 +1,4 @@
+import { PantallaBloqueoRegistro } from "@/features/auth/pantalla-bloqueo-registro"
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import {
   CheckCircle2Icon,
@@ -101,7 +102,27 @@ export function RegistroView() {
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
   const [reenviandoOtp, setReenviandoOtp] = useState(false)
-  const [bloqueadoExpiraEn, setBloqueadoExpiraEn] = useState<Date | null>(null)
+  const [bloqueadoExpiraEn, setBloqueadoExpiraEnInterno] =
+    useState<Date | null>(() => {
+      try {
+        const fin = Number(sessionStorage.getItem("biess_registro_lockout"))
+        return Number.isFinite(new Date(fin).getTime()) && fin > Date.now()
+          ? new Date(fin)
+          : null
+      } catch {
+        return null
+      }
+    })
+  function setBloqueadoExpiraEn(fin: Date | null) {
+    try {
+      if (fin)
+        sessionStorage.setItem("biess_registro_lockout", String(fin.getTime()))
+      else sessionStorage.removeItem("biess_registro_lockout")
+    } catch {
+      /* La API conserva el bloqueo aunque el navegador no permita guardar el vencimiento. */
+    }
+    setBloqueadoExpiraEnInterno(fin)
+  }
   const [postulanteRegistrado, setPostulanteRegistrado] =
     useState<PostulanteDto | null>(null)
 
@@ -400,12 +421,23 @@ export function RegistroView() {
   // ── Renderizado ──────────────────────────────────────────────────────────
 
   const totalPasos = 3
+  if (estaBloqueado && bloqueadoExpiraEn)
+    return (
+      <PantallaBloqueoRegistro
+        expiraEn={bloqueadoExpiraEn}
+        mensaje={errorGeneral ?? undefined}
+        onExpirar={() => {
+          setBloqueadoExpiraEn(null)
+          setErrorGeneral(null)
+        }}
+      />
+    )
 
   return (
-    <div className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-lg items-center px-4 py-8">
-      <Card className="w-full shadow-lg">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+    <div className="mx-auto w-full max-w-[46rem] px-5 pt-8 pb-16">
+      <Card className="w-full">
+        <CardHeader className="space-y-1">
+          <div className="mb-2 flex size-9 items-center justify-center rounded-md bg-brand-100 text-primary">
             {paso === 4 ? (
               <CheckCircle2Icon
                 className="size-6 text-emerald-600"
@@ -415,8 +447,10 @@ export function RegistroView() {
               <UserPlusIcon className="size-6" aria-hidden="true" />
             )}
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            {paso === 4 ? "¡Registro completado!" : "Registro de postulante"}
+          <CardTitle className="text-base font-bold tracking-tight">
+            <h1>
+              {paso === 4 ? "¡Registro completado!" : "Registro de postulante"}
+            </h1>
           </CardTitle>
           <CardDescription>
             {paso === 1 &&
@@ -428,7 +462,7 @@ export function RegistroView() {
 
           {/* Indicador de progreso */}
           {paso < 4 && (
-            <div className="mt-4 flex items-center justify-center gap-2 pt-2">
+            <div className="mt-4 flex items-center gap-3 border-t pt-4">
               {Array.from({ length: totalPasos }, (_, i) => i + 1).map((n) => (
                 <span
                   key={n}
@@ -450,7 +484,7 @@ export function RegistroView() {
         {/* PASO 1: Cédula y Correo */}
         {paso === 1 && (
           <form onSubmit={manejarSubmitPaso1} noValidate>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {estaBloqueado ? (
                 <AlertaBloqueo
                   expiraEn={bloqueadoExpiraEn ?? undefined}
@@ -595,7 +629,7 @@ export function RegistroView() {
         {/* PASO 2: Código OTP */}
         {paso === 2 && (
           <form onSubmit={manejarSubmitPaso2} noValidate>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="flex items-center justify-between rounded-lg bg-muted/60 p-3 text-xs">
                 <div className="flex items-center gap-2">
                   <MailIcon className="size-4 text-primary" />
@@ -737,7 +771,7 @@ export function RegistroView() {
         {/* PASO 3: Nombres, Apellidos y Contraseña */}
         {paso === 3 && (
           <form onSubmit={manejarSubmitPaso3} noValidate>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {estaBloqueado ? (
                 <AlertaBloqueo
                   expiraEn={bloqueadoExpiraEn ?? undefined}

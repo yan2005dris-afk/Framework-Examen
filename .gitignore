@@ -85,3 +85,15 @@ COMPLETAR-BACKEND.md
 
 # Plan local de cierre del frontend
 COMPLETAR-FRONTEND.md
+
+# Enunciado del examen, transcripción del RF y auditoría: referencia local, no se versionan
+/EXAMEN.md
+/REQUERIMIENTO.md
+/AUDITORIA.md
+
+# Guias locales de despliegue
+SUBIR_CAMBIOS*.md
+
+# Evidencia visual local (no se versiona)
+docs/design/evidence/
+

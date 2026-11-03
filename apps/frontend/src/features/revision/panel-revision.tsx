@@ -21,7 +21,13 @@ import {
 } from "./modelo"
 import { useCuentaRevision, useNominaRevision } from "./queries"
 
-function NominaRevision({ filtros }: { filtros: FiltrosRevision }) {
+function NominaRevision({
+  filtros,
+  matriz = false,
+}: {
+  filtros: FiltrosRevision
+  matriz?: boolean
+}) {
   const consulta = useNominaRevision(filtros)
   if (consulta.isPending)
     return <EstadoCargando mensaje="Consultando expedientes sellados…" />
@@ -49,16 +55,27 @@ function NominaRevision({ filtros }: { filtros: FiltrosRevision }) {
     <section className="space-y-4" aria-labelledby="titulo-nomina">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="titulo-nomina" className="text-lg font-semibold">
-          Nómina de expedientes
+          {matriz ? "Vista previa de la matriz" : "Nómina de expedientes"}
         </h2>
         <p className="text-sm text-muted-foreground">
           {filas.length} cargados · orden del servidor
         </p>
       </div>
-      <div className="overflow-x-auto rounded-xl border">
-        <table className="w-full min-w-[680px] text-left text-sm">
+      {matriz && (
+        <p className="text-sm text-muted-foreground">
+          Vista previa paginada de los expedientes cargados. Las descargas
+          incluyen toda la selección; no se asignan puntajes ni dictámenes en
+          esta tabla.
+        </p>
+      )}
+      <div className="relative overflow-x-auto rounded-lg border">
+        <table
+          className={`w-full text-left text-sm ${matriz ? "min-w-[1100px]" : "min-w-[680px]"}`}
+        >
           <caption className="sr-only">
-            Postulaciones enviadas de la convocatoria y sector seleccionados
+            {matriz
+              ? "Matriz técnica de datos declarados en expedientes sellados"
+              : "Postulaciones enviadas de la convocatoria y sector seleccionados"}
           </caption>
           <thead className="border-b bg-muted/50 text-xs text-muted-foreground">
             <tr>
@@ -67,6 +84,14 @@ function NominaRevision({ filtros }: { filtros: FiltrosRevision }) {
                 "Cargo / sector",
                 "Envío (Ecuador)",
                 "Estado",
+                ...(matriz
+                  ? [
+                      "Formación declarada",
+                      "Experiencia al envío",
+                      "Publicaciones",
+                      "Capacitación (horas)",
+                    ]
+                  : []),
                 "Expediente",
               ].map((c) => (
                 <th key={c} scope="col" className="p-4 font-medium">
@@ -102,6 +127,53 @@ function NominaRevision({ filtros }: { filtros: FiltrosRevision }) {
                       : "Estado no reconocido"}
                   </Badge>
                 </td>
+                {matriz && (
+                  <>
+                    <td className="p-4">
+                      <ul className="space-y-2">
+                        {fila.titulos?.length ? (
+                          fila.titulos.map((titulo, n) => (
+                            <li key={n}>
+                              <span className="font-medium">
+                                {titulo.titulo}
+                              </span>
+                              <span className="block text-xs text-muted-foreground">
+                                {titulo.nivel}
+                              </span>
+                            </li>
+                          ))
+                        ) : (
+                          <li>Sin registros declarados</li>
+                        )}
+                      </ul>
+                    </td>
+                    <td className="p-4">
+                      <ul className="space-y-2">
+                        {fila.experiencias?.length ? (
+                          fila.experiencias.map((experiencia) => (
+                            <li key={experiencia.id}>
+                              <span className="font-medium">
+                                {experiencia.cargo}
+                              </span>
+                              <span className="block text-xs text-muted-foreground">
+                                {experiencia.duracion?.texto ??
+                                  "Duración no disponible"}
+                              </span>
+                            </li>
+                          ))
+                        ) : (
+                          <li>Sin registros declarados</li>
+                        )}
+                      </ul>
+                    </td>
+                    <td className="p-4 font-mono tabular-nums">
+                      {fila.publicaciones}
+                    </td>
+                    <td className="p-4 font-mono tabular-nums">
+                      {fila.horasCapacitacion}
+                    </td>
+                  </>
+                )}
                 <td className="p-4">
                   <Button variant="outline" size="sm" asChild>
                     <Link
@@ -145,33 +217,64 @@ function NominaRevision({ filtros }: { filtros: FiltrosRevision }) {
 /** Las tres vistas comparten filtros en la URL; cambiarla desmonta descargas y cursores anteriores. */
 export function PanelRevision({
   vista,
+  integrado = false,
 }: {
   vista: "inicio" | "nomina" | "reportes"
+  integrado?: boolean
 }) {
   const [params] = useSearchParams()
   const { filtros, error } = leerFiltrosRevision(params)
   const cuenta = useCuentaRevision()
   const clave = `${cuenta}:${busquedaRevision(filtros)}`
   const titulos = {
-    inicio: "Panel de revisión",
+    inicio: "Dashboard del concurso",
     nomina: "Postulaciones e históricos",
     reportes: "Matriz comparativa",
   }
+  const Contenedor = integrado ? "section" : "main"
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-8">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Talento Humano · Uso interno
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-          {titulos[vista]}
-        </h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Consulte los envíos y sus respaldos originales por convocatoria. La
-          información declarada no constituye verificación de identidad civil ni
-          calificación de méritos.
-        </p>
-      </header>
+    <Contenedor
+      className={
+        integrado
+          ? "space-y-6"
+          : "mx-auto w-full max-w-6xl space-y-6 px-5 pt-8 pb-16"
+      }
+    >
+      {!integrado && (
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Talento Humano · Uso interno
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+              {titulos[vista]}
+            </h1>
+            <p className="max-w-3xl text-sm text-muted-foreground">
+              Consulte los envíos y sus respaldos originales por convocatoria.
+              La información declarada no constituye verificación de identidad
+              civil ni calificación de méritos.
+            </p>
+          </div>
+          {vista === "inicio" && (
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline">
+                <Link
+                  to={`${RUTAS.dashboardReportes}${busquedaRevision(filtros)}`}
+                >
+                  Generar matriz
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link
+                  to={`${RUTAS.dashboardPostulaciones}${busquedaRevision(filtros)}`}
+                >
+                  Ver postulaciones
+                </Link>
+              </Button>
+            </div>
+          )}
+        </header>
+      )}
       <FiltrosRevisionPanel />
       {!filtros.periodo || error ? (
         <EstadoVacio
@@ -180,7 +283,7 @@ export function PanelRevision({
         />
       ) : (
         <div key={clave} className="space-y-6">
-          <ConteosRevisionPanel filtros={filtros} />
+          {vista === "inicio" && <ConteosRevisionPanel filtros={filtros} />}
           {vista === "inicio" && (
             <div className="grid gap-4 md:grid-cols-2">
               {[
@@ -214,6 +317,7 @@ export function PanelRevision({
             </div>
           )}
           {vista === "nomina" && <NominaRevision filtros={filtros} />}
+          {vista === "reportes" && <NominaRevision filtros={filtros} matriz />}
           {vista !== "inicio" && <ExportarMatriz filtros={filtros} />}
           {vista === "reportes" && (
             <p className="text-sm text-muted-foreground">
@@ -232,6 +336,6 @@ export function PanelRevision({
           )}
         </div>
       )}
-    </main>
+    </Contenedor>
   )
 }

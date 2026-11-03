@@ -357,26 +357,26 @@ destino del trabajo descrito en [`../tasks/`](../tasks/).
 
 | RF | Punto | HU | Ubicación en el código | Estado |
 |---|---|---|---|---|
-| EF-11 adaptado | Registro y OTP | HU-01 | `apps/backend/internal/identity/` y `platform/cache/otp.go` | Base disponible; consolidación T16 (ADR-008) |
-| EF-11 | 4 — 3 intentos y bloqueo | HU-02 | `apps/backend/internal/platform/cache/` | ⬜ Planificada |
-| EF-11 | 5 — Login | HU-03 | `apps/backend/internal/identity/service.go` | ⬜ Planificada |
-| EF-11 | 6 — Recuperación | HU-04 | `apps/backend/internal/identity/service.go` | ⬜ Planificada |
-| EF-12 | 1.1 — Información personal | HU-05 | `apps/backend/internal/submission/sections.go` | ⬜ Planificada |
-| EF-12 | 1.2 — Domiciliaria y contacto | HU-05 | `apps/backend/internal/submission/sections.go` | ⬜ Planificada |
-| EF-12 | 1.3 — Información adicional | HU-05 | `apps/backend/internal/submission/sections.go` | ⬜ Planificada |
-| EF-12 | 1.4 — Sector y elegibilidad | HU-08 | `apps/backend/internal/submission/rules.go` | ⬜ Planificada |
-| EF-12 | 1.5 — Formación académica | HU-05 | `apps/backend/internal/submission/sections.go` | ⬜ Planificada |
-| EF-12 | 1.6 — Experiencia y duración | HU-05 | `apps/backend/internal/submission/rules.go` | ⬜ Planificada |
-| EF-12 | 1.7 — Publicaciones | HU-05 | `apps/backend/internal/submission/sections.go` | ⬜ Planificada |
-| EF-12 | 1.8 — Capacitación | HU-05 | `apps/backend/internal/submission/sections.go` | ⬜ Planificada |
-| EF-12 | 1.9 — Inhabilidades | HU-05 | `apps/backend/internal/submission/sections.go` | ⬜ Planificada |
-| EF-12 | 1.2.1–1.2.3 — Cascada geográfica | HU-06 | `apps/backend/internal/catalog/` · `apps/frontend/src/data/ecuadorGeo.ts` | 🟡 Parcial (solo frontend) |
-| EF-12 | 1.1.6 — Nacionalidad | HU-06 | `apps/backend/internal/submission/rules.go` | ⬜ Planificada |
-| EF-12 | Adjuntos PDF y límites | HU-07 | `apps/backend/internal/document/` · `apps/backend/internal/platform/storage/local.go` | 🟡 Parcial (solo almacenamiento) |
-| EF-12 | Guardar progreso | HU-09 | `apps/backend/internal/submission/service.go` | ✅ Implementado (estado `draft`) |
-| EF-12 | 1.10 — Enviar y notificar | HU-10 | `apps/backend/internal/submission/submission.go` · `apps/backend/internal/platform/mail/mail.go` | 🟡 Parcial (hash sí; envío y correo no) |
-| EF-12 | 1.10.2 — Firma e impresión | HU-11 | `apps/frontend/src/pages/imprimir-view.tsx` | ⬜ Planificada |
-| EF-13 | Dashboard y matriz | HU-12 | `apps/backend/internal/review/` · `apps/frontend/src/pages/dashboard-view.tsx` | 🟡 Parcial (solo frontend, con datos mock) |
+| EF-11 adaptado | Registro y OTP | HU-01 | `apps/backend/internal/identity/` y `platform/cache/otp.go` | ✅ Implementado (ADR-008, OTP por correo y módulo 10) |
+| EF-11 | 4 — 3 intentos y bloqueo | HU-02 | `apps/backend/internal/platform/cache/` | ✅ Implementado (Redis con TTL de 10 min) |
+| EF-11 | 5 — Login | HU-03 | `apps/backend/internal/identity/service.go` | ✅ Implementado (Argon2id, HttpOnly cookies) |
+| EF-11 | 6 — Recuperación | HU-04 | `apps/backend/internal/identity/service.go` | ✅ Implementado (OTP de un solo uso por correo) |
+| EF-12 | 1.1 — Información personal | HU-05 | `apps/backend/internal/submission/sections.go` · `src/features/formulario/seccion-1-personal.tsx` | ✅ Implementado (Validaciones de nacionalidad y estado civil) |
+| EF-12 | 1.2 — Domiciliaria y contacto | HU-05 | `apps/backend/internal/submission/sections.go` · `src/features/formulario/seccion-2-contacto.tsx` | ✅ Implementado (Cascada geográfica de 24 provincias y 221 cantones) |
+| EF-12 | 1.3 — Información adicional | HU-05 | `apps/backend/internal/submission/sections.go` · `src/features/formulario/seccion-3-adicional.tsx` | ✅ Implementado (Control de consanguinidad/afinidad IESS/BIESS) |
+| EF-12 | 1.4 — Sector y elegibilidad | HU-08 | `apps/backend/internal/submission/rules.go` · `src/features/formulario/seccion-4-cargo.tsx` | ✅ Implementado (Validación de sector y cierre automático si no elegible) |
+| EF-12 | 1.5 — Formación académica | HU-05 | `apps/backend/internal/submission/sections.go` · `src/features/formulario/seccion-5-academica.tsx` | ✅ Implementado (Múltiples títulos, SENESCYT y PDF obligatorio) |
+| EF-12 | 1.6 — Experiencia y duración | HU-05 | `apps/backend/internal/submission/rules.go` · `src/features/formulario/seccion-6-experiencia.tsx` | ✅ Implementado (Cálculo exacto de duración y PDF obligatorio) |
+| EF-12 | 1.7 — Publicaciones | HU-05 | `apps/backend/internal/submission/sections.go` · `src/features/formulario/seccion-7-publicaciones.tsx` | ✅ Implementado (Registro opcional/obligatorio con PDF) |
+| EF-12 | 1.8 — Capacitación | HU-05 | `apps/backend/internal/submission/sections.go` · `src/features/formulario/seccion-8-capacitacion.tsx` | ✅ Implementado (Horas > 0, eventos con PDF) |
+| EF-12 | 1.9 — Inhabilidades | HU-05 | `apps/backend/internal/submission/sections.go` · `src/features/formulario/seccion-9-inhabilidades.tsx` | ✅ Implementado (13 preguntas y desglose condicional en 1.9.7) |
+| EF-12 | 1.2.1–1.2.3 — Cascada geográfica | HU-06 | `apps/backend/internal/catalog/` · `src/features/formulario/seccion-2-contacto.tsx` | ✅ Implementado (Catálogos con caché Redis) |
+| EF-12 | 1.1.6 — Nacionalidad | HU-06 | `apps/backend/internal/submission/rules.go` · `src/features/formulario/seccion-1-personal.tsx` | ✅ Implementado (Solo nacionalidad ecuatoriana permitida) |
+| EF-12 | Adjuntos PDF y límites | HU-07 | `apps/backend/internal/document/` · `apps/backend/internal/platform/storage/` | ✅ Implementado (RustFS/S3, 2MB en 5-8, 4MB en 4 y cuota 50MB) |
+| EF-12 | Guardar progreso | HU-09 | `apps/backend/internal/submission/service.go` | ✅ Implementado (Persistencia en borrador y auto-guardado) |
+| EF-12 | 1.10 — Enviar y notificar | HU-10 | `apps/backend/internal/submission/submission.go` · `apps/backend/internal/platform/mail/` | ✅ Implementado (Transacción atómica, hash SHA-256 canónico y correo SMTP) |
+| EF-12 | 1.10.2 — Firma e impresión | HU-11 | `apps/frontend/src/pages/imprimir-view.tsx` | ✅ Implementado (Vista formal de impresión con hash y recuadro de firma) |
+| EF-13 | Dashboard y matriz | HU-12 | `apps/backend/internal/review/` · `apps/frontend/src/pages/dashboard-view.tsx` | ✅ Implementado (Dashboard administrativo, conteos y exportación XLSX/PDF) |
 
 ---
 

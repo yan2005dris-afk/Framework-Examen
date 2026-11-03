@@ -9,7 +9,7 @@ export function DashboardReportesView() {
   const [tab, setTab] = useState<string>("matriz")
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-5 pt-8 pb-16">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Reportes y Listas de Elegibles
@@ -33,7 +33,7 @@ export function DashboardReportesView() {
         </TabsList>
 
         <TabsContent value="matriz" className="space-y-4">
-          <PanelRevision vista="reportes" />
+          <PanelRevision vista="reportes" integrado />
         </TabsContent>
 
         <TabsContent value="listas" className="space-y-4">

@@ -163,3 +163,24 @@ func TestRoleManagementHTTPAuthorizationAndStrictBody(t *testing.T) {
 		t.Fatalf("se persistieron %d cambios en lugar de uno", writer.calls)
 	}
 }
+
+type unavailableSessions struct{ SessionRepository }
+
+func (*unavailableSessions) GetWithApplicant(context.Context, string) (*Session, *Applicant, error) {
+	return nil, nil, errors.New("DB_DOWN_PRIVATE")
+}
+func TestSessionDependencyFailureDoesNotRevokeCookieOrPretendUnauthorized(t *testing.T) {
+	service := NewService(ServiceDependencies{Sessions: &unavailableSessions{}})
+	router := chi.NewRouter()
+	NewHandler(service, false).RegisterRoutes(router)
+	router.With(RequireSession(service)).Get("/protected", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
+	for _, path := range []string{"/api/v1/auth/session", "/protected"} {
+		r := httptest.NewRequest("GET", path, nil)
+		r.AddCookie(&http.Cookie{Name: "session", Value: "personal"})
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+		if w.Code != 503 || len(w.Result().Cookies()) != 0 || strings.Contains(w.Body.String(), "DB_DOWN_PRIVATE") {
+			t.Fatal("fallo temporal tratado como cierre de sesión", w.Code)
+		}
+	}
+}

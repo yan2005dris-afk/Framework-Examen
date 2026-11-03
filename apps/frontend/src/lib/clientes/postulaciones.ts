@@ -81,6 +81,8 @@ export interface CrearPostulacionDto {
  */
 export interface ListarPostulacionesParams {
   applicantId?: string
+  /** Devuelve sólo la postulación de esa convocatoria (como máximo una). */
+  convocatoriaId?: string
   page?: number
   pageSize?: number
   limit?: number
@@ -117,6 +119,7 @@ export async function listarPostulaciones(
   return apiGet<Pagina<PostulacionDto>>("/submissions", {
     params: {
       applicantId: params?.applicantId,
+      convocatoriaId: params?.convocatoriaId,
       page: params?.page,
       pageSize: params?.pageSize,
       limit: params?.limit,
@@ -136,6 +139,7 @@ export async function listarPostulacionesCursor(
   return apiGet<PaginaCursor<PostulacionDto>>("/submissions", {
     params: {
       applicantId: params?.applicantId,
+      convocatoriaId: params?.convocatoriaId,
       limit: params?.limit,
       cursor: params?.cursor,
     },

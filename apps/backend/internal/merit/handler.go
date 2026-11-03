@@ -53,8 +53,18 @@ func requestID(r *http.Request) (uuid.UUID, error) {
 	}
 	return id, nil
 }
+
+/**
+ * actor devuelve el postulante autenticado o nil cuando la petición no trae
+ * sesión resuelta. El error de contexto no se descarta: un actor ausente se
+ * propaga como nil y los servicios niegan la operación, de modo que nunca se
+ * opera como si fuera un actor válido.
+ */
 func actor(r *http.Request) *identity.Applicant {
-	a, _ := identity.ApplicantFromContext(r.Context())
+	a, ok := identity.ApplicantFromContext(r.Context())
+	if !ok {
+		return nil
+	}
 	return a
 }
 func respond(w http.ResponseWriter, r *http.Request, status int, v interface{}, err error) {

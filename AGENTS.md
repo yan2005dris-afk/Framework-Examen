@@ -63,9 +63,6 @@ Desde la raíz del repo:
 - Stack completo: `docker compose up -d` — api, frontend, postgres y mailpit
 - Mockups (datos y enlaces):  `node docs/mockups/scripts/check-consistencia.mjs`
 - Mockups (contrato y a11y):   `node docs/mockups/scripts/check-contrato.mjs`
-- Seed E2E:          `cd apps/backend && go run ./cmd/e2e-seed`
-- E2E de API:        `cd apps/backend && E2E_TEST_DATABASE_URL=... REDIS_TEST_URL=... go test ./e2e/`
-- E2E de interfaz:   `cd apps/frontend && pnpm test:e2e` (requiere el stack arriba)
 
 El compose de desarrollo vive en `compose.yaml` (raíz). El de producción en
 `deploy/compose.yaml` y lee sus variables de `deploy/.env`:
@@ -147,19 +144,13 @@ dependen de features ni de vistas, y `components/ui` es una hoja.
 
 - `cmd/api/` — binario de la API: cableado de contextos + apagado ordenado
 - `cmd/migrate/` — runner de migraciones (goose embebido en `sql/migrations`)
-- `cmd/e2e-seed/` — siembra el conjunto de datos de las pruebas E2E (idempotente)
 - `internal/platform/` — transversal: `config`, `db`, `httpx`, `logger`, `mail`, `storage`, `sqlcgen`
-- `internal/platform/appkit/` — cableado del router: `cmd/api` y la suite E2E
-  construyen **el mismo** router (contexto, middleware y rutas)
-- `internal/e2edata/` — datos deterministas para E2E (cuentas por rol,
-  convocatoria, política de privacidad y expedientes)
 - `internal/shared/domain/` — kernel compartido: errores base y paginación
 - `internal/<contexto>/` — **un bounded context por carpeta** (screaming architecture):
   `identity/`, `submission/`, `document/`, …
 - `internal/<contexto>/<capacidad>/` — cada capacidad trae `service.go` (casos de uso),
   `handler.go` (adaptador HTTP), `repository.go` (puerto), `dto.go`, `errors.go` y
   `postgres/` (adaptador de persistencia)
-- `e2e/` — suite E2E de la API: router real sobre esquema aislado + Redis real
 - `sql/queries/` — esquema (`schema.sql`) y queries de sqlc
 - `sql/migrations/` — migraciones goose embebidas
 
@@ -241,43 +232,11 @@ Raíz del repo:
 - Antes de abrir una PR: `pnpm lint` y `pnpm build` deben pasar en verde.
 - La lógica de negocio va acompañada de tests en su módulo: Vitest en frontend,
   `_test.go` en backend (`go test ./...`).
+- Las pruebas OTP contra Redis real aíslan sujeto **y correo** por ejecución:
+  la cuota de correo es compartida entre sujetos. No limpiar bloqueos/cuotas
+  globales para hacer pasar una repetición de la suite.
 - Las reglas puras del backend se prueban sin base de datos: `internal/identity/`
   (cédula módulo 10) y `internal/submission/` (contenido canónico, estados, hash).
-
-### Pruebas de extremo a extremo
-
-Hay **dos** suites E2E y no son intercambiables:
-
-| Suite | Ubicación | Corre contra | Cubre |
-|---|---|---|---|
-| Interfaz | `apps/frontend/e2e/` | El stack de desarrollo completo | Lo que ve la persona: navegación, formularios, mensajes, permisos visibles |
-| API | `apps/backend/e2e/` | `httptest.Server` con el router real + Postgres aislado + Redis real | El contrato HTTP: envelope de error, códigos, cabeceras, paginación, RBAC, idempotencia |
-
-Reglas de la suite de API (`apps/backend/e2e/`):
-
-- Levanta **el mismo router que el binario de producción**, construido por
-  `internal/platform/appkit`. Una suite que reimplementa el cableado diverge
-  del producto: si añades una ruta, edita `appkit`, no la suite.
-- Corre contra un **esquema de PostgreSQL aislado** (`internal/testutil.Postgres`).
-- Sin `E2E_TEST_DATABASE_URL` y `REDIS_TEST_URL` la suite se omite, con el mismo
-  criterio que las pruebas de integración.
-
-Reglas de la suite de interfaz (`apps/frontend/e2e/`):
-
-- **No hay datos hardcodeados**: cuentas, expedientes y convocatoria vienen del
-  seed (`apps/frontend/e2e/fixtures/datos.ts`), que `global-setup.ts` aplica
-  antes de la corrida.
-- Las cédulas generadas en las pruebas deben ser **válidas** (módulo 10,
-  provincia 1–24, tercer dígito < 6): usa `generarCedulaValida()`. Una cédula
-  inválida hace que el registro se rechace y el correo con el OTP nunca llegue.
-- Un test que descubre un bug **no se maquilla**: se marca `test.skip` con un
-  comentario que diga qué falla y dónde, y el bug queda reportado. Arreglar la
-  aplicación excede el alcance de la suite.
-
-El seed vive en Go (`apps/backend/internal/e2edata`) porque debe hablar el mismo
-idioma que el dominio: si el backend no acepta un documento, la suite de
-interfaz tampoco debe poder sembrarlo. Detalle completo en
-[`docs/testing/E2E.md`](docs/testing/E2E.md).
 
 ## Flujo de trabajo (git flow)
 
@@ -419,5 +378,15 @@ decisión que afecte cómo se trabaja en el repo.
 | 2026-10-31 | Métricas privadas y trazas locales explícitas, sin prometer OTLP | `METRICS_ADDR` separado del proxy; etiquetas cerradas, rutas parametrizadas, UUID de solicitud y trazas W3C locales. Redis limita operaciones/pool a 3 s y no repite scripts tras errores de red ambiguos. |
 | 2026-10-31 | Diario de estados uniforme desde migración 00019, sin backfill de actores | Triggers guardan proyecciones antes/después y motivo técnico/humano en el commit; identidad/UUID de solicitud son locales a la transacción. No duplicar formularios personales en el diario ni inferir actores históricos. |
 | 2026-11-01 | El frontend agrupa por feature y separa la lógica pura por capa, con fronteras verificadas por ESLint | `features/<dominio>/modelo.ts` y `validacion.ts` alojan la lógica pura del dominio; `helpers/` guarda la regla de este portal compartida entre features y `utils/` lo genérico. El backend Go es el dominio: el frontend sólo replica lo necesario para la UX (`features/formulario/validacion.ts` frente a `form_cases.json`). `lib/` es transporte sin reglas de negocio. `no-restricted-imports` bloquea feature→feature, shared→feature y `components/ui`→feature; `auth` queda como primitivo transversal y los módulos compartidos ya enumerados son la excepción, no un patrón. |
+| 2026-11-01 | Ninguna credencial de cuenta se versiona; la semilla de desarrollo calcula el hash en runtime y se niega a correr en producción | `cmd/user-seed` es sólo para desarrollo: aborta con `APP_ENV=production`, calcula el hash Argon2id en runtime desde `SEED_PASSWORD` o de forma aleatoria, y nunca sobrescribe la contraseña de una cuenta existente salvo con `-reset-password`. El alta real de un administrador se hace por el registro OTP y `cmd/applicant-role`, que exige operador y motivo y deja rastro en el trigger `applicant_role_events`. Las migraciones no siembran cuentas: se ejecutan solas en cada arranque de producción. |
+| 2026-11-01 | El CSRF valida el origen efectivo y `CORS_ALLOWED_ORIGINS` vacío significa denegar todo origen cruzado | Una petición mutante que lleva cookie debe aportar `Origin` o `Sec-Fetch-Site`; se acepta el mismo origen (Host + `X-Forwarded-Proto`) y los orígenes de la lista blanca. Sin cookies no hay autoridad ambiental que falsificar. La variable definida vacía se respeta al pie de la letra —antes caía al valor de desarrollo—, de modo que producción sirve un solo origen detrás de nginx sin depender de la lista. |
+| 2026-11-01 | La CI exige un mínimo de cobertura y las colas de borrado no se detienen por un objeto problemático | El job de backend falla si la cobertura total baja del 50% (hoy 53.8%) e informa los paquetes más débiles. `document.Service.Cleanup` y `evaluation.Service.CleanupUploads` registran el primer fallo y continúan con el resto del lote: una clave que no se puede borrar ya no bloquea las demás. |
+| 2026-11-01 | El bootstrap del administrador es una migración Go-side que falla cerrado, y las colas viven en un binario aparte | `sql/migrations/00021_seed_admin.go` crea la cuenta de administrador con `INIT_ADMIN_PASSWORD`, obligatoria y sin valor por defecto: sin ella la migración falla y la API no arranca, en vez de sembrar una credencial conocida. `cmd/user-seed` queda como fixture de desarrollo (postulante, analista y convocatoria) con guarda de producción. `internal/app` es la raíz de composición: `cmd/api` sirve tráfico HTTP y `cmd/worker` levanta sólo las colas (correo, purga de sesiones, limpieza de respaldos y cierre de exámenes). El worker no aplica migraciones; el bloqueo consultivo de goose serializa a las réplicas que sí lo hacen. |
+| 2026-11-02 | Una postulación por postulante y convocatoria, garantizada por PostgreSQL | Índice único parcial `submissions_one_per_competition` (migración `00020`, legado sin convocatoria excluido); el duplicado responde `409 postulacion_existente` y el cliente abre la existente con `GET /submissions?convocatoriaId=`. Se puede postular a varias convocatorias y a la de cada período nuevo. Las pantallas del postulante resuelven la postulación con `usePostulacionActual` (nunca «la primera de la lista») y conservan `?convocatoria=`; con varias convocatorias abiertas elige el postulante. «Descartar borrador» sólo en borrador; lo enviado o cerrado sigue inmutable. Fuente: RF 1.4 («a elegir una»); la norma del Ministerio del Trabajo queda pendiente de validación institucional. |
+| 2026-11-02 | Perfil transversal provisional: Origin exacto obligatorio, una sesión por cuenta, probes y backup cifrado | XT-01/02/07–09: login revoca anteriores atómicamente; fallos de sesión no se confunden con 401; Redis, DB escribible, outbox y bucket afectan readiness, SMTP degrada. Backups usan clave separada y restauración invalida sesiones; RPO24h/RTO30min son objetivos de QA, no aprobación institucional. |
+| 2026-11-02 | Revocación inmediata de descargas sustituye la URL S3 directa al navegador | El usuario exigió invalidar enlaces ya emitidos. 00022 liga capacidades opacas a sesión/rol/versión de privacidad; listener privado 8082 revalida/audita y sirve PDF sin redirigir. Mantener 5 min/no-store; no loguear tokens. Cutover de firmas antiguas exige rotación o espera sin tráfico. Modifica la decisión previa de descargas directas, no la inmutabilidad del PDF. |
 
-| 2026-11-02 | E2E en dos suites con un seed único en Go, y el router extraído a `appkit` | La suite de API (`apps/backend/e2e/`) levanta el router real sobre un esquema aislado y Redis real; la de interfaz (`apps/frontend/e2e/`) habla con el stack de desarrollo. Ambas consumen el mismo seed (`internal/e2edata`), escrito en Go porque debe respetar las invariantes del dominio: política inmutable, expediente enviado inmutable, una cuenta por convocatoria. `appkit` existe para que la suite no reimplemente el cableado del binario. El seed es idempotente y respeta los triggers: repetirlo no duplica ni reescribe evidencia. Mailpit pasó a la red del compose porque con `network_mode: host` la API no alcanzaba el SMTP y ningún OTP llegaba. |
+| 2026-11-03 | Marco visual común basado en los mockups, sin sustituir contratos reales | Cabecera y pie compartidos; administración horizontal y formulario lateral de 17 rem (horizontal bajo 60 rem). Los ajustes de componentes se limitan a pantalla y no editan shadcn generado. Tema claro inicial con preferencia guardada respetada. Fixtures visuales separados y loopback; GET y rechazo 429 controlado en QA, nunca fallback de producción. |
+
+| 2026-11-03 | Edición modal de registros separada de operaciones de PDF y de Guardar borrador | Secciones 5–8 editan clones, validan el registro completo y confirman sólo estado local; cancelar no escribe. El respaldo usa el callback existente, que conserva la sección antes de vincular el archivo: no subir desde un borrador interno del modal con un estado padre obsoleto. Cargar/quitar PDF confirma en servidor y se avisa expresamente. |
+| 2026-11-03 | La impresión A4 representa el snapshot consultado y corta experiencia vigente al envío | Tokens de papel del set y página nombrada sobre todo el cuerpo de la vista evitan una página final vacía en Chromium. Folio en margin box; firma/hash juntos y sin forzar un número fijo de páginas. No inventar identidad civil verificada ni completar datos del ejemplo. |

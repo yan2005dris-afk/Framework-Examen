@@ -26,7 +26,7 @@ func (r *Repository) ResetPasswordAndSessions(ctx context.Context, id uuid.UUID,
 	})
 }
 
-/** CreateAuthenticatedSession impide que un login validado con una clave anterior sobreviva al reset. */
+/** CreateAuthenticatedSession rota todas las sesiones bajo bloqueo y rechaza una clave anterior al reset. */
 func (r *Repository) CreateAuthenticatedSession(ctx context.Context, session *identity.Session, expectedHash string) error {
 	if r.transactions == nil {
 		return errors.New("emisión transaccional no configurada")
@@ -39,6 +39,9 @@ func (r *Repository) CreateAuthenticatedSession(ctx context.Context, session *id
 		}
 		if account.PasswordHash != expectedHash {
 			return identity.ErrInvalidCredentials
+		}
+		if err := q.DeleteSessionsByApplicantID(ctx, session.ApplicantID); err != nil {
+			return err
 		}
 		return (&Repository{queries: q}).CreateSession(ctx, session)
 	})

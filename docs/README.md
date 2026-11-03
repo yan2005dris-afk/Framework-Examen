@@ -174,3 +174,14 @@ del proyecto. Las matrices de las tareas separan planificación de implementaci�
 - [Matriz de auditoría T17–T28 y brechas verificadas](architecture/BACKEND_AUDIT_MATRIX.md)
 
 - [Cierre técnico verificado del backend sintético](deployment/BACKEND_COMPLETION_REPORT.md)
+
+## Cierre transversal provisional
+
+- [Informe de verificación y pendientes](deployment/CROSS_CUTTING_COMPLETION_REPORT.md)
+- [Conservación, eliminación y checklist por categoría](privacy/RETENTION_POLICY.md)
+- [Operación, readiness y alertas](deployment/OPERATIONS_RUNBOOK.md)
+- [Respaldos cifrados y recuperación](deployment/RECOVERY_RUNBOOK.md)
+
+## Diseño del frontend
+
+- [Alineación con mockups: cambios, evidencia y alcance pendiente](design/ALINEACION-MOCKUPS.md)

@@ -190,9 +190,9 @@ func CORS(next http.Handler, origins []string) http.Handler {
 			if _, ok := allowed[origin]; ok {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
-				w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-Request-ID")
+				w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-Request-ID, Idempotency-Key")
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID")
+				w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, Retry-After, X-Retry-At, Traceparent")
 				w.Header().Add("Vary", "Origin")
 			}
 		}
@@ -207,9 +207,15 @@ func CORS(next http.Handler, origins []string) http.Handler {
 }
 
 /**
- * CSRF valida que las peticiones mutantes (POST, PUT, PATCH, DELETE) provengan
- * exclusivamente de los orígenes autorizados o de la misma aplicación, bloqueando
- * ataques de falsificación de peticiones en sitios cruzados (XT-01).
+ * CSRF valida que las peticiones mutantes (POST, PUT, PATCH, DELETE) que
+ * llevan credenciales de sesión provengan de un origen verificable: el mismo
+ * origen de la petición o un origen de la lista blanca. Una petición con
+ * cookie y sin ninguna señal de origen se rechaza en vez de asumirse legítima
+ * (XT-01).
+ *
+ * La lista blanca cubre orígenes adicionales —por ejemplo, una SPA servida en
+ * otro dominio—. El despliegue normal sirve la SPA y la API desde el mismo
+ * origen detrás de nginx, y ese caso lo resuelve la comparación de origen.
  *
  * @param {http.Handler} next - Handler siguiente de la cadena.
  * @param {string[]} origins - Orígenes autorizados (e.g. "http://localhost:5173").
@@ -231,21 +237,76 @@ func CSRF(next http.Handler, origins []string) http.Handler {
 			return
 		}
 
-		if r.Header.Get("Sec-Fetch-Site") == "cross-site" {
+		// La protección importa sólo cuando la petición lleva credenciales
+		// ambientales: sin cookies no hay estado de sesión que otro sitio
+		// pueda falsificar, y el control de sesión responderá 401 por su cuenta.
+		if len(r.Cookies()) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// El navegador envía Sec-Fetch-Site en toda petición y no permite que
+		// el sitio lo fije: "cross-site" delata una falsificación.
+		site := strings.ToLower(strings.TrimSpace(r.Header.Get("Sec-Fetch-Site")))
+		if site == "cross-site" {
 			RespondError(w, r, http.StatusForbidden, "origen_no_permitido", "Petición cruzada no autorizada.")
 			return
 		}
 
 		origin := strings.TrimRight(strings.TrimSpace(r.Header.Get("Origin")), "/")
-		if origin != "" && len(allowed) > 0 {
-			if _, ok := allowed[origin]; !ok {
-				RespondError(w, r, http.StatusForbidden, "origen_no_permitido", "Origen de la petición no autorizado.")
+		if origin == "" {
+			// Sin Origin ni Sec-Fetch-Site no hay forma de verificar de dónde
+			// viene la llamada: se rechaza en lugar de asumir que es propia.
+			if site != "same-origin" {
+				RespondError(w, r, http.StatusForbidden, "origen_no_verificable", "No se pudo verificar el origen de la petición.")
 				return
 			}
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Mismo origen: el navegador no puede emitir un Origin distinto del
+		// suyo, así que la comparación es concluyente.
+		if sameOrigin(r, origin) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if _, ok := allowed[origin]; !ok {
+			RespondError(w, r, http.StatusForbidden, "origen_no_permitido", "Origen de la petición no autorizado.")
+			return
 		}
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+/**
+ * sameOrigin compara el origen declarado por el cliente con el origen
+ * efectivo de la petición, usando la cabecera Host y el esquema reenviado
+ * por el proxy de despliegue.
+ *
+ * @param {http.Request} request - Petición entrante.
+ * @param {string} origin - Origen declarado, sin barra final.
+ * @returns {bool} True si ambos coinciden.
+ */
+func sameOrigin(request *http.Request, origin string) bool {
+	host := strings.ToLower(strings.TrimSpace(request.Host))
+	if host == "" {
+		return false
+	}
+
+	scheme := "http"
+	if request.TLS != nil {
+		scheme = "https"
+	}
+	// nginx reenvía el esquema original; detrás de un proxy el TLS termina
+	// antes de llegar a la API.
+	if forwarded := strings.TrimSpace(strings.Split(request.Header.Get("X-Forwarded-Proto"), ",")[0]); forwarded != "" {
+		scheme = strings.ToLower(forwarded)
+	}
+
+	return strings.EqualFold(origin, scheme+"://"+host)
 }
 
 /**

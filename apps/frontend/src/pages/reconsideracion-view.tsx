@@ -34,7 +34,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { useEvaluacionPostulante } from "@/features/evaluacion/queries"
 import { useDocumentosPostulacion } from "@/features/formulario/use-documentos"
-import { useListarPostulaciones } from "@/features/postulaciones/queries"
+import { usePostulacionActual } from "@/features/postulaciones/queries"
 import {
   usePresentarReconsideracion,
   useReconsideracionesPostulante,
@@ -51,9 +51,7 @@ export function ReconsideracionView() {
   const [searchParams] = useSearchParams()
   const faseInicial = (searchParams.get("fase") as FaseReconsideracion) || ""
 
-  const { data: postulacionesData, isLoading: cargandoPostulacion } =
-    useListarPostulaciones({ limit: 1 })
-  const postulacion = postulacionesData?.items?.[0]
+  const { postulacion, isLoading: cargandoPostulacion } = usePostulacionActual()
   const submissionId = postulacion?.id ?? ""
 
   const { data: evaluacionData } = useEvaluacionPostulante(submissionId)
@@ -185,7 +183,7 @@ export function ReconsideracionView() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 pt-8 pb-16">
       {/* Encabezado Principal */}
       <Card>
         <CardHeader>

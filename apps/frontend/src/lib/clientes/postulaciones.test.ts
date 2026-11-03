@@ -124,6 +124,27 @@ describe("Cliente de Postulaciones EF-12 (postulaciones.ts)", () => {
     )
   })
 
+  it("listarPostulacionesCursor filtra por convocatoria", async () => {
+    const mockFetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          items: [],
+          nextCursor: "",
+          hasMore: false,
+          limit: 1,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    )
+    globalThis.fetch = mockFetch
+
+    const res = await listarPostulacionesCursor({ convocatoriaId: "conv-1" })
+
+    expect(res.items).toEqual([])
+    const [url] = mockFetch.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe("/api/v1/submissions?convocatoriaId=conv-1")
+  })
+
   it("actualizarPostulacion envía PUT a /submissions/{id}", async () => {
     const mockFetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify(mockPostulacion), {

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test"
 
-import { API_BASE, PASSWORD, cuentaPorRol } from "./fixtures/datos"
+const API_BASE = "http://localhost:8080/api/v1"
+const DEFAULT_PASSWORD = process.env.E2E_PASSWORD || "TestPassword.2026*"
 
 /**
  * Test 10: Sesión Expirada y Guard
@@ -31,12 +32,10 @@ test.describe("SESIÓN EXPIRADA Y GUARD — Criterio 5 (6pts)", () => {
     await expect(page).toHaveURL(/\/login/)
     console.log("✅ Sin sesión → redirecciona a /login")
 
-    // Verificar que el guard no dejó acceder: la vista protegida del
-    // formulario no se monta en el login.
-    const contenidoPostulacion = page.getByText(
-      "Progreso del Formulario de Postulación",
-    )
-    await expect(contenidoPostulacion).toHaveCount(0)
+    // Verificar que el guard no dejó acceder a la vista protegida
+    await expect(
+      page.locator("h1:has-text('Formulario de postulación')"),
+    ).toHaveCount(0)
     console.log("✅ Contenido protegido NOT visible")
   })
 
@@ -56,9 +55,8 @@ test.describe("SESIÓN EXPIRADA Y GUARD — Criterio 5 (6pts)", () => {
     await page.goto("/postulacion/3")
 
     // Debe redireccionar a login con parámetro ?destino=
-    await expect(page).toHaveURL(/\/login/, { timeout: 10000 })
+    await expect(page).toHaveURL(/\/login/)
     const urlActual = page.url()
-    expect(urlActual).toMatch(/\/login/)
 
     if (urlActual.includes("destino")) {
       console.log(`✅ URL contiene parámetro destino: ${urlActual}`)
@@ -77,11 +75,12 @@ test.describe("SESIÓN EXPIRADA Y GUARD — Criterio 5 (6pts)", () => {
     console.log("\n========== TEST 3: TOKEN EXPIRADO (401) ==========\n")
 
     // Primero: loguear con usuario válido
-    const cuenta = cuentaPorRol("postulante")
+    const cedulaTest = "1710034008"
+    const passwordTest = DEFAULT_PASSWORD
 
     await page.goto("/login")
-    await page.fill("input#cedula", cuenta.cedula)
-    await page.fill("input#password", PASSWORD)
+    await page.fill("input#cedula", cedulaTest)
+    await page.fill("input#password", passwordTest)
     await page.locator("button[type='submit']").click()
 
     // Esperar a que esté en postulación
@@ -124,11 +123,12 @@ test.describe("SESIÓN EXPIRADA Y GUARD — Criterio 5 (6pts)", () => {
     console.log("\n========== TEST 4: MENSAJE SESIÓN EXPIRADA ==========\n")
 
     // Login
-    const cuenta = cuentaPorRol("postulante")
+    const cedulaTest = "1710034008"
+    const passwordTest = DEFAULT_PASSWORD
 
     await page.goto("/login")
-    await page.fill("input#cedula", cuenta.cedula)
-    await page.fill("input#password", PASSWORD)
+    await page.fill("input#cedula", cedulaTest)
+    await page.fill("input#password", passwordTest)
     await page.locator("button[type='submit']").click()
 
     await page.waitForURL(/\/postulacion/)
@@ -174,10 +174,11 @@ test.describe("SESIÓN EXPIRADA Y GUARD — Criterio 5 (6pts)", () => {
     console.log(`Login URL: ${urlLogin}`)
 
     // Loguear
-    const cuenta = cuentaPorRol("postulante")
+    const cedulaTest = "1710034008"
+    const passwordTest = DEFAULT_PASSWORD
 
-    await page.fill("input#cedula", cuenta.cedula)
-    await page.fill("input#password", PASSWORD)
+    await page.fill("input#cedula", cedulaTest)
+    await page.fill("input#password", passwordTest)
     await page.locator("button[type='submit']").click()
 
     // Esperar a que se redireccione
@@ -234,11 +235,12 @@ test.describe("SESIÓN EXPIRADA Y GUARD — Criterio 5 (6pts)", () => {
     console.log("\n========== TEST 7: RBAC (ROLES) ==========\n")
 
     // Login como postulante
-    const cuenta = cuentaPorRol("postulante")
+    const cedulaPostulante = "1710034008"
+    const passwordTest = DEFAULT_PASSWORD
 
     await page.goto("/login")
-    await page.fill("input#cedula", cuenta.cedula)
-    await page.fill("input#password", PASSWORD)
+    await page.fill("input#cedula", cedulaPostulante)
+    await page.fill("input#password", passwordTest)
     await page.locator("button[type='submit']").click()
 
     await page.waitForURL(/\/postulacion/)

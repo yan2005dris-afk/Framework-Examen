@@ -1,5 +1,6 @@
+import { ExcepcionPostulacion } from "./excepcion-postulacion"
 import { AlertTriangleIcon, UserIcon } from "lucide-react"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,6 +42,7 @@ export function Seccion1Personal({
 }: Seccion1PersonalProps) {
   const { postulante } = useSesion()
 
+  const [corrigiendoNacionalidad, setCorrigiendoNacionalidad] = useState(false)
   const haPrecargadoRef = useRef(false)
 
   // Precarga inicial desde la sesión si los campos vienen vacíos
@@ -70,6 +72,7 @@ export function Seccion1Personal({
     campo: K,
     valor: Seccion1Data[K],
   ) {
+    if (campo === "nacionalidad") setCorrigiendoNacionalidad(false)
     onChange({
       ...datos,
       [campo]: valor,
@@ -77,6 +80,18 @@ export function Seccion1Personal({
   }
 
   const validacionCedulaConyuge = validarCedulaPareja(datos.cedulaConyuge)
+
+  if (esExtranjera && !corrigiendoNacionalidad)
+    return (
+      <ExcepcionPostulacion
+        tipo="nacionalidad"
+        cerrada={false}
+        valor={datos.nacionalidad}
+        onCorregir={
+          disabled ? undefined : () => setCorrigiendoNacionalidad(true)
+        }
+      />
+    )
 
   return (
     <div className="flex flex-col gap-6">
@@ -126,7 +141,7 @@ export function Seccion1Personal({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="sec1-nacionalidad">Nacionalidad *</Label>
           <Select
-            value={datos.nacionalidad || "Ecuatoriana"}
+            value={datos.nacionalidad}
             onValueChange={(val) => actualizarCampo("nacionalidad", val)}
             disabled={disabled}
           >

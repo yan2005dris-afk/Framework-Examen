@@ -197,7 +197,7 @@ export function DashboardPostulacionDetalleView() {
   const { filtros, error } = leerFiltrosRevision(params)
   const cuenta = useCuentaRevision()
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-4 md:p-8">
+    <main className="mx-auto w-full max-w-6xl space-y-6 px-5 pt-8 pb-16">
       <Button variant="ghost" asChild>
         <Link
           to={`${RUTAS.dashboardPostulaciones}${busquedaRevision(filtros)}`}

@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main, develop]
@@ -33,6 +36,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$EVENT_NAME" = "pull_request" ]; then
             base="$BASE_SHA"
           elif [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
@@ -51,7 +59,7 @@ jobs:
           frontend=false
 
           # El workflow mismo es transversal: si cambia, se valida todo.
-          if grep -qE '^apps/backend/|^[.]github/workflows/ci[.]yml$' cambios.txt; then
+          if grep -qE '^apps/backend/|^scripts/(backend-demo|cross-cutting)/|^deploy/|^[.]github/workflows/ci[.]yml$' cambios.txt; then
             backend=true
           fi
 
@@ -128,6 +136,29 @@ jobs:
           REDIS_URL: redis://localhost:6379
           REDIS_TEST_URL: redis://localhost:6379
         run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
+
+      - name: Gate de cobertura
+        run: |
+          # Umbral deliberadamente por debajo de la cobertura actual (50%):
+          # detecta regresiones sin bloquear cambios legítimos. Súbelo junto con
+          # las pruebas que las justifican.
+          min=48
+          total=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub(/%/, "", $NF); print $NF}')
+          echo "Cobertura total: ${total}% (mínimo exigido: ${min}%)"
+          awk -v total="$total" -v min="$min" 'BEGIN {
+            if (total + 0 < min + 0) {
+              printf "::error::La cobertura %.1f%% es inferior al mínimo exigido (%.0f%%).\n", total, min
+              exit 1
+            }
+          }'
+          echo "Paquetes con menor cobertura:"
+          go test ./... -cover 2>&1 | grep "coverage:" | awk '{
+            pct = ""
+            if (match($0, /coverage: [0-9]+\.[0-9]+%/)) { pct = substr($0, RSTART + 9, RLENGTH - 9); gsub(/%/, "", pct) }
+            pkg = ""
+            for (i = 1; i <= NF; i++) { if ($i ~ /Framework-Examen\/apps\/backend\//) { pkg = $i; break } }
+            if (pct != "" && pkg != "") { sub(/github.com\/yan2005dris-afk\/Framework-Examen\/apps\/backend\//, "", pkg); printf "%s%% %s\n", pct, pkg }
+          }' | grep -v '^.*% cmd/' | sort -n | head -5
 
       - name: Código generado (sqlc) al día
         run: |

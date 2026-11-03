@@ -147,6 +147,8 @@ forma se definirá cuando exista.
 | 405 | `metodo_no_permitido` | El método no aplica a esa ruta |
 | 409 | `postulacion_no_editable` | La postulación ya fue enviada |
 | 409 | `codigo_duplicado` | Ya existe una postulación con ese código |
+| 409 | `postulacion_existente` | El postulante ya tiene una postulación en esa convocatoria |
+| 400 | `filtro_invalido` | `convocatoriaId` no es un UUID |
 | 400 | `seccion_invalida` | La sección solicitada no está entre 1 y 9 |
 | 413 | `cuerpo_muy_grande` | El cuerpo supera `MAX_REQUEST_BODY_BYTES` (10 MiB) |
 | 415 | `tipo_no_soportado` | El adjunto no es un PDF válido |
@@ -255,6 +257,16 @@ curl -X POST http://localhost:8080/api/v1/submissions \
 | 400 | `postulante_invalido` | `applicantId` ausente o no UUID |
 | 400 | `contenido_invalido` | `content` vacío o no es un objeto JSON |
 | 409 | `codigo_duplicado` | Ya existe una postulación con ese `code` |
+| 409 | `postulacion_existente` | El postulante ya tiene una postulación en esa `convocatoriaId` |
+
+**Una postulación por convocatoria.** Un postulante tiene como máximo una
+postulación en cada convocatoria; puede postular a convocatorias distintas y a
+la de un período nuevo. Lo garantiza el índice único parcial
+`submissions_one_per_competition (applicant_id, competition_id) WHERE competition_id IS NOT NULL`
+(migración `00020`), así que dos pestañas, un doble clic o una llamada directa
+no crean duplicados: la segunda petición recibe `409 postulacion_existente` y el
+cliente debe abrir la existente con `GET /api/v1/submissions?convocatoriaId=`.
+Al descartar un borrador (`DELETE`) puede crearse otro en la misma convocatoria.
 
 ### 3.2 `GET /api/v1/submissions`
 
@@ -266,7 +278,14 @@ curl -s 'http://localhost:8080/api/v1/submissions?applicantId=11111111-1111-1111
 
 # Cursor
 curl -s 'http://localhost:8080/api/v1/submissions?applicantId=11111111-1111-1111-1111-111111111111&limit=20'
+
+# Postulación de una convocatoria (cero o un elemento, con la forma de cursor)
+curl -s 'http://localhost:8080/api/v1/submissions?convocatoriaId=01a19577-c264-7b00-a673-ba2c8cfaecac'
 ```
+
+Con `convocatoriaId` la respuesta tiene la forma de cursor con `hasMore: false`
+y `limit: 1`, y contiene como máximo la postulación del usuario en esa
+convocatoria. El filtro prevalece sobre `page`, `limit` y `cursor`.
 
 **Respuesta `200` (offset)**
 
@@ -307,6 +326,7 @@ curl -s 'http://localhost:8080/api/v1/submissions?applicantId=11111111-1111-1111
 | 400 | `postulante_invalido` | Falta `applicantId` o no es un UUID |
 | 400 | `paginacion_invalida` | `page` o `pageSize` no numéricos |
 | 400 | `cursor_invalido` | El cursor no es un token válido |
+| 400 | `filtro_invalido` | `convocatoriaId` no es un UUID |
 
 ### 3.3 `GET /api/v1/submissions/{id}`
 
@@ -347,7 +367,9 @@ contenido canonizado.
 
 ### 3.5 `DELETE /api/v1/submissions/{id}`
 
-Elimina una postulación que **todavía no fue enviada**.
+Elimina una postulación que **todavía no fue enviada** («Descartar borrador» en
+el formulario). Una postulación cerrada por elegibilidad tampoco se elimina. Tras
+eliminarla, el postulante puede crear otra en la misma convocatoria.
 
 **Respuesta `204`**: sin cuerpo.
 
@@ -988,3 +1010,62 @@ aceptación para el legado ni se precargan textos legales o parámetros académi
   La compensación se encola si el borrado inmediato tampoco está disponible.
 - `X-Request-ID` sólo conserva UUID válido no nulo; otros valores se reemplazan.
   `Traceparent` identifica una traza local nueva, no garantiza propagación OTLP.
+
+
+## Cierre transversal: perfil técnico provisional (2026-11-01)
+
+- Todas las mutaciones requieren **un único Origin exacto de la lista del
+  entorno**. Ausente, `null`, desconocido, duplicado o `Sec-Fetch-Site: cross-site`
+  → 403 `origen_no_permitido`, sin ejecutar el caso de uso. Referer no suple Origin.
+  CLI/contratos de prueba deben enviarlo explícitamente. Los GET/HEAD/OPTIONS no
+  modifican estado y no lo requieren. El navegador lo envía en sus mutaciones;
+  no guardar ni construir tokens CSRF en localStorage.
+- Login usa política de **una sesión activa por cuenta**: bajo bloqueo de
+  credenciales, verifica versión, revoca anteriores e inserta otra en un commit.
+  Si falla la emisión, la revocación revierte. Reset revoca todas las sesiones.
+  Expiración absoluta según `SESSION_TTL`; no hay expiración deslizante implícita.
+- Sesión ausente/revocada/expirada → 401; fallo temporal de persistencia al
+  comprobarla → 503 `sesion_no_disponible`, sin borrar la cookie por ese motivo.
+  Permiso insuficiente sigue siendo 403, no reiniciar sesión indiscriminadamente.
+- OTP: el límite de emisiones también se aplica al correo normalizado y finalidad
+  (tres por diez minutos por defecto, configurable con el límite existente),
+  además de cédula/desafío. Retry-After usa el TTL del límite que se alcanzó.
+  Redis standalone es el adaptador soportado; los scripts multi-clave no están
+  diseñados para Redis Cluster con slots distintos.
+- CORS admite `Idempotency-Key` y expone `Retry-After`, `X-Retry-At`, `Traceparent`
+  y `X-Request-ID`, además de mantener credentials sólo para orígenes admitidos.
+- `/readyz`: `checks` por database/redis/storage/outbox/smtp/downloads; respuesta 503
+  `dependencias_no_disponibles` para fallo obligatorio. PostgreSQL comprueba modo
+  escribible; SMTP es degradable: 200 `status: degraded`, por aceptación durable
+  en outbox. `/healthz` conserva 200 durante degradación de servicios.
+- Descargas revocables: se conserva `{url, expiresAt}` y plazo máximo de cinco
+  minutos, pero `url` apunta al proxy `/downloads/{capacidad}` (sin firma S3).
+  El cliente no debe interpretar host/query, almacenar o reconstruir el enlace.
+  GET/HEAD comprueban sesión/rol/propiedad/privacidad vigentes y auditan antes de
+  bytes. Bloqueo, logout/reset/rotación o cambio de versión invalidan la capacidad;
+  reabrir no revive enlaces de una versión anterior. 403 `descarga_revocada`,
+  503 `descarga_no_disponible`, 416 para Range. No-store, sin redirects ni caché.
+  La garantía no retira bytes ya entregados; el cutover desde firmas antiguas
+  requiere rotar credenciales o esperar su vencimiento sin tráfico.
+
+Retención/eliminación y respaldo: [política provisional](../privacy/RETENTION_POLICY.md),
+[operación](../deployment/OPERATIONS_RUNBOOK.md),
+[recuperación](../deployment/RECOVERY_RUNBOOK.md). Estos documentos no son reglas
+legales o institucionales y no habilitan purgar expedientes reales.
+
+
+### Configuración de descarga (00020)
+
+`DOWNLOAD_PUBLIC_URL` identifica el prefijo público del proxy (`.../downloads`),
+`DOWNLOAD_LISTEN_ADDR` el listener privado separado (por defecto `0.0.0.0:8082`).
+nginx/Vite reenvían ese prefijo y no registran la capacidad. El backend principal
+mantiene su API en 8080: no redirige al objeto ni entrega claves internas. La
+memoria de lectura se limita a ocho PDFs de hasta 4 MiB; hash/longitud se verifican
+antes de servir. `download_grants` sólo conserva SHA-256 del token opaco, referencia
+a sesión y versión; las capacidades expiradas se purgan en lotes. Los accesos
+confirmados van a un diario append-only separado que admite los tres roles.
+
+En desarrollo, `VITE_DOWNLOAD_TARGET` permite indicar el destino privado
+si la API usa un puerto personalizado; el valor inferido sólo cambia el puerto
+estándar 8080 por 8082. `DOWNLOAD_PUBLIC_URL` siempre apunta al origen público
+visible al navegador, no al bucket ni al listener privado.

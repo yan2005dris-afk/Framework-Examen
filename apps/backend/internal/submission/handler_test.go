@@ -160,3 +160,52 @@ func TestSubmissionHTTPValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestSubmissionHTTPFilterByCompetition(t *testing.T) {
+	handler, repo := httpFixture(t, true)
+	competition := repo.item.CompetitionID.String()
+	for _, test := range []struct {
+		query  string
+		status int
+		items  int
+		code   string
+	}{
+		{"?convocatoriaId=" + competition, 200, 1, ""},
+		{"?convocatoriaId=" + uuid.NewString(), 200, 0, ""},
+		{"?convocatoriaId=no-es-uuid", 400, 0, "filtro_invalido"},
+		{"?convocatoriaId=" + uuid.Nil.String(), 400, 0, "filtro_invalido"},
+	} {
+		w := performRequest(handler, "GET", "/api/v1/submissions"+test.query, "", "sesion-prueba")
+		if w.Code != test.status || !strings.Contains(w.Body.String(), test.code) {
+			t.Fatalf("%s: esperado %d %s, obtenido %d %s", test.query, test.status, test.code, w.Code, w.Body)
+		}
+		if test.status != 200 {
+			continue
+		}
+		var page struct {
+			Items   []Response `json:"items"`
+			HasMore bool       `json:"hasMore"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &page); err != nil {
+			t.Fatal(err)
+		}
+		if len(page.Items) != test.items || page.HasMore {
+			t.Fatalf("%s: %d elementos, hasMore=%v", test.query, len(page.Items), page.HasMore)
+		}
+	}
+	// El filtro sólo consulta las postulaciones del titular de la sesión.
+	w := performRequest(handler, "GET", "/api/v1/submissions?convocatoriaId="+competition, "", "otra-sesion")
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"items":[]`) {
+		t.Fatalf("filtro de tercero: %d %s", w.Code, w.Body)
+	}
+}
+
+func TestSubmissionHTTPCreateDuplicateInCompetition(t *testing.T) {
+	handler, repo := httpFixture(t, false)
+	repo.duplicate = true
+	body := `{"convocatoriaId":"` + uuid.NewString() + `","content":{}}`
+	w := performRequest(handler, "POST", "/api/v1/submissions", body, "sesion-prueba")
+	if w.Code != 409 || !strings.Contains(w.Body.String(), "postulacion_existente") {
+		t.Fatalf("esperado 409 postulacion_existente, obtenido %d %s", w.Code, w.Body)
+	}
+}

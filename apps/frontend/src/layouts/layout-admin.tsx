@@ -1,107 +1,89 @@
-import { Link, Outlet, useLocation, useNavigate } from "react-router"
-
-import { AppHeader } from "@/components/app-header"
-import { AppSidebar, type VistaId } from "@/components/app-sidebar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { useState } from "react"
+import { Link, Outlet, useLocation } from "react-router"
+import { CabeceraPortal, PiePortal } from "@/components/cabecera-portal"
 import { RUTAS } from "@/lib/rutas"
 import { useSesion } from "@/features/auth/sesion-context"
 import {
   busquedaRevision,
   leerFiltrosRevision,
 } from "@/features/revision/modelo"
+import { cn } from "@/lib/utils"
 
-/**
- * Ruta del router para cada entrada del sidebar administrativo.
- */
-const RUTA_POR_VISTA: Record<VistaId, string> = {
-  dashboard: RUTAS.dashboard,
-  formulario: RUTAS.postulacion,
-  revision: RUTAS.postulacionRevision,
-  imprimir: RUTAS.postulacionImprimir,
-  postulaciones: RUTAS.dashboardPostulaciones,
-  reportes: RUTAS.dashboardReportes,
-  convocatorias: RUTAS.adminConvocatorias,
-  fases: RUTAS.adminFases,
-}
-
-/**
- * Deriva la entrada activa del sidebar a partir de la URL, sin estado local.
- */
-function vistaDesdeRuta(ruta: string): VistaId {
-  if (ruta.startsWith(RUTAS.adminConvocatorias)) return "convocatorias"
-  if (ruta.startsWith(RUTAS.adminFases)) return "fases"
-  if (ruta.startsWith(RUTAS.dashboardReportes)) return "reportes"
-  if (ruta.startsWith(RUTAS.dashboardPostulaciones)) {
-    return "postulaciones"
-  }
-  if (ruta.startsWith(RUTAS.postulacionRevision)) {
-    return "revision"
-  }
-  if (ruta.startsWith(RUTAS.postulacionImprimir)) {
-    return "imprimir"
-  }
-  if (ruta.startsWith(RUTAS.postulacion)) {
-    return "formulario"
-  }
-  return "dashboard"
-}
-
-/**
- * Shell del panel de revisión: sidebar + header + contenido. La navegación del
- * sidebar va por URL (`Link`/`navigate`), así que no recarga la página.
- */
+/** Administración con navegación superior, conservando filtros y permisos. */
 export function LayoutAdmin() {
-  const navegar = useNavigate()
   const { pathname, search } = useLocation()
   const { postulante, cerrar } = useSesion()
+  const [saliendo, setSaliendo] = useState(false)
   const { filtros } = leerFiltrosRevision(new URLSearchParams(search))
-  const rutas = Object.fromEntries(
-    Object.entries(RUTA_POR_VISTA).map(([vista, ruta]) => [
-      vista,
-      vista === "convocatorias" || vista === "fases"
-        ? ruta
-        : `${ruta}${busquedaRevision(filtros)}`,
-    ]),
-  )
-  const vistaActual = vistaDesdeRuta(pathname)
-
+  const busqueda = busquedaRevision(filtros)
+  const administrador = postulante?.rol === "administrador"
+  const gestion = [
+    { titulo: "Convocatorias", ruta: RUTAS.adminConvocatorias },
+    { titulo: "Fases y cronograma", ruta: RUTAS.adminFases },
+    { titulo: "Banco de preguntas", ruta: RUTAS.adminPreguntas },
+  ]
   return (
-    <SidebarProvider>
-      <AppSidebar
-        administrativo
-        rol={postulante?.rol}
-        vistaActual={vistaActual}
-        onNavigate={(vista) => navegar(rutas[vista])}
-        rutas={rutas}
+    <div className="portal-shell flex min-h-svh flex-col bg-background">
+      <CabeceraPortal
+        destino={`${RUTAS.dashboard}${busqueda}`}
+        descripcion="Módulo de administración · Talento Humano"
+        cuenta={{
+          nombre: postulante?.nombre_completo ?? "Mi cuenta",
+          detalle: administrador ? "Administrador" : "Analista",
+        }}
+        saliendo={saliendo}
+        onSalir={() => {
+          setSaliendo(true)
+          void cerrar().finally(() => setSaliendo(false))
+        }}
+        enlaces={[
+          {
+            titulo: "Dashboard",
+            ruta: `${RUTAS.dashboard}${busqueda}`,
+            activo: pathname === RUTAS.dashboard,
+          },
+          {
+            titulo: "Postulaciones",
+            ruta: `${RUTAS.dashboardPostulaciones}${busqueda}`,
+            activo: pathname.startsWith(RUTAS.dashboardPostulaciones),
+          },
+          {
+            titulo: "Matriz",
+            ruta: `${RUTAS.dashboardReportes}${busqueda}`,
+            activo: pathname.startsWith(RUTAS.dashboardReportes),
+          },
+        ]}
       />
-      <SidebarInset>
-        <AppHeader
-          vistaActual={vistaActual}
-          rutaInicio={`${RUTAS.dashboard}${busquedaRevision(filtros)}`}
-          identidadAdministrativa={{
-            iniciales: `${postulante?.nombres?.[0] ?? ""}${postulante?.apellidos?.[0] ?? ""}`,
-            rol:
-              postulante?.rol === "administrador"
-                ? "Administrador"
-                : "Analista",
-          }}
-        />
-        <div className="flex flex-wrap justify-end gap-4 border-b px-4 py-2 text-xs text-muted-foreground">
-          {postulante?.rol === "administrador" && (
-            <Link className="underline" to={RUTAS.adminConvocatorias}>
-              Gestión administrativa
-            </Link>
-          )}
-          <button
-            type="button"
-            className="underline"
-            onClick={() => void cerrar()}
-          >
-            Cerrar sesión
-          </button>
-        </div>
+      {administrador && (
+        <nav
+          aria-label="Gestión administrativa"
+          className="border-b bg-muted/30 print:hidden"
+        >
+          <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-5 py-2">
+            {gestion.map((enlace) => (
+              <Link
+                key={enlace.ruta}
+                to={enlace.ruta}
+                aria-current={
+                  pathname.startsWith(enlace.ruta) ? "page" : undefined
+                }
+                className={cn(
+                  "shrink-0 rounded-md px-3 py-2 text-xs font-medium hover:bg-muted",
+                  pathname.startsWith(enlace.ruta)
+                    ? "bg-brand-100 text-primary"
+                    : "text-muted-foreground",
+                )}
+              >
+                {enlace.titulo}
+              </Link>
+            ))}
+          </div>
+        </nav>
+      )}
+      <div id="contenido-portal" className="min-w-0 flex-1">
         <Outlet />
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+      <PiePortal />
+    </div>
   )
 }

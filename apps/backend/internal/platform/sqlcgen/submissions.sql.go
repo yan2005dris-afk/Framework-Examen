@@ -81,6 +81,34 @@ func (q *Queries) DeleteSubmission(ctx context.Context, id uuid.UUID) (int64, er
 	return result.RowsAffected(), nil
 }
 
+const getSubmissionByApplicantAndCompetition = `-- name: GetSubmissionByApplicantAndCompetition :one
+SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at, competition_id, eligibility FROM submissions WHERE applicant_id = $1 AND competition_id = $2
+`
+
+type GetSubmissionByApplicantAndCompetitionParams struct {
+	ApplicantID   uuid.UUID   `json:"applicant_id"`
+	CompetitionID pgtype.UUID `json:"competition_id"`
+}
+
+func (q *Queries) GetSubmissionByApplicantAndCompetition(ctx context.Context, arg GetSubmissionByApplicantAndCompetitionParams) (Submission, error) {
+	row := q.db.QueryRow(ctx, getSubmissionByApplicantAndCompetition, arg.ApplicantID, arg.CompetitionID)
+	var i Submission
+	err := row.Scan(
+		&i.ID,
+		&i.ApplicantID,
+		&i.Code,
+		&i.Status,
+		&i.Content,
+		&i.Hash,
+		&i.SubmittedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CompetitionID,
+		&i.Eligibility,
+	)
+	return i, err
+}
+
 const getSubmissionByID = `-- name: GetSubmissionByID :one
 SELECT id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at, competition_id, eligibility FROM submissions WHERE id = $1
 `

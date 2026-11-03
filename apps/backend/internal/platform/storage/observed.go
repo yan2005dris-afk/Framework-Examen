@@ -25,3 +25,9 @@ func (s *Observed) PresignGet(ctx context.Context, key, name string, ttl time.Du
 	defer func() { telemetry.Default.Observe("storage", "download", telemetry.Result(err), time.Since(t)) }()
 	return s.Next.PresignGet(ctx, key, name, ttl)
 }
+func (s *Observed) Ready(ctx context.Context) error {
+	if r, ok := s.Next.(interface{ Ready(context.Context) error }); ok {
+		return r.Ready(ctx)
+	}
+	return nil
+}

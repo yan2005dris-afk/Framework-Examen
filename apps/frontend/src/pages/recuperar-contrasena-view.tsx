@@ -301,10 +301,10 @@ export function RecuperarContrasenaView() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-lg items-center px-4 py-8">
-      <Card className="w-full shadow-lg">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+    <div className="mx-auto w-full max-w-[46rem] px-5 pt-8 pb-16">
+      <Card className="w-full">
+        <CardHeader className="space-y-1">
+          <div className="mb-2 flex size-9 items-center justify-center rounded-md bg-brand-100 text-primary">
             {paso === 4 ? (
               <CheckCircle2Icon
                 className="size-6 text-emerald-600"
@@ -314,8 +314,10 @@ export function RecuperarContrasenaView() {
               <KeyRoundIcon className="size-6" aria-hidden="true" />
             )}
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            {paso === 4 ? "Contraseña restablecida" : "Recuperar contraseña"}
+          <CardTitle className="text-base font-bold tracking-tight">
+            <h1>
+              {paso === 4 ? "Contraseña restablecida" : "Recuperar contraseña"}
+            </h1>
           </CardTitle>
           <CardDescription>
             {paso === 1 &&
@@ -327,7 +329,7 @@ export function RecuperarContrasenaView() {
           </CardDescription>
 
           {paso < 4 && (
-            <div className="mt-4 flex items-center justify-center gap-2 pt-2">
+            <div className="mt-4 flex items-center gap-3 border-t pt-4">
               {[1, 2, 3].map((n) => (
                 <span
                   key={n}
@@ -349,7 +351,7 @@ export function RecuperarContrasenaView() {
         {/* PASO 1: Cédula */}
         {paso === 1 && (
           <form onSubmit={manejarSubmitPaso1} noValidate>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {estaBloqueado ? (
                 <AlertaBloqueo
                   expiraEn={bloqueadoExpiraEn ?? undefined}
@@ -443,7 +445,7 @@ export function RecuperarContrasenaView() {
         {/* PASO 2: Código OTP */}
         {paso === 2 && (
           <form onSubmit={manejarSubmitPaso2} noValidate>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="rounded-lg border bg-muted/40 p-3.5 text-xs">
                 <div className="flex items-center gap-2 font-medium text-foreground">
                   <MailIcon className="size-4 text-primary shrink-0" />
@@ -579,7 +581,7 @@ export function RecuperarContrasenaView() {
         {/* PASO 3: Nueva contraseña */}
         {paso === 3 && (
           <form onSubmit={manejarSubmitPaso3} noValidate>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               {estaBloqueado ? (
                 <AlertaBloqueo
                   expiraEn={bloqueadoExpiraEn ?? undefined}

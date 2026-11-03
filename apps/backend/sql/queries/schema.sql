@@ -1295,3 +1295,42 @@ DO $$ DECLARE tab TEXT; BEGIN
  END LOOP;
 END $$;
 -- +goose StatementEnd
+
+
+-- Un postulante tiene como máximo una postulación por convocatoria (RF 1.4: se
+-- elige un solo cargo). Puede postular a convocatorias distintas y a la de un
+-- período nuevo. El legado sin convocatoria queda fuera del índice.
+-- Si ya existen duplicados la migración se detiene sin borrar nada: deben
+-- resolverse antes de aplicarla.
+-- +goose StatementBegin
+DO $$ BEGIN
+ IF EXISTS(SELECT 1 FROM submissions WHERE competition_id IS NOT NULL
+           GROUP BY applicant_id,competition_id HAVING count(*)>1) THEN
+  RAISE EXCEPTION 'Hay postulantes con más de una postulación en la misma convocatoria; resuélvalos antes de aplicar la migración 00020';
+ END IF;
+END $$;
+-- +goose StatementEnd
+CREATE UNIQUE INDEX submissions_one_per_competition ON submissions (applicant_id, competition_id)
+    WHERE competition_id IS NOT NULL;
+
+
+-- Capacidades opacas: nunca se conserva el token de descarga ni la cookie de sesión en claro.
+CREATE TABLE download_grants (
+ token_hash CHAR(64) PRIMARY KEY,
+ actor_id UUID NOT NULL,
+ session_hash CHAR(64) NOT NULL,
+ storage_key TEXT NOT NULL,
+ actor_role TEXT NOT NULL,
+ policy_version BIGINT NOT NULL,
+ expires_at TIMESTAMPTZ NOT NULL,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+);
+CREATE INDEX download_grants_expiry ON download_grants(expires_at);
+CREATE TABLE download_access_events (
+ id UUID PRIMARY KEY DEFAULT uuidv7(), actor_id UUID NOT NULL,
+ actor_role TEXT NOT NULL CHECK(actor_role IN ('postulante','analista','administrador')),
+ submission_id UUID NOT NULL,resource_id UUID NOT NULL,request_id UUID,
+ action TEXT NOT NULL DEFAULT 'documento.descarga_verificada',created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+);
+CREATE INDEX download_access_submission ON download_access_events(submission_id,created_at DESC,id DESC);
+CREATE TRIGGER download_access_immutable BEFORE UPDATE OR DELETE OR TRUNCATE ON download_access_events FOR EACH STATEMENT EXECUTE FUNCTION protect_authorization_history();

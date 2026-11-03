@@ -79,7 +79,7 @@ flowchart LR
     subgraph datos["Almacenamiento"]
         PG[("<b>PostgreSQL 18</b><br/>datos transaccionales")]
         RD[("<b>Redis 7</b><br/>TTL · caché de catálogos")]
-        FS[("<b>Almacenamiento de objetos</b><br/>S3 / MinIO · disco local")]
+        FS[("<b>Almacenamiento de objetos</b><br/>S3 (RustFS en desarrollo) · disco local")]
         SM["<b>SMTP</b><br/>correo de notificaciones"]
     end
 
@@ -97,9 +97,9 @@ flowchart LR
 | SPA | Formularios, feedback inmediato, rutas protegidas | Parcial (dashboard y utilidades implementados) |
 | nginx | Único puerto público; sirve la SPA y reenvía `/api` | Implementado en `deploy/` |
 | API Go | Casos de uso, validaciones, transacciones, caché | Parcial (contexto `submission` completo) |
-| PostgreSQL | Persistencia transaccional | Implementado (2 tablas) |
-| Redis | Bloqueo de intentos y caché de catálogos | **Pendiente** |
-| Objetos | PDFs de respaldo | Parcial (backend local en disco) |
+| PostgreSQL | Persistencia transaccional | Implementado (48 tablas; DDL en `apps/backend/sql/queries/schema.sql`) |
+| Redis | Bloqueo de intentos y caché de catálogos | Implementado (`internal/platform/cache`) |
+| Objetos | PDFs de respaldo | Implementado (S3: RustFS en desarrollo; disco local opcional) |
 | SMTP | Confirmaciones y recuperación de contraseña | Implementado |
 
 ---
@@ -325,16 +325,19 @@ Redis cubre los dos requisitos de la rúbrica:
 
 | Uso | Clave | TTL |
 |---|---|---|
-| Intentos fallidos de autenticación | `identity:login-attempts:{cédula}` | 10 min |
-| Bloqueo temporal | `identity:lockout:{cédula}` | 10 min |
+| Intentos fallidos de autenticación | `identity:auth:{sha256(cédula)}:attempts` | 10 min |
+| Bloqueo temporal | `identity:auth:{sha256(cédula)}:lock` | 10 min |
 | Catálogo de países | `catalog:countries` | 24 h |
 | Provincias por país | `catalog:provinces:{país}` | 24 h |
 | Cantones por provincia | `catalog:cities:{país}:{provincia}` | 24 h |
 
 El diseño completo (algoritmo de bloqueo, invalidación, diagrama de secuencia)
-está en [`../trd/TRD.md` §7](../trd/TRD.md). **Implementación pendiente**: es
-el bloque de mayor valor pendiente de la rúbrica
-(criterio 3, 6 pts).
+está en [`../trd/TRD.md` §7](../trd/TRD.md). **Implementado** en
+`internal/platform/cache`: el conteo y el bloqueo se aplican con un script Lua
+atómico, y la clave usa el SHA-256 de la cédula para no guardarla en claro. Sin
+Redis, el inicio de sesión y el registro fallan cerrados; los catálogos se
+consultan directamente en PostgreSQL. La cascada del formulario consume
+`/api/v1/catalogs` y muestra un aviso si debe usar la lista local.
 
 ---
 
@@ -396,8 +399,8 @@ de mantener la lógica de negocio fuera de los handlers.
 | Bounded contexts y cableado | Implementado | — |
 | Transacciones | Implementado | Uso real en el guardado multi-tabla |
 | Paginación (offset y cursor) | Implementado | — |
-| Redis (bloqueo y caché) | **Pendiente** | Criterio 3 de la rúbrica (6 pts) |
-| Contextos `identity`, `document`, `catalog`, `review` | Parcial | EF-11, adjuntos, cascada, dashboard |
+| Redis (bloqueo y caché) | Implementado | — |
+| Contextos `identity`, `document`, `catalog`, `review` | Parcial | EF-11, adjuntos, dashboard (la cascada con la API ya está implementada) |
 | Seguridad (Argon2id, sesiones, cookies) | Parcial | Casos de uso de autenticación |
 | Observabilidad | Mínimo | Métricas y trazas |
 

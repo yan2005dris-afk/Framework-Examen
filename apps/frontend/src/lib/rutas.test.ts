@@ -12,6 +12,7 @@ import {
   resolverDestinoLogin,
   rutaDetallePostulacion,
   rutaInicial,
+  rutaPostulacion,
   rutaSeccion,
   type TipoAcceso,
 } from "./rutas"
@@ -233,6 +234,34 @@ describe("Rutas del portal (rutas.ts)", () => {
     })
   })
 
+  describe("destinos externos tras el login", () => {
+    it("no sigue destinos fuera del portal y usa la ruta inicial", () => {
+      for (const destino of [
+        "https://example.com/",
+        "//example.com/",
+        "/\\example.com",
+        "javascript:alert(1)",
+        "postulacion",
+      ]) {
+        expect(resolverDestinoLogin(destino, POSTULANTE), destino).toBe(
+          RUTAS.postulacion,
+        )
+        expect(resolverDestinoLogin(destino, ADMINISTRADOR), destino).toBe(
+          RUTAS.adminConvocatorias,
+        )
+      }
+    })
+
+    it("respeta los destinos internos", () => {
+      expect(
+        resolverDestinoLogin(
+          "/postulacion/revision?convocatoria=c1",
+          POSTULANTE,
+        ),
+      ).toBe("/postulacion/revision?convocatoria=c1")
+    })
+  })
+
   describe("helpers de rutas", () => {
     it("arma rutas con parámetros", () => {
       expect(rutaSeccion(4)).toBe("/postulacion/4")
@@ -263,6 +292,22 @@ describe("Rutas del portal (rutas.ts)", () => {
       }
 
       expect(ACCESO_POR_RUTA).toEqual(esperado)
+    })
+  })
+
+  describe("rutaPostulacion", () => {
+    it("agrega la convocatoria a la ruta", () => {
+      expect(rutaPostulacion(RUTAS.postulacionRevision, "conv 1")).toBe(
+        "/postulacion/revision?convocatoria=conv%201",
+      )
+      expect(rutaPostulacion(rutaSeccion(3), "c1")).toBe(
+        "/postulacion/3?convocatoria=c1",
+      )
+    })
+
+    it("sin convocatoria devuelve la ruta sin parámetros", () => {
+      expect(rutaPostulacion(RUTAS.postulacion)).toBe("/postulacion")
+      expect(rutaPostulacion(RUTAS.postulacion, null)).toBe("/postulacion")
     })
   })
 })

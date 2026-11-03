@@ -5,7 +5,7 @@ import { GestionBancoPreguntas } from "@/features/preguntas/gestion-banco-pregun
  */
 export function AdminPreguntasView() {
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 pt-8 pb-16">
       <GestionBancoPreguntas />
     </div>
   )
