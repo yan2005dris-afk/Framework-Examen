@@ -54,6 +54,7 @@ jobs:
         image: axllent/mailpit:latest
         ports: ["1025:1025", "8025:8025"]
     env:
+      INIT_ADMIN_PASSWORD: "AdminLocal2026!"
       TEST_DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
       S3_SIMULATION_ENDPOINT: embedded
       AUDIT_TEST_DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
@@ -86,6 +87,7 @@ jobs:
         run: go test -count=1 -race -json ./... > integration-results.json
       - name: Migraciones desde vacío y API HTTP real con Mailpit
         env:
+          INIT_ADMIN_PASSWORD: "AdminLocal2026!"
           DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
           DB_REQUIRED: "true"
           APP_ENV: development
