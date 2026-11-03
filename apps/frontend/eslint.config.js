@@ -125,4 +125,13 @@ export default defineConfig([
       ],
     },
   },
+  {
+    files: ["e2e/**/*.{ts,tsx}"],
+    languageOptions: {
+      globals: globals.node,
+    },
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 ])
