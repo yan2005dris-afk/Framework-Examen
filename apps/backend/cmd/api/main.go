@@ -49,6 +49,11 @@ func main() {
 	}
 	defer application.Close()
 
+	if cfg.RunEmbeddedWorkers {
+		log.Info("iniciando workers integrados en el proceso de la API")
+		go application.RunWorkers(ctx)
+	}
+
 	// Métricas fuera del proxy público; loopback por defecto y sin etiquetas personales.
 	metricsAddr := os.Getenv("METRICS_ADDR")
 	if metricsAddr == "" {

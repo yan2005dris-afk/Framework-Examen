@@ -52,6 +52,7 @@ type Config struct {
 	OTPResendDelay            time.Duration
 	OTPMaxSends               int
 	EligibilitySimulationFile string
+	RunEmbeddedWorkers        bool
 }
 
 /**
@@ -159,6 +160,7 @@ func Load() (Config, error) {
 		MailOutboxKey:     getString("MAIL_OUTBOX_KEY", ""),
 		OTPResendDelay:    otpDelay, OTPMaxSends: otpSends,
 		EligibilitySimulationFile: getString("ELIGIBILITY_SIMULATION_FILE", ""),
+		RunEmbeddedWorkers:        getString("EMBEDDED_WORKERS", "false") == "true" || getString("EMBEDDED_WORKERS", "false") == "1",
 	}, nil
 }
 
