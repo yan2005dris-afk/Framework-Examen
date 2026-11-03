@@ -1,3 +1,4 @@
+import { calcularDuracionExperiencia } from "@/helpers/experiencia"
 import {
   formatearTamanoBytes,
   type DocumentoDto,
@@ -98,4 +99,55 @@ export function consentimientoParaEnvio(
         }
       : {}),
   }
+}
+
+/** Confirma un registro del modal sin mutar la lista ni pisar una edición concurrente. */
+export function confirmarEdicionRegistro<T extends { id: string }>(
+  lista: readonly T[],
+  borrador: T,
+  original: T | null,
+): T[] {
+  const actual = lista.find((item) => item.id === borrador.id)
+  if (
+    original
+      ? !actual || JSON.stringify(actual) !== JSON.stringify(original)
+      : Boolean(actual)
+  ) {
+    throw new Error(
+      "El registro cambió. Cierre el diálogo y vuelva a abrirlo antes de guardar.",
+    )
+  }
+  return original
+    ? lista.map((item) =>
+        item.id === borrador.id ? structuredClone(borrador) : item,
+      )
+    : [...lista, structuredClone(borrador)]
+}
+
+/** Conserva la duración a la fecha de envío; nunca usa el reloj actual para una experiencia vigente sellada. */
+export function duracionExperienciaImprimible(
+  registro: {
+    fechaInicio: string
+    fechaFin?: string
+    actualmenteLaborando?: boolean
+  },
+  enviadaEn?: string,
+): string {
+  let fin = registro.fechaFin
+  if (registro.actualmenteLaborando) {
+    if (!enviadaEn || !Number.isFinite(Date.parse(enviadaEn)))
+      return "Fecha de envío no disponible"
+    const partes = new Intl.DateTimeFormat("es-EC", {
+      timeZone: "America/Guayaquil",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date(enviadaEn))
+    const valor = (tipo: string) =>
+      partes.find((parte) => parte.type === tipo)?.value
+    fin = `${valor("year")}-${valor("month")}-${valor("day")}`
+  }
+  return registro.fechaInicio && fin
+    ? calcularDuracionExperiencia(registro.fechaInicio, fin, false).texto
+    : "Fechas pendientes"
 }

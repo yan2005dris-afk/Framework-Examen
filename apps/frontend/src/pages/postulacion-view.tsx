@@ -1,5 +1,5 @@
+import { ExcepcionPostulacion } from "@/features/formulario/excepcion-postulacion"
 import {
-  AlertCircleIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
   CheckCircleIcon,
@@ -818,6 +818,37 @@ export function PostulacionView() {
     }
   }
 
+  if (estaCerrada) {
+    const evidencia = postulacionActiva.elegibilidad
+    const nacionalidad =
+      evidencia?.nacionalidadDeclarada ?? formData.seccion1.nacionalidad
+    const porNacionalidad =
+      Boolean(evidencia?.codigo?.toLowerCase().includes("nacionalidad")) ||
+      (Boolean(nacionalidad) && nacionalidad !== "Ecuatoriana")
+    return (
+      <div className="mx-auto w-full max-w-[46rem] px-5 pt-8 pb-16">
+        <ExcepcionPostulacion
+          tipo={porNacionalidad ? "nacionalidad" : "sector"}
+          cerrada
+          valor={
+            porNacionalidad
+              ? nacionalidad
+              : (evidencia?.sector ?? formData.seccion4.sector)
+          }
+          mensaje={
+            evidencia?.mensaje ??
+            "El servidor confirmó el cierre de esta postulación."
+          }
+          origen={
+            evidencia?.origen === "simulacion_controlada_servidor"
+              ? "Simulación controlada del servidor"
+              : "Verificación del servidor"
+          }
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 pt-8 pb-16">
       {/* Banner de POSTULACIÓN SELLADA */}
@@ -858,75 +889,6 @@ export function PostulacionView() {
               <Link to={rutaPostulacion(RUTAS.postulacionImprimir, periodo)}>
                 Imprimir
               </Link>
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Banner de POSTULACIÓN CERRADA POR ELEGIBILIDAD (Mockup 06-04b) */}
-      {estaCerrada && (
-        <div
-          role="alert"
-          aria-live="assertive"
-          className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 space-y-3"
-        >
-          <div className="flex items-start gap-3">
-            <AlertCircleIcon className="size-5 text-destructive shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h4 className="font-semibold text-destructive">
-                La postulación no puede continuar
-              </h4>
-              <p className="mt-0.5 text-xs text-destructive/90">
-                {postulacionActiva.elegibilidad?.mensaje ||
-                  "Validación de elegibilidad no cumplida. La postulación se encuentra cerrada automáticamente."}
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded border bg-background/80 p-3 text-xs space-y-1">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Sector:</span>
-              <span className="font-medium capitalize">
-                {postulacionActiva.elegibilidad?.sector ||
-                  formData.seccion4.sector}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Resultado:</span>
-              <span className="font-medium">
-                {postulacionActiva.elegibilidad?.mensaje ||
-                  "No cumple condiciones de elegibilidad"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">
-                Origen de verificación:
-              </span>
-              <span className="font-mono text-muted-foreground">
-                {postulacionActiva.elegibilidad?.origen ===
-                "simulacion_controlada_servidor"
-                  ? "simulación controlada del servidor"
-                  : postulacionActiva.elegibilidad?.origen || "servidor"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">
-                Estado del expediente:
-              </span>
-              <span className="font-semibold text-destructive">
-                Cerrada automáticamente
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 pt-1">
-            <p className="text-xs text-muted-foreground">
-              Si considera que el resultado es incorrecto, puede presentar un
-              reclamo ante la Comisión Especial dentro del plazo de la
-              convocatoria.
-            </p>
-            <Button asChild variant="secondary" size="sm">
-              <Link to={RUTAS.inicio}>Volver a la convocatoria</Link>
             </Button>
           </div>
         </div>
@@ -1104,6 +1066,7 @@ export function PostulacionView() {
 
               {numeroSeccion === 6 && (
                 <Seccion6Experiencia
+                  fechaEnvio={postulacionActiva?.submittedAt}
                   datos={formData.seccion6 as Seccion6Data}
                   onChange={(s6) =>
                     setFormData((prev) => ({ ...prev, seccion6: s6 }))

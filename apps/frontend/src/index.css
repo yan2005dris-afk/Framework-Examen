@@ -74,6 +74,15 @@
  * `docs/design/PALETA-BIESS.md`.
  */
 :root {
+  /* Papel y tintas: mismos tokens que la referencia de impresión. */
+  --print-ink: oklch(0.15 0 0);
+  --print-ink-strong: oklch(0 0 0);
+  --print-heading: oklch(0.3414 0.0937 248.8144); /* #003A66 */
+  --print-rule: oklch(0.8 0.01 244);
+  --print-table-head: oklch(0.96 0.005 245);
+  --print-table-foot: oklch(0.97 0.003 245);
+  --print-paper: oklch(1 0 0);
+  --print-folio: oklch(0.45 0.01 244);
   /* Superficies y texto */
   --background: oklch(1 0 0); /* #FFFFFF — fondo del portal */
   --foreground: oklch(0.3211 0 0); /* #333333 — enlace y cuerpo de texto */
