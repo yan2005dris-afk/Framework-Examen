@@ -48,6 +48,7 @@ type Config struct {
 	SMTPPassword              string
 	SMTPFrom                  string
 	SMTPUseTLS                bool
+	ResendAPIKey              string
 	MailOutboxKey             string
 	OTPResendDelay            time.Duration
 	OTPMaxSends               int
@@ -157,6 +158,7 @@ func Load() (Config, error) {
 		SMTPPassword:      getString("SMTP_PASSWORD", ""),
 		SMTPFrom:          getString("SMTP_FROM", "no-reply@biess.local"),
 		SMTPUseTLS:        smtpUseTLS,
+		ResendAPIKey:      getString("RESEND_API_KEY", ""),
 		MailOutboxKey:     getString("MAIL_OUTBOX_KEY", ""),
 		OTPResendDelay:    otpDelay, OTPMaxSends: otpSends,
 		EligibilitySimulationFile: getString("ELIGIBILITY_SIMULATION_FILE", ""),

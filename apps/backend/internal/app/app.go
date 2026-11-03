@@ -224,6 +224,15 @@ func (a *App) connectRedis(ctx context.Context, log *slog.Logger) {
  * @returns {error} Error de configuración irrecuperable.
  */
 func (a *App) connectMail(log *slog.Logger) error {
+	if a.Config.ResendAPIKey != "" {
+		a.sender = mail.NewResendSender(mail.ResendConfig{
+			APIKey: a.Config.ResendAPIKey,
+			From:   a.Config.SMTPFrom,
+		})
+		log.Info("Cliente de correo configurado con Resend HTTPS API", "remitente", a.Config.SMTPFrom)
+		return nil
+	}
+
 	if a.Config.SMTPHost == "" {
 		return nil
 	}
@@ -235,7 +244,7 @@ func (a *App) connectMail(log *slog.Logger) error {
 		From:     a.Config.SMTPFrom,
 		UseTLS:   a.Config.SMTPUseTLS,
 	})
-	log.Info("Cliente de correo configurado", "host", a.Config.SMTPHost, "puerto", a.Config.SMTPPort)
+	log.Info("Cliente de correo configurado con SMTP", "host", a.Config.SMTPHost, "puerto", a.Config.SMTPPort)
 	return nil
 }
 
