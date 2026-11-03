@@ -56,6 +56,12 @@ func (b *Broker) Save(ctx context.Context, key string, r io.Reader) error {
 	return b.next.Save(ctx, key, r)
 }
 func (b *Broker) Delete(ctx context.Context, key string) error { return b.next.Delete(ctx, key) }
+func (b *Broker) Ready(ctx context.Context) error {
+	if r, ok := b.next.(interface{ Ready(context.Context) error }); ok {
+		return r.Ready(ctx)
+	}
+	return nil
+}
 func digest(v string) string                                   { h := sha256.Sum256([]byte(v)); return hex.EncodeToString(h[:]) }
 func lookupError(e error) error {
 	if errors.Is(e, pgx.ErrNoRows) {

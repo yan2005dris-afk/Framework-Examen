@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -167,6 +168,52 @@ func (a *App) buildServices(ctx context.Context, log *slog.Logger, mode Mode) er
 	a.documents = documentService
 	a.evaluation = evaluationService
 	a.exams = examRepository
+
+	if a.dependencies != nil {
+		a.dependencies["storage"] = httpx.Dependency{
+			Required: false,
+			Probe: func(ctx context.Context) error {
+				if r, ok := objects.(interface{ Ready(context.Context) error }); ok {
+					return r.Ready(ctx)
+				}
+				return nil
+			},
+		}
+		a.dependencies["outbox"] = httpx.Dependency{
+			Required: false,
+			Probe: func(ctx context.Context) error {
+				if outbox != nil {
+					return outbox.Ready(ctx)
+				}
+				return errors.New("outbox no disponible")
+			},
+		}
+		a.dependencies["smtp"] = httpx.Dependency{
+			Required: false,
+			Probe: func(ctx context.Context) error {
+				if a.deliverySender != nil {
+					if r, ok := a.deliverySender.(interface{ Ready(context.Context) error }); ok {
+						return r.Ready(ctx)
+					}
+				}
+				if a.sender != nil {
+					if r, ok := a.sender.(interface{ Ready(context.Context) error }); ok {
+						return r.Ready(ctx)
+					}
+				}
+				return errors.New("smtp no disponible")
+			},
+		}
+		a.dependencies["downloads"] = httpx.Dependency{
+			Required: false,
+			Probe: func(ctx context.Context) error {
+				if brokerErr != nil {
+					return brokerErr
+				}
+				return nil
+			},
+		}
+	}
 
 	if mode != ModeAPI {
 		return nil

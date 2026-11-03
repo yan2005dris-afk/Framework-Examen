@@ -41,6 +41,14 @@ func NewSignedLocal(base, publicURL, secret string) (*SignedLocal, error) {
 	return &SignedLocal{Local: local, publicURL: u, secret: []byte(secret), now: time.Now}, nil
 }
 
+/** Ready valida que el directorio local esté disponible. */
+func (s *SignedLocal) Ready(ctx context.Context) error {
+	if s.Local == nil {
+		return errors.New("almacenamiento local no configurado")
+	}
+	return nil
+}
+
 /** PresignGet crea un enlace de lectura vinculado a clave, nombre y vencimiento.
  * @returns {string, error} URL temporal; nunca una ruta del disco.
  */
