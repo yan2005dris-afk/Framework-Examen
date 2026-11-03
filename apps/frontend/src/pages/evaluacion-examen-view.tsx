@@ -5,7 +5,7 @@ import { SalaExamen } from "@/features/evaluacion/sala-examen"
  */
 export function EvaluacionExamenView() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 pt-8 pb-16">
       <SalaExamen />
     </div>
   )

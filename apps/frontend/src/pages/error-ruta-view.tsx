@@ -2,6 +2,7 @@ import { RefreshCwIcon, TriangleAlertIcon } from "lucide-react"
 import { isRouteErrorResponse, Link, useRouteError } from "react-router"
 
 import { Button } from "@/components/ui/button"
+import { MarcoEstadoPortal } from "@/components/cabecera-portal"
 import {
   Card,
   CardContent,
@@ -27,13 +28,15 @@ export function PantallaErrorRuta({
   mostrarDetalle,
 }: PantallaErrorRutaProps) {
   return (
-    <div className="flex min-h-svh flex-1 items-center justify-center bg-background p-6">
-      <Card className="w-full max-w-lg">
+    <MarcoEstadoPortal>
+      <Card className="w-full">
         <CardHeader>
           <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             <TriangleAlertIcon className="size-5" aria-hidden="true" />
           </div>
-          <CardTitle>Ocurrió un problema al mostrar esta página</CardTitle>
+          <CardTitle>
+            <h1>Ocurrió un problema al mostrar esta página</h1>
+          </CardTitle>
           <CardDescription>
             Sus datos guardados no se perdieron. Recargue la página para
             continuar. Si el problema se repite, desactive la traducción
@@ -57,7 +60,7 @@ export function PantallaErrorRuta({
           )}
         </CardContent>
       </Card>
-    </div>
+    </MarcoEstadoPortal>
   )
 }
 

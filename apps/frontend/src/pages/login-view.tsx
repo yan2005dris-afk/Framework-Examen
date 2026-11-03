@@ -141,22 +141,18 @@ export function LoginView() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-md items-center px-4 py-8">
-      <Card className="w-full shadow-lg">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <ShieldCheckIcon className="size-6" aria-hidden="true" />
-          </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            Iniciar sesión
+    <div className="mx-auto w-full max-w-[46rem] space-y-6 px-5 pt-8 pb-16">
+      <Card className="w-full">
+        <CardHeader className="space-y-1">
+          <CardTitle>
+            <h1 className="text-base font-bold">Inicio de sesión</h1>
           </CardTitle>
           <CardDescription>
-            Concurso de Méritos y Oposición — Directorio BIESS
+            Ingrese con la cédula y la contraseña de su registro.
           </CardDescription>
         </CardHeader>
-
         <form onSubmit={manejarSubmit} noValidate>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 pb-5">
             {bloqueado ? (
               <AlertaBloqueo
                 expiraEn={tiempoBloqueo}
@@ -212,16 +208,7 @@ export function LoginView() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Contraseña</Label>
-                <Link
-                  to={RUTAS.recuperarContrasena}
-                  className="text-xs font-medium text-primary hover:underline"
-                  tabIndex={bloqueado ? -1 : 0}
-                >
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              </div>
+              <Label htmlFor="password">Contraseña</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -264,10 +251,11 @@ export function LoginView() {
                   {errorPassword}
                 </p>
               )}
+              <p className="text-xs text-muted-foreground">
+                Su contraseña nunca se muestra ni se almacena en claro.
+              </p>
             </div>
-          </CardContent>
 
-          <CardFooter className="flex flex-col gap-3">
             <Button
               type="submit"
               className="w-full"
@@ -279,22 +267,41 @@ export function LoginView() {
                   Iniciando sesión…
                 </>
               ) : (
-                "Iniciar sesión"
+                "Ingresar al sistema"
               )}
             </Button>
-
-            <p className="text-center text-xs text-muted-foreground">
-              ¿No tienes una cuenta aún?{" "}
+            <p className="text-center text-[13px]">
               <Link
-                to={RUTAS.registro}
-                className="font-medium text-primary hover:underline"
+                to={RUTAS.recuperarContrasena}
+                className="text-primary underline underline-offset-4"
               >
-                Regístrate aquí
+                ¿Olvidaste tu contraseña?
               </Link>
             </p>
-          </CardFooter>
+          </CardContent>
         </form>
+        <CardFooter className="flex flex-wrap justify-end gap-2">
+          <span className="text-[13px] text-muted-foreground">
+            ¿Aún no tienes cuenta?
+          </span>
+          <Button asChild variant="outline" size="sm">
+            <Link to={RUTAS.registro}>Registrarse</Link>
+          </Button>
+        </CardFooter>
       </Card>
+      <aside className="flex items-start gap-3 rounded-lg border border-primary/15 bg-brand-100 p-4 text-sm">
+        <ShieldCheckIcon
+          className="mt-0.5 size-5 shrink-0 text-primary"
+          aria-hidden="true"
+        />
+        <div>
+          <h2 className="font-semibold text-primary">Sesión segura</h2>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Su sesión está protegida. No comparta su contraseña ni los códigos
+            de verificación enviados a su correo.
+          </p>
+        </div>
+      </aside>
     </div>
   )
 }
