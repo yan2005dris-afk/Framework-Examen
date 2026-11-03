@@ -30,11 +30,15 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
       await page.fill("input#correo", "test@example.com")
 
       // Intentar continuar
-      const btnContinuar = page.locator("button:has-text('Continuar con la verificación')")
+      const btnContinuar = page.locator(
+        "button:has-text('Continuar con la verificación')",
+      )
       await btnContinuar.click()
 
       // Debe mostrar error de cédula (mensaje literal del RF: "la información ingresada es incorrecta")
-      const msgError = page.locator("text=/información.*incorrecta|cédula.*válida|módulo.*10/i").first()
+      const msgError = page
+        .locator("text=/información.*incorrecta|cédula.*válida|módulo.*10/i")
+        .first()
       await expect(msgError).toBeVisible({ timeout: 5000 })
       console.log(`✅ Error mostrado: "${await msgError.textContent()}"`)
     })
@@ -60,14 +64,18 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
       await page.fill("input#cedula", cedulaValida)
       await page.fill("input#correo", `test-${Date.now()}@example.com`)
 
-      const btnContinuar = page.locator("button:has-text('Continuar con la verificación')")
+      const btnContinuar = page.locator(
+        "button:has-text('Continuar con la verificación')",
+      )
       await btnContinuar.click()
 
       // Debe avanzar sin error (o mostrar que espera OTP)
       const mailpitWait = page.waitForTimeout(2000)
       await mailpitWait
 
-      const errorMessage = page.locator("text=/error|inválid|incorrecto/i").first()
+      const errorMessage = page
+        .locator("text=/error|inválid|incorrecto/i")
+        .first()
       const isError = await errorMessage.isVisible({ timeout: 1000 })
 
       if (!isError) {
@@ -95,14 +103,18 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
       // (Este test es ilustrativo; en E2E real seguiríamos el flujo completo)
 
       // En la vista de credenciales, intentar contraseña corta
-      const inputPassword = page.locator("input[name='reg-password'], input#reg-password").first()
+      const inputPassword = page
+        .locator("input[name='reg-password'], input#reg-password")
+        .first()
       if (await inputPassword.isVisible()) {
         await inputPassword.fill("Short1!")
 
         // Esperar validación en vivo o al blurr
         await page.waitForTimeout(500)
 
-        const msgError = page.locator("text=/8.*caracteres|mínimo.*8|muy corta/i").first()
+        const msgError = page
+          .locator("text=/8.*caracteres|mínimo.*8|muy corta/i")
+          .first()
         if (await msgError.isVisible({ timeout: 1000 })) {
           console.log(`✅ Error: "${await msgError.textContent()}"`)
         } else {
@@ -118,12 +130,16 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
 
       await page.goto("/registro")
 
-      const inputPassword = page.locator("input[name='reg-password'], input#reg-password").first()
+      const inputPassword = page
+        .locator("input[name='reg-password'], input#reg-password")
+        .first()
       if (await inputPassword.isVisible()) {
         await inputPassword.fill(passwordSinMayus)
         await page.waitForTimeout(500)
 
-        const msgError = page.locator("text=/mayúscula|MAYÚSCULA|uppercase/i").first()
+        const msgError = page
+          .locator("text=/mayúscula|MAYÚSCULA|uppercase/i")
+          .first()
         if (await msgError.isVisible({ timeout: 1000 })) {
           console.log(`✅ Error: "${await msgError.textContent()}"`)
         } else {
@@ -139,12 +155,16 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
 
       await page.goto("/registro")
 
-      const inputPassword = page.locator("input[name='reg-password'], input#reg-password").first()
+      const inputPassword = page
+        .locator("input[name='reg-password'], input#reg-password")
+        .first()
       if (await inputPassword.isVisible()) {
         await inputPassword.fill(passwordSinMinus)
         await page.waitForTimeout(500)
 
-        const msgError = page.locator("text=/minúscula|lowercase|minúscula/i").first()
+        const msgError = page
+          .locator("text=/minúscula|lowercase|minúscula/i")
+          .first()
         if (await msgError.isVisible({ timeout: 1000 })) {
           console.log(`✅ Error: "${await msgError.textContent()}"`)
         } else {
@@ -160,7 +180,9 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
 
       await page.goto("/registro")
 
-      const inputPassword = page.locator("input[name='reg-password'], input#reg-password").first()
+      const inputPassword = page
+        .locator("input[name='reg-password'], input#reg-password")
+        .first()
       if (await inputPassword.isVisible()) {
         await inputPassword.fill(passwordSinNumero)
         await page.waitForTimeout(500)
@@ -181,12 +203,16 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
 
       await page.goto("/registro")
 
-      const inputPassword = page.locator("input[name='reg-password'], input#reg-password").first()
+      const inputPassword = page
+        .locator("input[name='reg-password'], input#reg-password")
+        .first()
       if (await inputPassword.isVisible()) {
         await inputPassword.fill(passwordSinSimbolo)
         await page.waitForTimeout(500)
 
-        const msgError = page.locator("text=/símbolo|especial|[@#$%^&*]/i").first()
+        const msgError = page
+          .locator("text=/símbolo|especial|[@#$%^&*]/i")
+          .first()
         if (await msgError.isVisible({ timeout: 1000 })) {
           console.log(`✅ Error: "${await msgError.textContent()}"`)
         } else {
@@ -202,7 +228,9 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
 
       await page.goto("/registro")
 
-      const inputPassword = page.locator("input[name='reg-password'], input#reg-password").first()
+      const inputPassword = page
+        .locator("input[name='reg-password'], input#reg-password")
+        .first()
       if (await inputPassword.isVisible()) {
         await inputPassword.fill(passwordValida)
         await page.waitForTimeout(500)
@@ -231,11 +259,15 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
     await page.fill("input#cedula", cedulaDuplicada)
     await page.fill("input#correo", `unique-test-${Date.now()}@example.com`)
 
-    const btnContinuar = page.locator("button:has-text('Continuar con la verificación')")
+    const btnContinuar = page.locator(
+      "button:has-text('Continuar con la verificación')",
+    )
     await btnContinuar.click()
 
     // Debe rechazar con mensaje de cédula duplicada
-    const msgDuplicada = page.locator("text=/cédula.*registrada|ya existe|duplicada/i").first()
+    const msgDuplicada = page
+      .locator("text=/cédula.*registrada|ya existe|duplicada/i")
+      .first()
     if (await msgDuplicada.isVisible({ timeout: 2000 })) {
       console.log(`✅ Cédula rechazada: "${await msgDuplicada.textContent()}"`)
     } else {
@@ -257,11 +289,15 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
     await page.fill("input#cedula", cedulaNueva)
     await page.fill("input#correo", emailDuplicado)
 
-    const btnContinuar = page.locator("button:has-text('Continuar con la verificación')")
+    const btnContinuar = page.locator(
+      "button:has-text('Continuar con la verificación')",
+    )
     await btnContinuar.click()
 
     // Debe rechazar con mensaje de email duplicado
-    const msgDuplicado = page.locator("text=/correo.*registrado|email.*existe|duplicado/i").first()
+    const msgDuplicado = page
+      .locator("text=/correo.*registrado|email.*existe|duplicado/i")
+      .first()
     if (await msgDuplicado.isVisible({ timeout: 2000 })) {
       console.log(`✅ Email rechazado: "${await msgDuplicado.textContent()}"`)
     } else {
@@ -281,13 +317,19 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
     await page.fill("input#cedula", "1234567890")
     await page.fill("input#correo", emailInvalido)
 
-    const btnContinuar = page.locator("button:has-text('Continuar con la verificación')")
+    const btnContinuar = page.locator(
+      "button:has-text('Continuar con la verificación')",
+    )
     await btnContinuar.click()
 
     // Debe rechazar
-    const msgInvalido = page.locator("text=/correo.*válido|email.*inválid|formato/i").first()
+    const msgInvalido = page
+      .locator("text=/correo.*válido|email.*inválid|formato/i")
+      .first()
     if (await msgInvalido.isVisible({ timeout: 2000 })) {
-      console.log(`✅ Email inválido rechazado: "${await msgInvalido.textContent()}"`)
+      console.log(
+        `✅ Email inválido rechazado: "${await msgInvalido.textContent()}"`,
+      )
     } else {
       console.log("⚠️  Validación de sintaxis de email no visible")
     }
@@ -331,7 +373,9 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
     }
 
     // Verificar que token NO está en localStorage (no accesible desde JS)
-    const tokenEnStorage = await page.evaluate(() => localStorage.getItem("token"))
+    const tokenEnStorage = await page.evaluate(() =>
+      localStorage.getItem("token"),
+    )
     if (!tokenEnStorage) {
       console.log("✅ Token NO en localStorage (no accesible desde JS)")
     } else {

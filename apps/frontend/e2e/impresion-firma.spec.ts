@@ -1,8 +1,5 @@
 import { expect, test } from "@playwright/test"
-import {
-  DEFAULT_PASSWORD,
-  iniciarSesion,
-} from "./e2e-helpers"
+import { DEFAULT_PASSWORD, iniciarSesion } from "./e2e-helpers"
 
 /**
  * Test Criterio 4: Vista de Impresión y Firma Manuscrita (HU-11 / Mockup 10)
@@ -16,7 +13,9 @@ import {
  */
 
 test.describe("IMPRESIÓN Y FIRMA MANUSCRITA — Criterio 4 (6pts)", () => {
-  test("Vista imprimible con datos completos, código, firma y hash SHA-256", async ({ page }) => {
+  test("Vista imprimible con datos completos, código, firma y hash SHA-256", async ({
+    page,
+  }) => {
     test.setTimeout(60000)
     console.log("\n========== INICIO PRUEBA IMPRESIÓN Y FIRMA ==========\n")
 
@@ -29,7 +28,11 @@ test.describe("IMPRESIÓN Y FIRMA MANUSCRITA — Criterio 4 (6pts)", () => {
 
     console.log("========== VALIDACIÓN DE ESTRUCTURA Y ENCABEZADO ==========")
     // 1. Título principal del documento de postulación
-    await expect(page.locator("text=/formulario de postulación|resumen de postulación/i").first()).toBeVisible({ timeout: 15000 })
+    await expect(
+      page
+        .locator("text=/formulario de postulación|resumen de postulación/i")
+        .first(),
+    ).toBeVisible({ timeout: 15000 })
     console.log("✅ Título del formulario imprimible visible")
 
     // 2. Datos personales del postulante
@@ -40,13 +43,17 @@ test.describe("IMPRESIÓN Y FIRMA MANUSCRITA — Criterio 4 (6pts)", () => {
     const textoCodigo = page.locator("text=/EF12-\\d{4}-[A-Z0-9]+/").first()
     await expect(textoCodigo).toBeVisible()
     const codigoEncontrado = await textoCodigo.textContent()
-    console.log(`✅ Código único de postulación en impresión: ${codigoEncontrado?.trim()}`)
+    console.log(
+      `✅ Código único de postulación en impresión: ${codigoEncontrado?.trim()}`,
+    )
 
     // 4. Hash SHA-256 canónico sellado (64 caracteres hexadecimales)
     const textoHash = page.locator("text=/[a-f0-9]{64}/").first()
     await expect(textoHash).toBeVisible()
     const hashEncontrado = await textoHash.textContent()
-    console.log(`✅ Hash SHA-256 canónico visible en pie de documento: ${hashEncontrado?.trim().substring(0, 32)}...`)
+    console.log(
+      `✅ Hash SHA-256 canónico visible en pie de documento: ${hashEncontrado?.trim().substring(0, 32)}...`,
+    )
 
     // 5. Presencia de las secciones principales
     console.log("========== VALIDACIÓN DE SECCIONES IMPRIMIBLES ==========")
@@ -67,12 +74,16 @@ test.describe("IMPRESIÓN Y FIRMA MANUSCRITA — Criterio 4 (6pts)", () => {
 
     // 6. Área para firma manuscrita
     console.log("========== VALIDACIÓN DE ÁREA DE FIRMA MANUSCRITA ==========")
-    const areaFirma = page.locator("text=/firma del postulante|firma manuscrita|firma y entrega/i").first()
+    const areaFirma = page
+      .locator("text=/firma del postulante|firma manuscrita|firma y entrega/i")
+      .first()
     await expect(areaFirma).toBeVisible()
     console.log("✅ Área de firma manuscrita y entrega física verificada")
 
     // 7. Botones de acción (Imprimir / Volver)
-    const btnImprimir = page.locator("button:has-text('Imprimir'), button:has-text('Descargar PDF')").first()
+    const btnImprimir = page
+      .locator("button:has-text('Imprimir'), button:has-text('Descargar PDF')")
+      .first()
     await expect(btnImprimir).toBeVisible()
     console.log("✅ Botón de impresión/descarga disponible")
   })

@@ -10,7 +10,9 @@ export const DEFAULT_PASSWORD = process.env.E2E_PASSWORD || "TestPassword.2026*"
 export function generarCedulaValida(): string {
   const prov = "17"
   const d3 = Math.floor(Math.random() * 6).toString()
-  const mid = Math.floor(Math.random() * 1000000).toString().padStart(6, "0")
+  const mid = Math.floor(Math.random() * 1000000)
+    .toString()
+    .padStart(6, "0")
   const base = prov + d3 + mid
   const coef = [2, 1, 2, 1, 2, 1, 2, 1, 2]
   let sum = 0
@@ -41,7 +43,9 @@ export async function esperarOTPdeMailpit(
         .filter((m: any) => {
           const matchesEmail = m.To?.[0]?.Address === correo
           const matchesSubject = subjectFilter
-            ? (m.Subject || "").toLowerCase().includes(subjectFilter.toLowerCase())
+            ? (m.Subject || "")
+                .toLowerCase()
+                .includes(subjectFilter.toLowerCase())
             : true
           return matchesEmail && matchesSubject
         })
@@ -51,7 +55,8 @@ export async function esperarOTPdeMailpit(
         )[0]
 
       if (message) {
-        const textToSearch = message.Snippet || message.Text || message.HTML || ""
+        const textToSearch =
+          message.Snippet || message.Text || message.HTML || ""
         const match = textToSearch.match(/(\d{6})/)
         if (match) return match[1]
 
@@ -66,7 +71,9 @@ export async function esperarOTPdeMailpit(
     }
     await new Promise((r) => setTimeout(r, 1000))
   }
-  throw new Error(`No se encontró OTP en Mailpit para ${correo} (filtro: ${subjectFilter || "ninguno"})`)
+  throw new Error(
+    `No se encontró OTP en Mailpit para ${correo} (filtro: ${subjectFilter || "ninguno"})`,
+  )
 }
 
 /**
@@ -74,8 +81,20 @@ export async function esperarOTPdeMailpit(
  */
 export async function registrarNuevoPostulante(
   page: Page,
-  datos?: { cedula?: string; correo?: string; password?: string; nombres?: string; apellidos?: string },
-): Promise<{ cedula: string; correo: string; password: string; nombres: string; apellidos: string }> {
+  datos?: {
+    cedula?: string
+    correo?: string
+    password?: string
+    nombres?: string
+    apellidos?: string
+  },
+): Promise<{
+  cedula: string
+  correo: string
+  password: string
+  nombres: string
+  apellidos: string
+}> {
   const cedula = datos?.cedula || generarCedulaValida()
   const correo = datos?.correo || `postulante-${cedula}@biess-test.local`
   const password = datos?.password || DEFAULT_PASSWORD
@@ -113,7 +132,9 @@ export async function iniciarSesion(
   await page.fill("input#cedula", cedula)
   await page.fill("input#password", password)
   await page.locator("button[type='submit']").click()
-  await page.waitForURL((url) => !url.pathname.includes("/login"), { timeout: 15000 })
+  await page.waitForURL((url) => !url.pathname.includes("/login"), {
+    timeout: 15000,
+  })
 }
 
 /**

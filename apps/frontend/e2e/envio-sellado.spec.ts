@@ -16,21 +16,29 @@ import {
  */
 
 test.describe("ENVÍO + SELLADO + HASH — Criterio 2 Persistencia (8pts)", () => {
-  test("Enviar postulación → transacción atómica + hash + código único", async ({ page }) => {
+  test("Enviar postulación → transacción atómica + hash + código único", async ({
+    page,
+  }) => {
     test.setTimeout(90000)
     console.log("\n========== FASE 1: LOGIN Y REVISIÓN ==========\n")
 
     await iniciarSesion(page, "0926914227", DEFAULT_PASSWORD)
 
     await page.goto("/postulacion/revision")
-    await expect(page.getByRole("heading", { name: /Revisión y Envío de la Postulación/i })).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole("heading", {
+        name: /Revisión y Envío de la Postulación/i,
+      }),
+    ).toBeVisible({ timeout: 15000 })
 
     // =========================================================================
     // FASE 2: ACEPTACIÓN DE LOS 5 PUNTOS DE CONSENTIMIENTO
     // =========================================================================
     console.log("========== FASE 2: CONSENTIMIENTOS LEGALES ==========")
 
-    const btnAceptarCinco = page.locator("button:has-text('Aceptar los 5 puntos')")
+    const btnAceptarCinco = page.locator(
+      "button:has-text('Aceptar los 5 puntos')",
+    )
     await expect(btnAceptarCinco).toBeVisible({ timeout: 10000 })
     await btnAceptarCinco.click()
     console.log("✅ Se aceptaron los 5 puntos de consentimiento legal")
@@ -40,7 +48,11 @@ test.describe("ENVÍO + SELLADO + HASH — Criterio 2 Persistencia (8pts)", () =
     // =========================================================================
     console.log("========== FASE 3: SELLADO Y ENVÍO DEFINITIVO ==========")
 
-    const btnEnviar = page.locator("button:has-text('Enviar postulación definitiva'), button:has-text('Enviar postulación')").first()
+    const btnEnviar = page
+      .locator(
+        "button:has-text('Enviar postulación definitiva'), button:has-text('Enviar postulación')",
+      )
+      .first()
     await expect(btnEnviar).toBeEnabled({ timeout: 10000 })
 
     // Escuchar la petición HTTP del backend /submit
@@ -52,7 +64,11 @@ test.describe("ENVÍO + SELLADO + HASH — Criterio 2 Persistencia (8pts)", () =
     await btnEnviar.click()
 
     // Confirmar en modal si se despliega
-    const btnConfirmar = page.locator("button:has-text('Confirmar y enviar'), button:has-text('Confirmar')").first()
+    const btnConfirmar = page
+      .locator(
+        "button:has-text('Confirmar y enviar'), button:has-text('Confirmar')",
+      )
+      .first()
     if (await btnConfirmar.isVisible({ timeout: 3000 })) {
       await btnConfirmar.click()
     }
@@ -80,7 +96,13 @@ test.describe("ENVÍO + SELLADO + HASH — Criterio 2 Persistencia (8pts)", () =
     // =========================================================================
     // FASE 4: VISTA DE SOLO LECTURA (READ-ONLY)
     // =========================================================================
-    await expect(page.locator("text=/postulación enviada|expediente sellado|solo lectura|enviada y sellada/i").first()).toBeVisible({ timeout: 15000 })
+    await expect(
+      page
+        .locator(
+          "text=/postulación enviada|expediente sellado|solo lectura|enviada y sellada/i",
+        )
+        .first(),
+    ).toBeVisible({ timeout: 15000 })
     console.log("✅ Vista de postulación en modo solo lectura (read-only)")
 
     // =========================================================================
@@ -89,6 +111,8 @@ test.describe("ENVÍO + SELLADO + HASH — Criterio 2 Persistencia (8pts)", () =
     console.log("========== FASE 5: NOTIFICACIÓN POR CORREO ==========")
     const otpCorreo = await esperarOTPdeMailpit("yan2005dris@gmail.com", "", 10)
     expect(otpCorreo).toBeTruthy()
-    console.log("✅ Correo de confirmación con sello y código único verificado en Mailpit")
+    console.log(
+      "✅ Correo de confirmación con sello y código único verificado en Mailpit",
+    )
   })
 })
