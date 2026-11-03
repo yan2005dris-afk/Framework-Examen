@@ -37,6 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { esErrorApi } from "@/lib/api-error"
 import { SECTORES } from "@/features/convocatorias/modelo"
 import { useConvocatoriasPublicas } from "@/features/convocatorias/queries"
 import { useResultadosPublicosVigentes } from "@/features/resultados/queries"
@@ -212,7 +213,10 @@ export function ResultadosPublicosView() {
       {/* Estado y contenido */}
       {consulta.isPending ? (
         <EstadoCargando mensaje="Cargando nómina pública de resultados…" />
-      ) : consulta.isError ? (
+      ) : consulta.isError &&
+        (!esErrorApi(consulta.error) ||
+          (consulta.error.codigo !== "lista_no_encontrada" &&
+            consulta.error.status !== 404)) ? (
         <EstadoError
           error={consulta.error}
           titulo="No fue posible consultar la lista pública"
@@ -221,7 +225,7 @@ export function ResultadosPublicosView() {
       ) : !proyeccion || nombres.length === 0 ? (
         <EstadoVacio
           titulo="No hay resultados públicos vigentes"
-          descripcion={`No se ha publicado una lista oficial de elegibles para el sector de ${SECTORES[sectorSeleccionado]} en este período, o la publicación aún se encuentra en etapa de aprobación institucional.`}
+          descripcion={`No se ha publicado una lista oficial de elegibles para el sector de ${SECTORES[sectorSeleccionado] ?? sectorSeleccionado} en este período, o la publicación aún se encuentra en etapa de aprobación institucional.`}
         />
       ) : (
         <div className="space-y-6">
