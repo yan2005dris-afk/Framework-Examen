@@ -12,34 +12,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/audit"
-	auditpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/audit/postgres"
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/catalog"
-	catalogpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/catalog/postgres"
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/competition"
-	competitionpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/competition/postgres"
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/document"
-	documentpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/document/postgres"
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/eligibility"
-	eligibilitypostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/eligibility/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/eligibility/simulated"
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/evaluation"
-	evaluationnotification "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/evaluation/notification"
-	evaluationpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/evaluation/postgres"
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/exam"
-	exampostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/exam/postgres"
-	examreport "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/exam/report"
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/merit"
-	meritpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/merit/postgres"
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/notice"
-	noticepostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/notice/postgres"
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/privacy"
-	privacypostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/privacy/postgres"
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/results"
-	resultspostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/results/postgres"
-
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
-	identitypostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity/postgres"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/appkit"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/cache"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/config"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/db"
@@ -49,11 +24,7 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/storage"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/telemetry"
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/review"
-	reviewpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/review/postgres"
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
 	submissionnotification "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/notification"
-	submissionpostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/postgres"
 	submissionprint "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission/print"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/sql/migrations"
 )
@@ -156,12 +127,10 @@ func main() {
 	}
 
 	// ── Router y contextos ───────────────────────────────────────────────────
-	router := httpx.NewRouter(httpx.RouterDependencies{
-		Logger:  log,
-		Pool:    pool,
-		Version: cfg.Version,
-	})
-
+	// El router se construye en appkit: el binario y las pruebas E2E comparten
+	// el mismo cableado de contextos y middlewares.
+	var router chi.Router
+	var guardedDelivery mail.Sender
 	if pool != nil {
 		queries := sqlcgen.New(pool)
 		go purgeSessions(ctx, queries)
@@ -171,9 +140,9 @@ func main() {
 		}
 		// Incluso sin SMTP/clave se retiran cargas vencidas; nunca se marcan como entregadas.
 		printer := submissionprint.NewRenderer().WithMark(demoMark)
-		var deliverySender mail.Sender
+		var smtpDelivery mail.Sender
 		if smtpSender != nil {
-			deliverySender = &submissionnotification.PrintingSender{Next: &mail.MarkedSender{Next: smtpSender, Mark: demoMark}, Printer: printer}
+			smtpDelivery = &submissionnotification.PrintingSender{Next: &mail.MarkedSender{Next: smtpSender, Mark: demoMark}, Printer: printer}
 		}
 
 		var identityMailer identity.Mailer
@@ -181,82 +150,49 @@ func main() {
 			identityMailer = outbox
 		}
 
-		// Contexto de identidad (EF-11: registro, login, sesión, OTP)
-		identityRepo := identitypostgres.NewRepository(queries, db.NewTxManager(pool))
-		auditor := auditpostgres.NewRepository(queries, db.NewTxManager(pool))
-		privacyRepository := privacypostgres.NewRepository(queries, db.NewTxManager(pool), auditor)
-		privacyHandler := privacy.NewHandler(privacyRepository, auditor)
-		privacyHandler.RegisterPublic(router)
-		if deliverySender != nil {
-			deliverySender = &privacypostgres.Sender{Gate: privacyRepository, Next: deliverySender}
-		}
-		go outbox.Run(ctx, deliverySender, otpStore.Active)
-		stageQueue := &noticepostgres.Queue{Outbox: outbox, Queries: queries}
-		resultsHandler := results.NewHandler(results.NewService(resultspostgres.NewRepository(queries, db.NewTxManager(pool), auditor, stageQueue), auditor).WithPrivacy(privacyRepository).WithMark(demoMark))
-		resultsHandler.RegisterPublic(router)
-		identityService := identity.NewService(identity.ServiceDependencies{
-			Applicants: identityRepo,
-			Sessions:   identityRepo,
-			Recovery:   identityRepo,
-			Resets:     identityRepo,
-			Attempts:   attemptsStore,
-			OTPStore:   otpStore,
-			Mailer:     identityMailer,
-			SessionTTL: cfg.SessionTTL,
-		})
-		identity.NewHandler(identityService, cfg.IsProduction()).RegisterRoutes(router)
-		competitionHandler := competition.NewHandler(competition.NewService(competitionpostgres.NewRepository(queries, db.NewTxManager(pool), auditor)))
-		competitionHandler.RegisterPublic(router)
 		conditions, err := simulated.Load(cfg.EligibilitySimulationFile)
 		if err != nil {
 			log.Error("no se pudo cargar la simulación controlada de elegibilidad")
 			os.Exit(1)
 		}
-		eligibilityService := eligibility.NewService(conditions, eligibilitypostgres.NewRepository(queries))
 
-		// Contexto de postulaciones
-		submissionRepository := submissionpostgres.NewRepository(queries, db.NewTxManager(pool))
-		confirmations := &submissionnotification.QueuedConfirmation{Outbox: outbox, Applicants: identityRepo}
-		var objects document.Storage
-		switch cfg.StorageDriver {
-		case "local":
-			objects, err = storage.NewSignedLocal(cfg.StorageDir, cfg.StoragePublicURL, cfg.StorageSigningKey)
-		case "s3":
-			objects, err = storage.NewS3(storage.S3Config{Endpoint: cfg.S3Endpoint, PublicEndpoint: cfg.S3PublicEndpoint, Region: cfg.S3Region, AccessKey: cfg.S3AccessKey, SecretKey: cfg.S3SecretKey, SessionToken: cfg.S3SessionToken})
-		default:
-			err = fmt.Errorf("STORAGE_DRIVER debe ser local o s3")
-		}
+		objects, err := appkit.NewStorage(cfg.StorageDriver, cfg.StorageDir, cfg.StoragePublicURL, cfg.StorageSigningKey, storage.S3Config{
+			Endpoint:       cfg.S3Endpoint,
+			PublicEndpoint: cfg.S3PublicEndpoint,
+			Region:         cfg.S3Region,
+			AccessKey:      cfg.S3AccessKey,
+			SecretKey:      cfg.S3SecretKey,
+			SessionToken:   cfg.S3SessionToken,
+		})
 		if err != nil {
 			log.Error("no se pudo configurar el almacenamiento", "error", err)
 			os.Exit(1)
 		}
 		objects = &storage.Observed{Next: objects}
-		documentService := document.NewService(documentpostgres.NewRepository(pool, db.NewTxManager(pool)), objects).WithAudit(auditor).WithEligibility(eligibilityService)
-		evaluationService := evaluation.NewService(evaluationpostgres.NewRepository(queries, db.NewTxManager(pool), auditor, &evaluationnotification.Outbox{Queue: outbox, Queries: queries}), objects, auditor)
-		go cleanupEvaluationUploads(ctx, evaluationService)
-		examRepository := exampostgres.NewRepository(queries, db.NewTxManager(pool), auditor, evaluationpostgres.NewRepository(queries, db.NewTxManager(pool), auditor, &evaluationnotification.Outbox{Queue: outbox, Queries: queries}), examreport.NewRenderer().WithMark(demoMark), privacyRepository)
-		go expireExams(ctx, examRepository)
-		submissionService := submission.NewService(submissionRepository).WithConfirmationQueue(confirmations).
-			WithDocuments(documentService).WithApplicants(identityRepo).WithAudit(auditor).WithEligibility(eligibilityService).WithPrinter(printer).WithPrivacy(privacyRepository)
-		router.Group(func(r chi.Router) {
-			r.Use(identity.RequireSession(identityService))
-			r.Use(identity.ProtectAdministration)
-			r.Use(privacyRepository.Guard)
-			privacyHandler.RegisterAdministration(r)
-			exam.NewHandler(examRepository, auditor).RegisterRoutes(r)
-			competitionHandler.RegisterAdministration(r)
-			resultsHandler.RegisterAdministration(r)
-			notice.NewHandler(notice.NewService(noticepostgres.NewRepository(queries, db.NewTxManager(pool), auditor), auditor)).RegisterRoutes(r)
-			evaluation.NewHandler(evaluationService).RegisterRoutes(r)
-			merit.NewHandler(merit.NewService(meritpostgres.NewRepository(queries, db.NewTxManager(pool), auditor).WithNotifier(stageQueue), auditor)).RegisterRoutes(r)
-			catalog.NewHandler(catalog.NewService(catalogpostgres.NewRepository(queries), cache.NewCatalogStore(cacheClient))).RegisterRoutes(r)
-			identity.RegisterRoleRoutes(r, identity.NewRoleService(identityRepo))
-			submission.NewHandler(submissionService).RegisterRoutes(r)
-			document.NewHandler(documentService).RegisterRoutes(r)
-			audit.RegisterHistoryRoutes(r, audit.NewHistoryService(auditor, auditor))
-			review.NewHandler(review.NewService(reviewpostgres.NewRepository(queries, db.NewTxManager(pool)), auditor)).RegisterRoutes(r)
+
+		router, guardedDelivery, err = appkit.NewRouter(ctx, appkit.Dependencies{
+			Logger:              log,
+			Pool:                pool,
+			Queries:             queries,
+			Version:             cfg.Version,
+			IsProduction:        cfg.IsProduction(),
+			SessionTTL:          cfg.SessionTTL,
+			AttemptsStore:       attemptsStore,
+			OTPStore:            otpStore,
+			CatalogStore:        cacheClient,
+			Mailer:              identityMailer,
+			DeliverySender:      smtpDelivery,
+			Outbox:              outbox,
+			Storage:             objects,
+			Printer:             printer,
+			EligibilityProvider: conditions,
+			DemoMark:            demoMark,
 		})
-		go cleanupDocuments(ctx, documentService)
+		if err != nil {
+			log.Error("no se pudo construir el router", "error", err)
+			os.Exit(1)
+		}
+		go outbox.Run(ctx, guardedDelivery, otpStore.Active)
 	} else {
 		log.Warn("sin base de datos: no se registran las rutas de autenticación ni postulaciones")
 	}
@@ -344,48 +280,6 @@ func runHealthcheck() int {
 	}
 
 	return 0
-}
-
-/** cleanupEvaluationUploads conserva los intentos fallidos hasta poder borrar sus objetos, sin tocar evidencias confirmadas. */
-func cleanupEvaluationUploads(ctx context.Context, service *evaluation.Service) {
-	ticker := time.NewTicker(time.Minute)
-	defer ticker.Stop()
-	for {
-		start := time.Now()
-		run, cancel := context.WithTimeout(ctx, 20*time.Second)
-		err := service.CleanupUploads(run)
-		cancel()
-		telemetry.Default.Observe("cleanup", "uploads", telemetry.Result(err), time.Since(start))
-		if err != nil && ctx.Err() == nil {
-			slog.WarnContext(ctx, "no se pudieron retirar intentos de respaldo vencidos")
-		}
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-		}
-	}
-}
-
-/** expireExams recupera cierres vencidos tras reinicio; el plazo lo aplica PostgreSQL aunque el navegador esté cerrado. */
-func expireExams(ctx context.Context, r exam.Repository) {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-	for {
-		run, cancel := context.WithTimeout(ctx, 20*time.Second)
-		started := time.Now()
-		err := r.Expire(run)
-		telemetry.Default.Observe("cleanup", "expire_exams", telemetry.Result(err), time.Since(started))
-		cancel()
-		if err != nil && ctx.Err() == nil {
-			slog.WarnContext(ctx, "no se pudieron confirmar cierres de evaluación pendientes")
-		}
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-		}
-	}
 }
 
 /** purgeSessions elimina sólo sesiones que llevan treinta días expiradas, en lotes acotados. */

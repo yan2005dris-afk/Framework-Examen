@@ -1,10 +1,15 @@
 import { defineConfig, devices } from "@playwright/test"
 
 /**
- * Configuración de pruebas de navegador E2E con datos sintéticos.
+ * Configuración de las pruebas de navegador E2E con datos sintéticos.
+ *
+ * La suite se apoya en el mismo seed que usa la suite de API del backend
+ * (`apps/backend/cmd/e2e-seed`): las dos hablan del mismo conjunto de
+ * cuentas, convocatoria y expedientes.
  */
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0,

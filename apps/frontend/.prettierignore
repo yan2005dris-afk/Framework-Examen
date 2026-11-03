@@ -7,5 +7,7 @@ dist
 coverage
 test-results
 playwright-report
+# Artefacto del seed E2E: lo genera el backend, no se formatea.
+e2e/.estado
 pnpm-lock.yaml
 *.md
