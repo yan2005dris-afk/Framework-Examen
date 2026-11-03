@@ -189,10 +189,30 @@ func buildMessage(from string, message Message) string {
 	return body
 }
 
+func (s *SMTPSender) Ready(ctx context.Context) error {
+	if s.config.Host == "" {
+		return ErrSMTPDisabled
+	}
+	d := net.Dialer{}
+	conn, err := d.DialContext(ctx, "tcp", net.JoinHostPort(s.config.Host, strconv.Itoa(s.config.Port)))
+	if err != nil {
+		return fmt.Errorf("smtp no disponible: %w", err)
+	}
+	_ = conn.Close()
+	return nil
+}
+
 /** MarkedSender mantiene visibles los correos de demostración sin cambiar la cola ni el remitente de producción. */
 type MarkedSender struct {
 	Next Sender
 	Mark string
+}
+
+func (s *MarkedSender) Ready(ctx context.Context) error {
+	if r, ok := s.Next.(interface{ Ready(context.Context) error }); ok {
+		return r.Ready(ctx)
+	}
+	return nil
 }
 
 func (s *MarkedSender) Send(ctx context.Context, m Message) error {

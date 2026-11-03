@@ -48,3 +48,40 @@ func TestPostgresRecoveryRollsBackPasswordIfRevocationFailsAndRejectsStaleLogin(
 		t.Fatal("login anterior a la revocación aceptado", err)
 	}
 }
+
+func TestAuthenticatedSessionRotationIsAtomic(t *testing.T) {
+	p := testutil.Postgres(t, "AUTHORIZATION_TEST_DATABASE_URL")
+	ctx := context.Background()
+	id := uuid.New()
+	_, e := p.Exec(ctx, `INSERT INTO applicants(id,cedula,nombres,apellidos,correo,password_hash) VALUES($1,'1710034008','SINTETICO','NO VALIDO','rotation@synthetic.invalid','hash')`, id)
+	if e != nil {
+		t.Fatal(e)
+	}
+	r := NewRepository(sqlcgen.New(p), db.NewTxManager(p))
+	old := &identity.Session{ID: uuid.New(), ApplicantID: id, TokenHash: identity.HashSessionToken("old"), ExpiresAt: time.Now().Add(time.Hour)}
+	if e = r.CreateAuthenticatedSession(ctx, old, "hash"); e != nil {
+		t.Fatal(e)
+	}
+	next := *old
+	next.ID = uuid.New()
+	next.TokenHash = identity.HashSessionToken("new")
+	if e = r.CreateAuthenticatedSession(ctx, &next, "hash"); e != nil {
+		t.Fatal(e)
+	}
+	if _, _, e = r.GetWithApplicant(ctx, old.TokenHash); e != identity.ErrSessionExpired {
+		t.Fatal("token anterior no revocado", e)
+	}
+	_, e = p.Exec(ctx, `CREATE FUNCTION reject_session_insert() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'QA';END$$;CREATE TRIGGER reject_session_insert BEFORE INSERT ON sessions FOR EACH ROW EXECUTE FUNCTION reject_session_insert()`)
+	if e != nil {
+		t.Fatal(e)
+	}
+	failed := next
+	failed.ID = uuid.New()
+	failed.TokenHash = identity.HashSessionToken("fail")
+	if r.CreateAuthenticatedSession(ctx, &failed, "hash") == nil {
+		t.Fatal("no simuló fallo")
+	}
+	if _, _, e = r.GetWithApplicant(ctx, next.TokenHash); e != nil {
+		t.Fatal("fallo de emisión perdió la sesión vigente", e)
+	}
+}

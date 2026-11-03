@@ -68,6 +68,8 @@ services:
       SMTP_FROM: synthetic-demo@example.test
       ELIGIBILITY_SIMULATION_FILE: /app/data/eligibility.json
       METRICS_ADDR: 0.0.0.0:9090
+      DOWNLOAD_PUBLIC_URL: http://localhost:18081/downloads
+      DOWNLOAD_LISTEN_ADDR: 0.0.0.0:8082
     ports: ["127.0.0.1:18080:8080", "127.0.0.1:19090:9090"]
     volumes: ["../../apps/backend/data/synthetic-demo/${DEMO_DATASET:-.}:/app/data"]
     depends_on:

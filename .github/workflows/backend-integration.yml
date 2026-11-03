@@ -3,10 +3,10 @@ name: Backend integration
 on:
   push:
     branches: [develop, main]
-    paths: ["apps/backend/**", ".github/workflows/backend-integration.yml"]
+    paths: ["apps/backend/**", "scripts/backend-demo/**", "deploy/demo/**", ".github/workflows/backend-integration.yml"]
   pull_request:
     branches: [develop, main]
-    paths: ["apps/backend/**", ".github/workflows/backend-integration.yml"]
+    paths: ["apps/backend/**", "scripts/backend-demo/**", "deploy/demo/**", ".github/workflows/backend-integration.yml"]
   workflow_dispatch:
 
 permissions:
@@ -50,7 +50,13 @@ jobs:
           RUSTFS_SECRET_KEY: ci-test-only-not-production-2026
           RUSTFS_CONSOLE_ENABLE: "false"
         ports: ["9000:9000"]
+      mailpit:
+        image: axllent/mailpit:latest
+        ports: ["1025:1025", "8025:8025"]
     env:
+      INIT_ADMIN_PASSWORD: "AdminLocal2026!"
+      TEST_DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
+      S3_SIMULATION_ENDPOINT: embedded
       AUDIT_TEST_DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
       REVIEW_TEST_DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
       SUBMISSION_TEST_DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
@@ -79,8 +85,48 @@ jobs:
       - name: Pruebas con PostgreSQL, Redis, RustFS y SMTP local
         # SMTP se crea dentro de TestPostgresOutboxSMTPRealTestServer.
         run: go test -count=1 -race -json ./... > integration-results.json
+      - name: Migraciones desde vacío y API HTTP real con Mailpit
+        env:
+          INIT_ADMIN_PASSWORD: "AdminLocal2026!"
+          DATABASE_URL: postgres://backend_test:ci-test-only@localhost:5432/backend_test?sslmode=disable
+          DB_REQUIRED: "true"
+          APP_ENV: development
+          DATA_ORIGIN: synthetic-demo
+          REDIS_URL: redis://localhost:6379/0
+          STORAGE_DRIVER: s3
+          S3_ENDPOINT: http://localhost:9000/backend-ci-tests
+          S3_PUBLIC_ENDPOINT: http://localhost:9000/backend-ci-tests
+          S3_REGION: us-east-1
+          S3_ACCESS_KEY: ci-backend
+          S3_SECRET_KEY: ci-test-only-not-production-2026
+          SMTP_HOST: localhost
+          SMTP_PORT: "1025"
+          SMTP_FROM: synthetic-ci@example.test
+          CORS_ALLOWED_ORIGINS: http://localhost:5173
+          RUNTIME_API_URL: http://localhost:8080
+          RUNTIME_MAILPIT_URL: http://localhost:8025
+          RUNTIME_ORIGIN: http://localhost:5173
+        run: |
+          set -euo pipefail
+          export MAIL_OUTBOX_KEY="$(openssl rand -base64 32)"
+          go build -o /tmp/backend-runtime-api ./cmd/api
+          go build -o /tmp/backend-runtime-worker ./cmd/worker
+          /tmp/backend-runtime-api > api-runtime.log 2>&1 &
+          api_pid=$!
+          /tmp/backend-runtime-worker > worker-runtime.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$api_pid" "$worker_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://localhost:8080/readyz > /dev/null; then break; fi
+            sleep 1
+          done
+          go test -count=1 -json ./internal/platform/httpx -run '^TestRuntimeCrossCutting' > runtime-results.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: backend-integration-results
-          path: apps/backend/integration-results.json
+          path: |
+            apps/backend/integration-results.json
+            apps/backend/runtime-results.json
+            apps/backend/api-runtime.log
+            apps/backend/worker-runtime.log

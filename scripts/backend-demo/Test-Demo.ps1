@@ -8,6 +8,7 @@ $env:TEST_DATABASE_URL="postgres://postgres:$($env:DEMO_DB_PASSWORD)@localhost:1
 $env:REDIS_TEST_URL="redis://localhost:16379/15"
 $env:STORAGE_TEST_ENDPOINT="http://localhost:19000/synthetic-demo"
 $env:STORAGE_TEST_ACCESS_KEY=$env:DEMO_S3_ACCESS_KEY;$env:STORAGE_TEST_SECRET_KEY=$env:DEMO_S3_SECRET_KEY
+$env:RUNTIME_API_URL="http://localhost:18080";$env:RUNTIME_MAILPIT_URL="http://localhost:18025";$env:RUNTIME_ORIGIN="http://localhost:18081"
 $env:S3_SIMULATION_ENDPOINT="embedded";$env:GOTOOLCHAIN="auto"
 # No se modifica ningún archivo ajeno con el verificador; informar si gofmt haría cambios.
 $unformatted=@(gofmt -l $backend)

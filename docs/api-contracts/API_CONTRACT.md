@@ -1010,3 +1010,62 @@ aceptación para el legado ni se precargan textos legales o parámetros académi
   La compensación se encola si el borrado inmediato tampoco está disponible.
 - `X-Request-ID` sólo conserva UUID válido no nulo; otros valores se reemplazan.
   `Traceparent` identifica una traza local nueva, no garantiza propagación OTLP.
+
+
+## Cierre transversal: perfil técnico provisional (2026-11-01)
+
+- Todas las mutaciones requieren **un único Origin exacto de la lista del
+  entorno**. Ausente, `null`, desconocido, duplicado o `Sec-Fetch-Site: cross-site`
+  → 403 `origen_no_permitido`, sin ejecutar el caso de uso. Referer no suple Origin.
+  CLI/contratos de prueba deben enviarlo explícitamente. Los GET/HEAD/OPTIONS no
+  modifican estado y no lo requieren. El navegador lo envía en sus mutaciones;
+  no guardar ni construir tokens CSRF en localStorage.
+- Login usa política de **una sesión activa por cuenta**: bajo bloqueo de
+  credenciales, verifica versión, revoca anteriores e inserta otra en un commit.
+  Si falla la emisión, la revocación revierte. Reset revoca todas las sesiones.
+  Expiración absoluta según `SESSION_TTL`; no hay expiración deslizante implícita.
+- Sesión ausente/revocada/expirada → 401; fallo temporal de persistencia al
+  comprobarla → 503 `sesion_no_disponible`, sin borrar la cookie por ese motivo.
+  Permiso insuficiente sigue siendo 403, no reiniciar sesión indiscriminadamente.
+- OTP: el límite de emisiones también se aplica al correo normalizado y finalidad
+  (tres por diez minutos por defecto, configurable con el límite existente),
+  además de cédula/desafío. Retry-After usa el TTL del límite que se alcanzó.
+  Redis standalone es el adaptador soportado; los scripts multi-clave no están
+  diseñados para Redis Cluster con slots distintos.
+- CORS admite `Idempotency-Key` y expone `Retry-After`, `X-Retry-At`, `Traceparent`
+  y `X-Request-ID`, además de mantener credentials sólo para orígenes admitidos.
+- `/readyz`: `checks` por database/redis/storage/outbox/smtp/downloads; respuesta 503
+  `dependencias_no_disponibles` para fallo obligatorio. PostgreSQL comprueba modo
+  escribible; SMTP es degradable: 200 `status: degraded`, por aceptación durable
+  en outbox. `/healthz` conserva 200 durante degradación de servicios.
+- Descargas revocables: se conserva `{url, expiresAt}` y plazo máximo de cinco
+  minutos, pero `url` apunta al proxy `/downloads/{capacidad}` (sin firma S3).
+  El cliente no debe interpretar host/query, almacenar o reconstruir el enlace.
+  GET/HEAD comprueban sesión/rol/propiedad/privacidad vigentes y auditan antes de
+  bytes. Bloqueo, logout/reset/rotación o cambio de versión invalidan la capacidad;
+  reabrir no revive enlaces de una versión anterior. 403 `descarga_revocada`,
+  503 `descarga_no_disponible`, 416 para Range. No-store, sin redirects ni caché.
+  La garantía no retira bytes ya entregados; el cutover desde firmas antiguas
+  requiere rotar credenciales o esperar su vencimiento sin tráfico.
+
+Retención/eliminación y respaldo: [política provisional](../privacy/RETENTION_POLICY.md),
+[operación](../deployment/OPERATIONS_RUNBOOK.md),
+[recuperación](../deployment/RECOVERY_RUNBOOK.md). Estos documentos no son reglas
+legales o institucionales y no habilitan purgar expedientes reales.
+
+
+### Configuración de descarga (00020)
+
+`DOWNLOAD_PUBLIC_URL` identifica el prefijo público del proxy (`.../downloads`),
+`DOWNLOAD_LISTEN_ADDR` el listener privado separado (por defecto `0.0.0.0:8082`).
+nginx/Vite reenvían ese prefijo y no registran la capacidad. El backend principal
+mantiene su API en 8080: no redirige al objeto ni entrega claves internas. La
+memoria de lectura se limita a ocho PDFs de hasta 4 MiB; hash/longitud se verifican
+antes de servir. `download_grants` sólo conserva SHA-256 del token opaco, referencia
+a sesión y versión; las capacidades expiradas se purgan en lotes. Los accesos
+confirmados van a un diario append-only separado que admite los tres roles.
+
+En desarrollo, `VITE_DOWNLOAD_TARGET` permite indicar el destino privado
+si la API usa un puerto personalizado; el valor inferido sólo cambia el puerto
+estándar 8080 por 8082. `DOWNLOAD_PUBLIC_URL` siempre apunta al origen público
+visible al navegador, no al bucket ni al listener privado.

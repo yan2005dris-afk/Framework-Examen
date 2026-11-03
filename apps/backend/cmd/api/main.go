@@ -13,6 +13,7 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/app"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/config"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/logger"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/telemetry"
 )
 
 /**
@@ -47,6 +48,25 @@ func main() {
 		os.Exit(1)
 	}
 	defer application.Close()
+
+	// Métricas fuera del proxy público; loopback por defecto y sin etiquetas personales.
+	metricsAddr := os.Getenv("METRICS_ADDR")
+	if metricsAddr == "" {
+		metricsAddr = "127.0.0.1:9090"
+	}
+	metricsServer := &http.Server{
+		Addr:              metricsAddr,
+		Handler:           telemetry.Default.Handler(),
+		ReadHeaderTimeout: 3 * time.Second,
+		WriteTimeout:      5 * time.Second,
+		IdleTimeout:       30 * time.Second,
+	}
+	go func() {
+		if e := metricsServer.ListenAndServe(); e != nil && e != http.ErrServerClosed {
+			log.Warn("métricas no disponibles", "error", e)
+		}
+	}()
+	defer metricsServer.Close()
 
 	// ── Servidor HTTP ────────────────────────────────────────────────────────
 	server := &http.Server{

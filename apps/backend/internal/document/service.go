@@ -194,7 +194,7 @@ func (s *Service) List(ctx context.Context, actor, id uuid.UUID) ([]Document, er
 }
 
 /** Download emite una URL de cinco minutos tras comprobar propietario.
- * @returns {DownloadResponse, error} Enlace directo al servidor de objetos.
+ * @returns {DownloadResponse, error} Capacidad temporal; el adaptador de descarga revalida el acceso.
  */
 func (s *Service) Download(ctx context.Context, actor, id uuid.UUID) (DownloadResponse, error) {
 	d, err := s.repo.Find(ctx, id)

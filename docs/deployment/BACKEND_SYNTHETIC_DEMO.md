@@ -144,9 +144,8 @@ como **DATOS SINTÉTICOS - NO VÁLIDO**. El modo normal no añade esa marca.
 | SMTP | aceptación durable pendiente, fallo, reinicio API y reintento en Mailpit |
 | nginx | ráfaga concurrente produce 429 por IP |
 
-Cada dependencia se recupera en `defer` incluso si falla una aserción. Readiness
-actual comprueba **PostgreSQL**, no certifica disponibilidad de SMTP/S3/Redis;
-por eso se prueban aparte. Los errores de proveedores no se copian a logs con
+Cada dependencia se recupera en `defer` incluso si falla una aserción. Readiness ahora comprueba DB escribible, Redis, storage y outbox obligatorios;
+SMTP puede degradar sin impedir aceptación durable. Ver `OPERATIONS_RUNBOOK.md`. Los errores de proveedores no se copian a logs con
 credenciales ni a respuestas de usuario.
 
 ## Respaldo y restauración comprobables
@@ -162,8 +161,9 @@ objetos referenciados para cotejar SHA-256. Descifra también todas las cargas d
 outbox todavía presentes, sin imprimirlas, con la clave conservada. Los manifiestos anterior/restaurado
 deben ser idénticos. También se guardan hashes de los archivos de respaldo.
 
-La clave de cifrado del outbox y las credenciales S3 se conservan en un
-`recovery.env` **privado** junto al respaldo. Sin esa clave no se pueden recuperar
+Desde el cierre transversal, las copias nuevas se cifran y la clave de outbox/
+credenciales S3 se conservan en `recovery.env.enc`. La clave de backup queda
+separada en `.env` privado; ver `RECOVERY_RUNBOOK.md`. Sin esa clave no se pueden recuperar
 cargas pendientes cifradas. No publicar el archivo ni restaurar la cola contra un
 SMTP real. El script deja el contenedor restaurado disponible para inspección;
 antes de repetir hay que liberar su puerto 19010 deteniendo **sólo** ese contenedor
@@ -197,3 +197,12 @@ contra PostgreSQL y Redis reales. La regeneración sqlc debe ser idempotente.
 La evidencia sólo representa la versión y fecha de su corrida. Conservar el
 respaldo/estado correspondiente y no presentar resultados antiguos como validación
 de código modificado después.
+
+
+## Actualización transversal de descargas
+
+Desde 00020, la forma `{url, expiresAt}` se mantiene, pero `url` es una capacidad
+revocable del proxy `/downloads`, no una firma pública S3. El listener 8082
+revalida y audita cada solicitud. Ver `OPERATIONS_RUNBOOK.md` para el cutover de
+firmas antiguas. La referencia anterior de esta guía a descargas directas describe
+el mecanismo previo, sustituido por exigencia explícita del usuario.

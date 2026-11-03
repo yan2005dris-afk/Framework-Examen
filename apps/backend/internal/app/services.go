@@ -2,9 +2,14 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net"
+	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -33,6 +38,8 @@ import (
 	noticepostgres "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/notice/postgres"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/cache"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/db"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/download"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/httpx"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/mail"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/sqlcgen"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/storage"
@@ -116,6 +123,38 @@ func (a *App) buildServices(ctx context.Context, log *slog.Logger, mode Mode) er
 	}
 	objects = &storage.Observed{Next: objects}
 
+	publicDownload := os.Getenv("DOWNLOAD_PUBLIC_URL")
+	if publicDownload == "" {
+		publicDownload = strings.TrimRight(cfg.PublicURL, "/") + "/downloads"
+	}
+	broker, brokerErr := download.New(queries, objects, privacyRepository, auditor, publicDownload)
+	if brokerErr == nil {
+		if mode == ModeAPI {
+			downloadRouter := chi.NewRouter()
+			downloadRouter.Handle("/downloads/{token}", broker)
+			addr := os.Getenv("DOWNLOAD_LISTEN_ADDR")
+			if addr == "" {
+				addr = "0.0.0.0:8082"
+			}
+			if listener, lErr := net.Listen("tcp", addr); lErr == nil {
+				downloadServer := &http.Server{
+					Handler:           httpx.RequestID(httpx.Logging(httpx.Recover(downloadRouter))),
+					ReadHeaderTimeout: 3 * time.Second,
+					ReadTimeout:       5 * time.Second,
+					WriteTimeout:      25 * time.Second,
+					IdleTimeout:       30 * time.Second,
+				}
+				a.closers = append(a.closers, func() { downloadServer.Close() })
+				go func() {
+					if e := downloadServer.Serve(listener); e != nil && e != http.ErrServerClosed {
+						log.Error("se detuvo el servidor de descargas", "error", e)
+					}
+				}()
+			}
+		}
+		objects = broker
+	}
+
 	documentService := document.NewService(documentpostgres.NewRepository(a.Pool, txManager), objects).WithAudit(auditor).WithEligibility(eligibilityService)
 	evaluationService := evaluation.NewService(
 		evaluationpostgres.NewRepository(queries, txManager, auditor, &evaluationnotification.Outbox{Queue: outbox, Queries: queries}),
@@ -129,6 +168,52 @@ func (a *App) buildServices(ctx context.Context, log *slog.Logger, mode Mode) er
 	a.documents = documentService
 	a.evaluation = evaluationService
 	a.exams = examRepository
+
+	if a.dependencies != nil {
+		a.dependencies["storage"] = httpx.Dependency{
+			Required: false,
+			Probe: func(ctx context.Context) error {
+				if r, ok := objects.(interface{ Ready(context.Context) error }); ok {
+					return r.Ready(ctx)
+				}
+				return nil
+			},
+		}
+		a.dependencies["outbox"] = httpx.Dependency{
+			Required: false,
+			Probe: func(ctx context.Context) error {
+				if outbox != nil {
+					return outbox.Ready(ctx)
+				}
+				return errors.New("outbox no disponible")
+			},
+		}
+		a.dependencies["smtp"] = httpx.Dependency{
+			Required: false,
+			Probe: func(ctx context.Context) error {
+				if a.deliverySender != nil {
+					if r, ok := a.deliverySender.(interface{ Ready(context.Context) error }); ok {
+						return r.Ready(ctx)
+					}
+				}
+				if a.sender != nil {
+					if r, ok := a.sender.(interface{ Ready(context.Context) error }); ok {
+						return r.Ready(ctx)
+					}
+				}
+				return errors.New("smtp no disponible")
+			},
+		}
+		a.dependencies["downloads"] = httpx.Dependency{
+			Required: false,
+			Probe: func(ctx context.Context) error {
+				if brokerErr != nil {
+					return brokerErr
+				}
+				return nil
+			},
+		}
+	}
 
 	if mode != ModeAPI {
 		return nil
