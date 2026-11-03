@@ -192,6 +192,10 @@ func (h *Handler) getSession(w http.ResponseWriter, r *http.Request) {
 
 	applicant, err := h.service.ValidateSession(r.Context(), cookie.Value)
 	if err != nil {
+		if !errors.Is(err, ErrSessionExpired) && !errors.Is(err, ErrApplicantNotFound) {
+			httpx.RespondError(w, r, 503, "sesion_no_disponible", "No se pudo comprobar la sesión temporalmente.")
+			return
+		}
 		h.clearSessionCookie(w)
 		httpx.RespondError(w, r, http.StatusUnauthorized, "sesion_expirada", "La sesión ha expirado.")
 		return
@@ -315,12 +319,17 @@ func RequireSession(service *Service) func(http.Handler) http.Handler {
 
 			applicant, err := service.ValidateSession(r.Context(), cookie.Value)
 			if err != nil {
+				if !errors.Is(err, ErrSessionExpired) && !errors.Is(err, ErrApplicantNotFound) {
+					httpx.RespondError(w, r, 503, "sesion_no_disponible", "No se pudo comprobar la sesión temporalmente.")
+					return
+				}
 				httpx.RespondError(w, r, http.StatusUnauthorized, "sesion_invalida", "Su sesión ha expirado o no es válida.")
 				return
 			}
 
 			ctx := context.WithValue(r.Context(), applicantContextKey, applicant)
 			ctx = domain.WithAuditActor(ctx, applicant.ID, applicant.Role)
+			ctx = WithDownloadSession(ctx, HashSessionToken(cookie.Value))
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -371,4 +380,17 @@ func clientIP(r *http.Request) string {
 		return realIP
 	}
 	return r.RemoteAddr
+}
+
+type downloadSessionKey struct{}
+
+/** WithDownloadSession añade sólo el hash de la sesión ya validada; nunca debe recibir una cookie en claro. */
+func WithDownloadSession(ctx context.Context, hash string) context.Context {
+	return context.WithValue(ctx, downloadSessionKey{}, hash)
+}
+
+/** DownloadSession obtiene la referencia de revocación ligada a la capacidad, no un token reutilizable de sesión. */
+func DownloadSession(ctx context.Context) string {
+	v, _ := ctx.Value(downloadSessionKey{}).(string)
+	return v
 }

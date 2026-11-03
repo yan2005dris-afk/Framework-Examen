@@ -41,3 +41,16 @@ func TestHistogramIsCumulativeUnderConcurrentWrites(t *testing.T) {
 		}
 	}
 }
+
+func TestQueueGaugesRejectUnknownOrSensitiveLabels(t *testing.T) {
+	r := &Registry{}
+	r.QueuePending("outbox", 12)
+	r.QueuePending("person@private.test", 99)
+	r.QueuePending("outbox", -1)
+	w := httptest.NewRecorder()
+	r.Handler().ServeHTTP(w, httptest.NewRequest("GET", "/metrics", nil))
+	body := w.Body.String()
+	if !strings.Contains(body, `backend_queue_pending{queue="outbox"} 12`) || strings.Contains(body, "private.test") {
+		t.Fatal("etiqueta o valor no permitido")
+	}
+}

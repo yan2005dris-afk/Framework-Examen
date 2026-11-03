@@ -2,6 +2,8 @@ param([switch]$NoBuild)
 $ErrorActionPreference = "Stop"
 $root = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $backend = Join-Path $root "apps/backend"
+docker info --format '{{.ServerVersion}}' *> $null
+if ($LASTEXITCODE -ne 0) { throw "Docker no está disponible. Iniciar Docker Desktop antes de preparar el entorno sintético." }
 $demo = Join-Path $backend "data/synthetic-demo"
 New-Item -ItemType Directory -Force -Path $demo | Out-Null
 $envFile = Join-Path $root "deploy/demo/.env"
@@ -39,6 +41,9 @@ go -C $backend run ./cmd/demo-bootstrap
 if($LASTEXITCODE -ne 0){throw "Bootstrap sintético incompleto"}
 docker compose --env-file $envFile -f $compose up -d --build
 if ($LASTEXITCODE -ne 0) { throw "No se pudo iniciar el stack sintético" }
+docker exec framework-backend-demo-gateway-1 nginx -t
+if($LASTEXITCODE -ne 0){throw "Proxy de descargas inválido"}
+docker exec framework-backend-demo-gateway-1 nginx -s reload
 Write-Host "Stack synthetic-demo: API http://localhost:18080 ; proxy http://localhost:18081 ; Mailpit http://localhost:18025"
 
 # El contrato real S3 aprovisiona y comprueba únicamente el bucket de QA.

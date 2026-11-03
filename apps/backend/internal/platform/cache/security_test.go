@@ -156,7 +156,9 @@ func TestRedisSecurityIntegrationTTLAndAtomicity(t *testing.T) {
 	}
 	s := cache.NewOTPStore(r)
 	subject := uuid.NewString()
-	c, err := s.Issue(ctx, cache.PurposeRecovery, subject, "a@example.test", "123456")
+	// La cuota también es por correo: aislar cada corrida sin borrar controles de Redis.
+	email := subject + "@example.test"
+	c, err := s.Issue(ctx, cache.PurposeRecovery, subject, email, "123456")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +168,7 @@ func TestRedisSecurityIntegrationTTLAndAtomicity(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			ok, err := s.Verify(ctx, cache.PurposeRecovery, subject, "a@example.test", c.ID, "123456")
+			ok, err := s.Verify(ctx, cache.PurposeRecovery, subject, email, c.ID, "123456")
 			if err != nil {
 				t.Error(err)
 			}
@@ -178,5 +180,22 @@ func TestRedisSecurityIntegrationTTLAndAtomicity(t *testing.T) {
 	wg.Wait()
 	if winners.Load() != 1 {
 		t.Fatalf("Redis: consumidores=%d", winners.Load())
+	}
+}
+
+func TestEmailSendQuotaSurvivesDifferentSubjectsAndSeparatesPurposes(t *testing.T) {
+	r := newAtomicTestCache(t)
+	s := cache.NewOTPStore(r)
+	ctx := context.Background()
+	for n := 0; n < cache.MaxOTPSends; n++ {
+		if _, e := s.Issue(ctx, cache.PurposeRegistration, uuid.NewString(), " Same@Example.Test ", "123456"); e != nil {
+			t.Fatal(e)
+		}
+	}
+	if _, e := s.Issue(ctx, cache.PurposeRegistration, uuid.NewString(), "same@example.test", "654321"); !errors.Is(e, cache.ErrResendLimited) {
+		t.Fatal("se evadió límite de correo", e)
+	}
+	if _, e := s.Issue(ctx, cache.PurposeRecovery, uuid.NewString(), "same@example.test", "654321"); e != nil {
+		t.Fatal("mezcló finalidades", e)
 	}
 }

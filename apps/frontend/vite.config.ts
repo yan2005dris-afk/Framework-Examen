@@ -20,6 +20,15 @@ export default defineConfig({
     // Un solo origen para el navegador: /api se reenvía a la API Go, así que
     // no hay CORS ni cookies cross-origin durante el desarrollo.
     proxy: {
+      "/downloads": {
+        target:
+          process.env.VITE_DOWNLOAD_TARGET ??
+          (process.env.VITE_DEV_API_TARGET ?? "http://localhost:8080").replace(
+            /:8080\/?$/,
+            ":8082",
+          ),
+        changeOrigin: true,
+      },
       "/api": {
         target: process.env.VITE_DEV_API_TARGET ?? "http://localhost:8080",
         changeOrigin: true,
@@ -28,6 +37,15 @@ export default defineConfig({
   },
   preview: {
     proxy: {
+      "/downloads": {
+        target:
+          process.env.VITE_DOWNLOAD_TARGET ??
+          (process.env.VITE_DEV_API_TARGET ?? "http://localhost:8080").replace(
+            /:8080\/?$/,
+            ":8082",
+          ),
+        changeOrigin: true,
+      },
       "/api": {
         target: process.env.VITE_DEV_API_TARGET ?? "http://localhost:8080",
         changeOrigin: true,

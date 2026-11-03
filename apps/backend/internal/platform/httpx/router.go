@@ -2,8 +2,10 @@ package httpx
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -14,10 +16,16 @@ import (
  * RouterDependencies son los componentes transversales que necesita el router
  * raíz de la API.
  */
+type Dependency struct {
+	Required bool
+	Probe    func(context.Context) error
+}
+
 type RouterDependencies struct {
-	Logger  *slog.Logger
-	Pool    *pgxpool.Pool
-	Version string
+	Dependencies map[string]Dependency
+	Logger       *slog.Logger
+	Pool         *pgxpool.Pool
+	Version      string
 }
 
 /**
@@ -63,44 +71,58 @@ func handleHealth(deps RouterDependencies) http.HandlerFunc {
  */
 func handleReady(deps RouterDependencies) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		checks := map[string]string{
-			"database": "ok",
+		dependencies := deps.Dependencies
+		if dependencies == nil {
+			dependencies = map[string]Dependency{"database": {Required: true, Probe: func(ctx context.Context) error {
+				if deps.Pool == nil {
+					return errors.New("no configurada")
+				}
+				return deps.Pool.Ping(ctx)
+			}}}
 		}
-
-		if deps.Pool == nil {
-			checks["database"] = "no_configurada"
-			Respond(w, r, http.StatusServiceUnavailable, map[string]any{
-				"status": "not_ready",
-				"checks": checks,
-				"error": ErrorResponse{
-					Code:    "base_datos_no_configurada",
-					Message: "La base de datos no está configurada en este entorno.",
-				},
-			})
-			return
+		checks := map[string]string{}
+		failed := false
+		degraded := false
+		var mu sync.Mutex
+		var wg sync.WaitGroup
+		for name, d := range dependencies {
+			wg.Add(1)
+			go func(name string, d Dependency) {
+				defer wg.Done()
+				ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+				defer cancel()
+				state := "ok"
+				if d.Probe == nil || d.Probe(ctx) != nil {
+					state = "no_disponible"
+				}
+				if name == "database" && deps.Dependencies == nil && deps.Pool == nil {
+					state = "no_configurada"
+				}
+				mu.Lock()
+				checks[name] = state
+				if state != "ok" {
+					degraded = true
+					failed = failed || d.Required
+				}
+				mu.Unlock()
+			}(name, d)
 		}
-
-		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
-		defer cancel()
-
-		if err := deps.Pool.Ping(ctx); err != nil {
-			checks["database"] = "no_disponible"
-			Respond(w, r, http.StatusServiceUnavailable, map[string]any{
-				"status": "not_ready",
-				"checks": checks,
-				"error": ErrorResponse{
-					Code:    "base_datos_no_disponible",
-					Message: "La base de datos no está disponible.",
-				},
-			})
-			return
+		wg.Wait()
+		status, code := http.StatusOK, "ready"
+		if degraded {
+			code = "degraded"
 		}
-
-		Respond(w, r, http.StatusOK, map[string]any{
-			"status": "ready",
-			"checks": checks,
-		})
+		if failed {
+			status, code = http.StatusServiceUnavailable, "not_ready"
+		}
+		body := map[string]interface{}{"status": code, "checks": checks}
+		if failed {
+			body["error"] = ErrorResponse{Code: "dependencias_no_disponibles", Message: "Una dependencia obligatoria no está disponible."}
+		}
+		w.Header().Set("Cache-Control", "no-store")
+		Respond(w, r, status, body)
 	}
+
 }
 
 /**

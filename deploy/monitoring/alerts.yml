@@ -1,0 +1,28 @@
+groups:
+  - name: backend-provisional
+    rules:
+      - alert: BackendNotReady
+        expr: probe_success{job="backend-readiness"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: "Dependencia obligatoria no disponible; consultar /readyz"}
+      - alert: BackendMetricsMissing
+        expr: up{job="backend"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: "Métricas del backend no disponibles"}
+      - alert: BackendOutboxBacklog
+        expr: backend_queue_pending{queue="outbox"} > 100
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "Backlog de notificaciones; revisar SMTP sin reintentar aceptados"}
+      - alert: BackendMailFailed
+        expr: backend_queue_pending{queue="failed_mail"} > 0
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "Hay notificaciones agotadas; requiere revisión autorizada"}
+      - alert: BackendObjectCleanupBacklog
+        expr: backend_queue_pending{queue=~"object_deletions|upload_intents"} > 0
+        for: 15m
+        labels: {severity: warning}
+        annotations: {summary: "Bajas o cargas vencidas pendientes; revisar almacenamiento"}

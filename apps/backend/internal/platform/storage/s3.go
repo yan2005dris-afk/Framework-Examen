@@ -129,7 +129,10 @@ func hmacBytes(key []byte, value string) []byte {
 }
 
 func (s *S3) presign(endpoint, method, key string, q url.Values, ttl time.Duration) (string, error) {
-	if key == "" || strings.HasPrefix(key, "/") || strings.Contains(key, "\\") {
+	return s.presignRequest(endpoint, method, key, q, ttl, false)
+}
+func (s *S3) presignRequest(endpoint, method, key string, q url.Values, ttl time.Duration, bucketHead bool) (string, error) {
+	if key == "" && !bucketHead || strings.HasPrefix(key, "/") || strings.Contains(key, "\\") {
 		return "", errors.New("clave S3 no válida")
 	}
 	for _, part := range strings.Split(key, "/") {
@@ -141,7 +144,11 @@ func (s *S3) presign(endpoint, method, key string, q url.Values, ttl time.Durati
 	if err != nil {
 		return "", err
 	}
-	u.Path = strings.TrimRight(u.Path, "/") + "/" + key
+	if key != "" {
+		u.Path = strings.TrimRight(u.Path, "/") + "/" + key
+	} else if u.Path == "" {
+		u.Path = "/"
+	}
 	u.RawPath = awsEncode(u.Path, false)
 	if q == nil {
 		q = make(url.Values)
@@ -168,4 +175,25 @@ func (s *S3) presign(endpoint, method, key string, q url.Values, ttl time.Durati
 	q.Set("X-Amz-Signature", hex.EncodeToString(hmacBytes(k, toSign)))
 	u.RawQuery = awsQuery(q)
 	return u.String(), nil
+}
+
+/** Ready comprueba el bucket privado con HEAD firmado, sin escribir ni enumerar objetos. */
+func (s *S3) Ready(ctx context.Context) error {
+	signed, e := s.presignRequest(s.config.Endpoint, "HEAD", "", nil, time.Minute, true)
+	if e != nil {
+		return errors.New("almacenamiento no disponible")
+	}
+	r, e := http.NewRequestWithContext(ctx, "HEAD", signed, nil)
+	if e != nil {
+		return errors.New("almacenamiento no disponible")
+	}
+	response, e := s.client.Do(r)
+	if e != nil {
+		return errors.New("almacenamiento no disponible")
+	}
+	defer response.Body.Close()
+	if response.StatusCode != 200 {
+		return errors.New("almacenamiento no disponible")
+	}
+	return nil
 }

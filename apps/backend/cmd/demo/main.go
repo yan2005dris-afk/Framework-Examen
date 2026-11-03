@@ -341,6 +341,7 @@ func run(ctx context.Context) {
 	auxiliaryFixtures(ctx)
 	verifyAudit(ctx, admin)
 	verifyMailpitAttachment()
+	verifyImmediateRevocation(admin)
 }
 func configure(admin *account, final bool) {
 	var c competition.Competition
@@ -755,6 +756,7 @@ func faults(ctx context.Context) {
 	// Restaurar cada dependencia incluso si falla una aserción.
 	func() {
 		container("stop", "redis")
+		request(nil, "GET", "/readyz", nil, 503)
 		defer container("start", "redis")
 		request(nil, "POST", "/api/v1/auth/register/request", map[string]string{"cedula": cedula(faultSeed), "correo": "redis-outage@synthetic.invalid"}, 503)
 	}()
@@ -765,10 +767,12 @@ func faults(ctx context.Context) {
 		defer func() { container("start", "postgres"); ready() }()
 		request(nil, "GET", "/healthz", nil, 200)
 		request(nil, "GET", "/readyz", nil, 503)
+		request(st.Accounts["minimo"], "GET", "/api/v1/submissions/"+st.Submissions["minimo"], nil, 503)
 	}()
 	check("PostgreSQL caído: liveness 200 y readiness 503; recuperación confirmada")
 	func() {
 		container("stop", "rustfs")
+		request(nil, "GET", "/readyz", nil, 503)
 		defer container("start", "rustfs")
 		uploadStatus(st.Accounts["minimo"], st.Submissions["minimo"], 5, "titulo-1", 503)
 	}()
@@ -788,6 +792,10 @@ func faults(ctx context.Context) {
 	check("RustFS caído: carga 503 sin documento confirmado; recuperación y descarga real")
 	func() {
 		container("stop", "mailpit")
+		response := obj(request(nil, "GET", "/readyz", nil, 200))
+		if response["status"] != "degraded" {
+			panic("SMTP no se indicó degradado")
+		}
 		defer container("start", "mailpit")
 		request(nil, "POST", "/api/v1/auth/register/request", map[string]string{"cedula": cedula(faultSeed + 1), "correo": "smtp-outage-" + uuid.NewString() + "@synthetic.invalid"}, 200)
 		var job string
@@ -856,7 +864,14 @@ func auxiliaryFixtures(ctx context.Context) {
 	for _, kind := range []string{"pending", "failure"} {
 		key := "mail-fixture-" + kind
 		if st.Resources[key] != "" {
-			continue
+			var usable bool
+			fail(pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM mail_outbox WHERE resource_id=$1 AND kind=$2 AND ((status='failed' AND $3='failure') OR (status='pending' AND $3='pending' AND expires_at>clock_timestamp()+interval '1 minute')))`, st.Resources[key], "otp.synthetic-demo."+kind, kind).Scan(&usable))
+			if usable {
+				continue
+			}
+			// Un trabajo vencido no se revive: otra ejecución usa un recurso sintético nuevo.
+			// Conservar la referencia y el historial originales para inspección.
+			st.Resources[key+"-history-"+st.Resources[key]] = st.Resources[key]
 		}
 		resource := uuid.New()
 		to := "pending@synthetic.invalid"
@@ -985,13 +1000,13 @@ func documentReplacement(a *account, sub string) {
 	request(a, "DELETE", "/api/v1/documents/"+second["id"].(string), nil, 204)
 	st.Resources["document-replacement-tested"] = second["id"].(string)
 	save()
-	check("carga, reemplazo y descarga temporal HTTP con SHA-256 y TTL 300s")
+	check("carga, reemplazo y descarga revocable HTTP con SHA-256 y capacidad de 300s")
 }
 func verifyDownload(a *account, d map[string]interface{}) {
 	info := obj(request(a, "GET", "/api/v1/documents/"+d["id"].(string)+"/download", nil, 200))
 	u, e := url.Parse(info["url"].(string))
 	fail(e)
-	if u.Host != "localhost:19000" || !strings.HasPrefix(u.Path, "/synthetic-demo/") || u.Query().Get("X-Amz-Expires") != "300" {
+	if u.Host != "localhost:18081" || !strings.HasPrefix(u.Path, "/downloads/") || len(u.Query()) != 0 {
 		panic("Capacidad de descarga fuera de QA o de plazo")
 	}
 	client := &http.Client{Timeout: 15 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
@@ -1077,4 +1092,56 @@ func verifyMailpitAttachment() {
 		time.Sleep(time.Second)
 	}
 	panic("No se confirmó un adjunto PDF idéntico en Mailpit")
+}
+
+func verifyImmediateRevocation(admin *account) {
+	a := st.Accounts["aprobado"]
+	sub := st.Submissions["aprobado"]
+	var docs []map[string]interface{}
+	fail(json.Unmarshal(request(a, "GET", "/api/v1/submissions/"+sub+"/documents", nil, 200), &docs))
+	if len(docs) == 0 {
+		panic("Falta documento para revocación")
+	}
+	issue := func() string {
+		return obj(request(a, "GET", "/api/v1/documents/"+docs[0]["id"].(string)+"/download", nil, 200))["url"].(string)
+	}
+	get := func(link string, want int) {
+		u, e := url.Parse(link)
+		fail(e)
+		if u.Host != "localhost:18081" || !strings.HasPrefix(u.Path, "/downloads/") {
+			panic("Descarga no usa el gateway revocable")
+		}
+		r, e := (&http.Client{Timeout: 10 * time.Second}).Get(link)
+		fail(e)
+		defer r.Body.Close()
+		data, e := io.ReadAll(io.LimitReader(r.Body, 5<<20))
+		fail(e)
+		if r.StatusCode != want || (want == 403 && bytes.HasPrefix(data, []byte("%PDF-"))) {
+			panic("Revocación inmediata de descarga no aplicada")
+		}
+	}
+	current := func() privacy.Policy {
+		var policy privacy.Policy
+		fail(json.Unmarshal(request(nil, "GET", "/api/v1/public/privacy/competitions/"+st.Period.String(), nil, 200), &policy))
+		return policy
+	}
+	set := func(blocked bool) {
+		p := current()
+		request(admin, "POST", "/api/v1/admin/privacy/competitions/"+st.Period.String()+"/restriction", privacy.BlockInput{PreviousVersion: p.ControlVersion, Blocked: blocked, Reason: mark + " revocación inmediata"}, 200)
+	}
+	old := issue()
+	get(old, 200)
+	set(true)
+	func() {
+		defer set(false)
+		get(old, 403)
+		request(a, "GET", "/api/v1/documents/"+docs[0]["id"].(string)+"/download", nil, 409)
+	}()
+	get(old, 403)
+	fresh := issue()
+	get(fresh, 200)
+	request(a, "POST", "/api/v1/auth/logout", map[string]string{}, 200)
+	get(fresh, 403)
+	request(a, "POST", "/api/v1/auth/login", map[string]string{"cedula": a.Cedula, "password": a.Password}, 200)
+	check("RustFS real: capacidad emitida revocada al bloquear, no revive al reabrir y se invalida al cerrar sesión")
 }

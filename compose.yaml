@@ -47,6 +47,8 @@ services:
       REDIS_URL: redis://redis:6379/0
       CORS_ALLOWED_ORIGINS: http://localhost:5173
       LOG_LEVEL: info
+      DOWNLOAD_PUBLIC_URL: http://localhost:5173/downloads
+      DOWNLOAD_LISTEN_ADDR: 0.0.0.0:8082
       STORAGE_DRIVER: s3
       S3_ENDPOINT: http://rustfs:9000/biess
       S3_PUBLIC_ENDPOINT: http://localhost:9000/biess
@@ -67,6 +69,7 @@ services:
       INIT_ADMIN_PASSWORD: ${INIT_ADMIN_PASSWORD:-AdminLocal2026!}
     ports:
       - "8080:8080"
+      - "127.0.0.1:8082:8082"
     depends_on:
       postgres:
         condition: service_healthy

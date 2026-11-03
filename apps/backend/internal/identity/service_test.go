@@ -493,6 +493,11 @@ func (r *inMemSessionRepo) CreateAuthenticatedSession(_ context.Context, session
 	if !ok || account.PasswordHash != hash {
 		return identity.ErrInvalidCredentials
 	}
+	for key, old := range r.byTokenHash {
+		if old.ApplicantID == session.ApplicantID {
+			delete(r.byTokenHash, key)
+		}
+	}
 	r.byTokenHash[session.TokenHash] = session
 	return nil
 }
