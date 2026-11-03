@@ -9,16 +9,11 @@ import (
 
 func TestOTPStore_IssueAndVerify(t *testing.T) {
 	mem := cache.NewMemoryCache()
-	store := cache.NewOTPStore(mem)
+	store := cache.NewOTPStore(mem, otpTTLReplica)
 	ctx := context.Background()
 
-	code, err := cache.GenerateOTP()
-	if err != nil {
-		t.Fatalf("GenerateOTP() error = %v", err)
-	}
-	if len(code) != 6 {
-		t.Fatalf("longitud de OTP esperada 6, obtuve %d (%q)", len(code), code)
-	}
+	// El código lo genera el dominio; aquí basta una cadena de seis dígitos.
+	code := "123456"
 
 	identifier := "0921234567"
 	email := "test@biess.ec"

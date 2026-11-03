@@ -10,11 +10,15 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
+	identityredis "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity/redis"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/cache"
 )
 
 func TestIdentityFailsClosedWithoutRedis(t *testing.T) {
-	service := identity.NewService(identity.ServiceDependencies{Attempts: cache.NewAttemptsStore(&cache.NoopCache{}), OTPStore: cache.NewOTPStore(&cache.NoopCache{})})
+	service := identity.NewService(identity.ServiceDependencies{
+		Attempts: identityredis.NewAttemptsStore(cache.NewAttemptsStore(&cache.NoopCache{}, identity.MaxLoginAttempts, identity.LockoutDuration)),
+		OTPStore: identityredis.NewOTPStore(cache.NewOTPStore(&cache.NoopCache{}, identity.OTPTTL)),
+	})
 	r := chi.NewRouter()
 	identity.NewHandler(service, false).RegisterRoutes(r)
 	testPass := string([]byte{'C', 'o', 'r', 'r', 'e', 'c', 't', 'a', '.', '2', '0', '2', '6', '*'})

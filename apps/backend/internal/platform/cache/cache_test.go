@@ -9,6 +9,20 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/cache"
 )
 
+// ---- Política de control de seguridad replicada en las pruebas ----
+//
+// La caché no decide la política: la recibe por parámetro. Estas réplicas
+// fijan los valores que en producción inyecta el dominio de identidad.
+
+const (
+	// maxAttemptsReplica es el número de intentos que dispara el bloqueo.
+	maxAttemptsReplica = 3
+	// lockoutReplica es la duración del bloqueo de la cuenta.
+	lockoutReplica = 10 * time.Minute
+	// otpTTLReplica es la vigencia de un desafío OTP.
+	otpTTLReplica = 10 * time.Minute
+)
+
 // ---- Doble de prueba en memoria ----
 
 type memCache struct {
@@ -77,11 +91,11 @@ func itoa(n int64) string {
 // ---- Tests de AttemptsStore ----
 
 func TestAttemptsStore_NoBloqueoAntesDelLimite(t *testing.T) {
-	store := cache.NewAttemptsStore(newAtomicTestCache(t))
+	store := cache.NewAttemptsStore(newAtomicTestCache(t), maxAttemptsReplica, lockoutReplica)
 	ctx := context.Background()
 
 	// Dos intentos fallidos no deben bloquear la cuenta.
-	for i := 0; i < cache.MaxLoginAttempts-1; i++ {
+	for i := 0; i < maxAttemptsReplica-1; i++ {
 		if _, err := store.RecordFailure(ctx, "1234567890"); err != nil {
 			t.Fatalf("RecordFailure: %v", err)
 		}
@@ -97,11 +111,11 @@ func TestAttemptsStore_NoBloqueoAntesDelLimite(t *testing.T) {
 }
 
 func TestAttemptsStore_BloqueoAlAlcanzarLimite(t *testing.T) {
-	store := cache.NewAttemptsStore(newAtomicTestCache(t))
+	store := cache.NewAttemptsStore(newAtomicTestCache(t), maxAttemptsReplica, lockoutReplica)
 	ctx := context.Background()
 
 	// Tres intentos fallidos deben bloquear la cuenta.
-	for i := 0; i < cache.MaxLoginAttempts; i++ {
+	for i := 0; i < maxAttemptsReplica; i++ {
 		if _, err := store.RecordFailure(ctx, "1234567890"); err != nil {
 			t.Fatalf("RecordFailure intento %d: %v", i+1, err)
 		}
@@ -117,11 +131,11 @@ func TestAttemptsStore_BloqueoAlAlcanzarLimite(t *testing.T) {
 }
 
 func TestAttemptsStore_ResetDespuesDeExito(t *testing.T) {
-	store := cache.NewAttemptsStore(newAtomicTestCache(t))
+	store := cache.NewAttemptsStore(newAtomicTestCache(t), maxAttemptsReplica, lockoutReplica)
 	ctx := context.Background()
 
 	// Dos intentos fallidos seguidos de un inicio de sesión exitoso.
-	for i := 0; i < cache.MaxLoginAttempts-1; i++ {
+	for i := 0; i < maxAttemptsReplica-1; i++ {
 		if _, err := store.RecordFailure(ctx, "1234567890"); err != nil {
 			t.Fatalf("RecordFailure: %v", err)
 		}
@@ -146,11 +160,11 @@ func TestAttemptsStore_ResetDespuesDeExito(t *testing.T) {
 }
 
 func TestAttemptsStore_CuentasSeparadas(t *testing.T) {
-	store := cache.NewAttemptsStore(newAtomicTestCache(t))
+	store := cache.NewAttemptsStore(newAtomicTestCache(t), maxAttemptsReplica, lockoutReplica)
 	ctx := context.Background()
 
 	// Bloquear solo la primera cédula.
-	for i := 0; i < cache.MaxLoginAttempts; i++ {
+	for i := 0; i < maxAttemptsReplica; i++ {
 		if _, err := store.RecordFailure(ctx, "1111111111"); err != nil {
 			t.Fatalf("RecordFailure: %v", err)
 		}

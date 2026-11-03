@@ -13,7 +13,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/cache"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/httpx"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/password"
 )
@@ -216,7 +215,7 @@ func (h *Handler) forgotPassword(w http.ResponseWriter, r *http.Request) {
 	challenge, err := h.service.BeginRecovery(r.Context(), body.Cedula)
 	if err != nil {
 		// Las caídas globales y límites se evalúan antes de consultar existencia de cuenta.
-		if errors.Is(err, cache.ErrUnavailable) || errors.Is(err, cache.ErrOTPLocked) || errors.Is(err, cache.ErrResendLimited) || errors.Is(err, ErrAccountLocked) {
+		if errors.Is(err, ErrUnavailable) || errors.Is(err, ErrOTPLocked) || errors.Is(err, ErrResendLimited) || errors.Is(err, ErrAccountLocked) {
 			if writeOperationalError(w, r, err) {
 				return
 			}
@@ -232,7 +231,7 @@ func (h *Handler) forgotPassword(w http.ResponseWriter, r *http.Request) {
 			httpx.RespondError(w, r, 503, "recuperacion_no_disponible", "La recuperación no está disponible.")
 			return
 		}
-		challenge = cache.Challenge{ID: id.String(), ExpiresAt: time.Now().UTC().Add(cache.OTPTTL)}
+		challenge = OTPChallenge{ID: id.String(), ExpiresAt: time.Now().UTC().Add(OTPTTL)}
 	}
 
 	httpx.Respond(w, r, http.StatusOK, map[string]any{

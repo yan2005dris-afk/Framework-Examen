@@ -76,9 +76,9 @@ type Dependencies struct {
 	// SessionTTL define la vigencia de la cookie de sesión.
 	SessionTTL time.Duration
 	// AttemptsStore cuenta los intentos de acceso por cuenta.
-	AttemptsStore *cache.AttemptsStore
+	AttemptsStore identity.AttemptsStore
 	// OTPStore emite y verifica los códigos de un solo uso.
-	OTPStore *cache.OTPStore
+	OTPStore identity.OTPStore
 	// CatalogStore cachea los catálogos geográficos y las opciones EF-12.
 	CatalogStore cache.Cache
 	// Mailer entrega los correos de identidad; nil bloquea el OTP.

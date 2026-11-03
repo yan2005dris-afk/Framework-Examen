@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/cache"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/mail"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/password"
 )
@@ -29,8 +28,8 @@ type ServiceDependencies struct {
 	Sessions   SessionRepository
 	Recovery   PasswordRecoveryRepository
 	Resets     PasswordResetRepository
-	Attempts   *cache.AttemptsStore
-	OTPStore   *cache.OTPStore
+	Attempts   AttemptsStore
+	OTPStore   OTPStore
 	Mailer     Mailer
 	SessionTTL time.Duration
 }
@@ -43,8 +42,8 @@ type Service struct {
 	sessions   SessionRepository
 	recovery   PasswordRecoveryRepository
 	resets     PasswordResetRepository
-	attempts   *cache.AttemptsStore
-	otpStore   *cache.OTPStore
+	attempts   AttemptsStore
+	otpStore   OTPStore
 	mailer     Mailer
 	sessionTTL time.Duration
 }
@@ -86,57 +85,57 @@ func (s *Service) RequestRegistration(ctx context.Context, req RegisterRequestDT
 }
 
 /** BeginRegistration vincula código y desafío a la finalidad, cédula y correo de destino. */
-func (s *Service) BeginRegistration(ctx context.Context, req RegisterRequestDTO) (cache.Challenge, error) {
+func (s *Service) BeginRegistration(ctx context.Context, req RegisterRequestDTO) (OTPChallenge, error) {
 	idCard, err := NewIDCard(req.Cedula)
 	if err != nil {
-		return cache.Challenge{}, ErrInvalidInformation
+		return OTPChallenge{}, ErrInvalidInformation
 	}
 	req.Correo = strings.ToLower(strings.TrimSpace(req.Correo))
 	if ValidateEmail(req.Correo) != nil {
-		return cache.Challenge{}, ErrInvalidInformation
+		return OTPChallenge{}, ErrInvalidInformation
 	}
 	if err := s.checkSecurity(ctx, idCard.String()); err != nil {
-		return cache.Challenge{}, err
+		return OTPChallenge{}, err
 	}
 	if s.mailer == nil {
-		return cache.Challenge{}, ErrDeliveryUnavailable
+		return OTPChallenge{}, ErrDeliveryUnavailable
 	}
 	if _, err := s.applicants.GetByIDCard(ctx, idCard); err == nil {
-		return cache.Challenge{}, ErrApplicantAlreadyExists
+		return OTPChallenge{}, ErrApplicantAlreadyExists
 	} else if !errors.Is(err, ErrApplicantNotFound) {
-		return cache.Challenge{}, err
+		return OTPChallenge{}, err
 	}
 	if _, err := s.applicants.GetByEmail(ctx, req.Correo); err == nil {
-		return cache.Challenge{}, ErrApplicantAlreadyExists
+		return OTPChallenge{}, ErrApplicantAlreadyExists
 	} else if !errors.Is(err, ErrApplicantNotFound) {
-		return cache.Challenge{}, err
+		return OTPChallenge{}, err
 	}
-	code, err := cache.GenerateOTP()
+	code, err := GenerateOTP()
 	if err != nil {
-		return cache.Challenge{}, err
+		return OTPChallenge{}, err
 	}
-	challenge, err := s.otpStore.Issue(ctx, cache.PurposeRegistration, idCard.String(), req.Correo, code)
+	challenge, err := s.otpStore.Issue(ctx, PurposeRegistration, idCard.String(), req.Correo, code)
 	if err != nil {
-		return cache.Challenge{}, err
+		return OTPChallenge{}, err
 	}
 	message := mail.Message{To: req.Correo, Kind: "otp.registro", ChallengeKey: challenge.Key, ChallengeID: challenge.ID, ExpiresAt: challenge.ExpiresAt,
 		Subject: "Código de verificación de registro - Concurso BIESS", Body: fmt.Sprintf("Concurso BIESS\nSu código de registro es: %s\nExpira en 10 minutos.", code)}
 	if err := s.mailer.Send(ctx, message); err != nil {
 		if cancelErr := s.otpStore.Cancel(ctx, challenge); cancelErr != nil {
-			return cache.Challenge{}, cache.ErrUnavailable
+			return OTPChallenge{}, ErrUnavailable
 		}
-		return cache.Challenge{}, ErrDeliveryUnavailable
+		return OTPChallenge{}, ErrDeliveryUnavailable
 	}
 	return challenge, nil
 }
 
 func (s *Service) checkSecurity(ctx context.Context, identifier string) error {
 	if s.otpStore == nil || s.attempts == nil {
-		return cache.ErrUnavailable
+		return ErrUnavailable
 	}
 	locked, err := s.attempts.IsLocked(ctx, identifier)
 	if err != nil {
-		return cache.ErrUnavailable
+		return ErrUnavailable
 	}
 	if locked {
 		return s.accountLockError(ctx, identifier)
@@ -175,11 +174,11 @@ func (s *Service) VerifyAndRegister(ctx context.Context, req RegisterVerifyDTO, 
 	}
 
 	// Verificar código OTP
-	validOTP, err := s.otpStore.Verify(ctx, cache.PurposeRegistration, idCard.String(), req.Correo, req.ChallengeID, req.CodigoOTP)
+	validOTP, err := s.otpStore.Verify(ctx, PurposeRegistration, idCard.String(), req.Correo, req.ChallengeID, req.CodigoOTP)
 	if err != nil {
-		if errors.Is(err, cache.ErrOTPLocked) {
+		if errors.Is(err, ErrOTPLocked) {
 			if _, e := s.attempts.RecordFailure(ctx, idCard.String()); e != nil {
-				return nil, "", cache.ErrUnavailable
+				return nil, "", ErrUnavailable
 			}
 			return nil, "", s.accountLockError(ctx, idCard.String())
 		}
@@ -189,9 +188,9 @@ func (s *Service) VerifyAndRegister(ctx context.Context, req RegisterVerifyDTO, 
 		// Intento fallido
 		count, recordErr := s.attempts.RecordFailure(ctx, idCard.String())
 		if recordErr != nil {
-			return nil, "", cache.ErrUnavailable
+			return nil, "", ErrUnavailable
 		}
-		if count >= cache.MaxLoginAttempts {
+		if count >= MaxLoginAttempts {
 			return nil, "", s.accountLockError(ctx, idCard.String())
 		}
 		return nil, "", ErrInvalidOTP
@@ -228,7 +227,7 @@ func (s *Service) VerifyAndRegister(ctx context.Context, req RegisterVerifyDTO, 
 
 	// Resetear cualquier contador de intentos tras éxito
 	if err := s.attempts.ResetAttempts(ctx, idCard.String()); err != nil {
-		return nil, "", cache.ErrUnavailable
+		return nil, "", ErrUnavailable
 	}
 
 	// Crear sesión inicial
@@ -272,9 +271,9 @@ func (s *Service) Login(ctx context.Context, cedula, plainPassword, ip, userAgen
 		if errors.Is(err, ErrApplicantNotFound) {
 			count, recordErr := s.attempts.RecordFailure(ctx, idCard.String())
 			if recordErr != nil {
-				return nil, "", cache.ErrUnavailable
+				return nil, "", ErrUnavailable
 			}
-			if count >= cache.MaxLoginAttempts {
+			if count >= MaxLoginAttempts {
 				return nil, "", s.accountLockError(ctx, idCard.String())
 			}
 			return nil, "", ErrInvalidCredentials
@@ -287,9 +286,9 @@ func (s *Service) Login(ctx context.Context, cedula, plainPassword, ip, userAgen
 	if err != nil || !match {
 		count, recordErr := s.attempts.RecordFailure(ctx, idCard.String())
 		if recordErr != nil {
-			return nil, "", cache.ErrUnavailable
+			return nil, "", ErrUnavailable
 		}
-		if count >= cache.MaxLoginAttempts {
+		if count >= MaxLoginAttempts {
 			return nil, "", s.accountLockError(ctx, idCard.String())
 		}
 		return nil, "", ErrInvalidCredentials
@@ -297,7 +296,7 @@ func (s *Service) Login(ctx context.Context, cedula, plainPassword, ip, userAgen
 
 	// Éxito: limpiar intentos fallidos
 	if err := s.attempts.ResetAttempts(ctx, idCard.String()); err != nil {
-		return nil, "", cache.ErrUnavailable
+		return nil, "", ErrUnavailable
 	}
 
 	// Crear sesión
@@ -362,45 +361,45 @@ func (s *Service) ForgotPassword(ctx context.Context, cedula string) error {
 }
 
 /** BeginRecovery usa el correo de la cuenta; una cuenta ausente recibe un desafío indistinguible sin correo. */
-func (s *Service) BeginRecovery(ctx context.Context, cedula string) (cache.Challenge, error) {
+func (s *Service) BeginRecovery(ctx context.Context, cedula string) (OTPChallenge, error) {
 	idCard, err := NewIDCard(cedula)
 	if err != nil {
-		return cache.Challenge{}, ErrInvalidInformation
+		return OTPChallenge{}, ErrInvalidInformation
 	}
 	if err := s.checkSecurity(ctx, idCard.String()); err != nil {
-		return cache.Challenge{}, err
+		return OTPChallenge{}, err
 	}
 	if s.mailer == nil {
-		return cache.Challenge{}, ErrDeliveryUnavailable
+		return OTPChallenge{}, ErrDeliveryUnavailable
 	}
 	if ready, ok := s.mailer.(interface{ Ready(context.Context) error }); ok {
 		if ready.Ready(ctx) != nil {
-			return cache.Challenge{}, ErrDeliveryUnavailable
+			return OTPChallenge{}, ErrDeliveryUnavailable
 		}
 	}
 	applicant, err := s.applicants.GetByIDCard(ctx, idCard)
 	if err != nil && !errors.Is(err, ErrApplicantNotFound) {
-		return cache.Challenge{}, err
+		return OTPChallenge{}, err
 	}
 	email := ""
 	if applicant != nil {
 		email = applicant.Email
 	}
-	code, err := cache.GenerateOTP()
+	code, err := GenerateOTP()
 	if err != nil {
-		return cache.Challenge{}, err
+		return OTPChallenge{}, err
 	}
-	challenge, err := s.otpStore.Issue(ctx, cache.PurposeRecovery, idCard.String(), email, code)
+	challenge, err := s.otpStore.Issue(ctx, PurposeRecovery, idCard.String(), email, code)
 	if err != nil {
-		return cache.Challenge{}, err
+		return OTPChallenge{}, err
 	}
 	if applicant == nil {
 		// Misma aceptación durable sin enviar un correo a una dirección inexistente ni revelar la cuenta.
 		if err := s.mailer.Send(ctx, mail.Message{Suppressed: true, Kind: "otp.recuperacion", ChallengeKey: challenge.Key, ChallengeID: challenge.ID, ExpiresAt: challenge.ExpiresAt}); err != nil {
 			if cancelErr := s.otpStore.Cancel(ctx, challenge); cancelErr != nil {
-				return cache.Challenge{}, cache.ErrUnavailable
+				return OTPChallenge{}, ErrUnavailable
 			}
-			return cache.Challenge{}, ErrDeliveryUnavailable
+			return OTPChallenge{}, ErrDeliveryUnavailable
 		}
 		return challenge, nil
 	}
@@ -408,9 +407,9 @@ func (s *Service) BeginRecovery(ctx context.Context, cedula string) (cache.Chall
 		Subject: "Recuperación de contraseña - Concurso BIESS", Body: fmt.Sprintf("Recuperación de contraseña\nEstimado/a %s, su código es: %s\nExpira en 10 minutos.", applicant.FirstName, code)}
 	if err := s.mailer.Send(ctx, message); err != nil {
 		if cancelErr := s.otpStore.Cancel(ctx, challenge); cancelErr != nil {
-			return cache.Challenge{}, cache.ErrUnavailable
+			return OTPChallenge{}, ErrUnavailable
 		}
-		return cache.Challenge{}, ErrDeliveryUnavailable
+		return OTPChallenge{}, ErrDeliveryUnavailable
 	}
 	return challenge, nil
 }
@@ -428,7 +427,7 @@ func (s *Service) ResetPassword(ctx context.Context, req ResetPasswordDTO) error
 		return err
 	}
 	if s.recovery == nil {
-		return cache.ErrUnavailable
+		return ErrUnavailable
 	}
 	applicant, err := s.applicants.GetByIDCard(ctx, idCard)
 	if err != nil && !errors.Is(err, ErrApplicantNotFound) {
@@ -438,11 +437,11 @@ func (s *Service) ResetPassword(ctx context.Context, req ResetPasswordDTO) error
 	if applicant != nil {
 		email = applicant.Email
 	}
-	valid, err := s.otpStore.Verify(ctx, cache.PurposeRecovery, idCard.String(), email, req.ChallengeID, req.CodigoOTP)
+	valid, err := s.otpStore.Verify(ctx, PurposeRecovery, idCard.String(), email, req.ChallengeID, req.CodigoOTP)
 	if err != nil {
-		if errors.Is(err, cache.ErrOTPLocked) {
+		if errors.Is(err, ErrOTPLocked) {
 			if _, e := s.attempts.RecordFailure(ctx, idCard.String()); e != nil {
-				return cache.ErrUnavailable
+				return ErrUnavailable
 			}
 			return s.accountLockError(ctx, idCard.String())
 		}
@@ -450,7 +449,7 @@ func (s *Service) ResetPassword(ctx context.Context, req ResetPasswordDTO) error
 	}
 	if !valid || applicant == nil {
 		if _, err := s.attempts.RecordFailure(ctx, idCard.String()); err != nil {
-			return cache.ErrUnavailable
+			return ErrUnavailable
 		}
 		return ErrInvalidOTP
 	}
@@ -486,7 +485,7 @@ func (s *Service) createSession(ctx context.Context, applicantID uuid.UUID, ip, 
 
 	issuer, ok := s.sessions.(AuthenticatedSessionRepository)
 	if !ok {
-		return "", cache.ErrUnavailable
+		return "", ErrUnavailable
 	}
 	if err := issuer.CreateAuthenticatedSession(ctx, session, expectedHash); err != nil {
 		return "", err
@@ -501,5 +500,5 @@ func (s *Service) accountLockError(ctx context.Context, identifier string) error
 	if err != nil {
 		return ErrAccountLocked
 	}
-	return &cache.RetryError{Cause: ErrAccountLocked, RetryAfter: max(ttl, time.Second)}
+	return &RetryError{Cause: ErrAccountLocked, RetryAfter: max(ttl, time.Second)}
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
+	identityredis "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity/redis"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/cache"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/mail"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/password"
@@ -265,8 +266,8 @@ func setupService(t *testing.T) (*identity.Service, *inMemApplicantRepo, *mockMa
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = atomic.Close() })
-	attempts := cache.NewAttemptsStore(atomic)
-	otpStore := cache.NewOTPStore(atomic)
+	attempts := identityredis.NewAttemptsStore(cache.NewAttemptsStore(atomic, identity.MaxLoginAttempts, identity.LockoutDuration))
+	otpStore := identityredis.NewOTPStore(cache.NewOTPStore(atomic, identity.OTPTTL))
 	mailer := &mockMailer{}
 
 	svc := identity.NewService(identity.ServiceDependencies{

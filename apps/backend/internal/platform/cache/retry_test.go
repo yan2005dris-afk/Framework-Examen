@@ -17,7 +17,7 @@ func TestConfiguredOTPResendReportsActualQuotaAndCooldownTTL(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = redis.Close() })
-	store, err := cache.NewConfiguredOTPStore(redis, 2*time.Second, 2)
+	store, err := cache.NewConfiguredOTPStore(redis, otpTTLReplica, 2*time.Second, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestLockRemainingNeverRenewsWindow(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = redis.Close() })
-	store := cache.NewAttemptsStore(redis)
+	store := cache.NewAttemptsStore(redis, maxAttemptsReplica, lockoutReplica)
 	for range 3 {
 		if _, err := store.RecordFailure(ctx, "account"); err != nil {
 			t.Fatal(err)

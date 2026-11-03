@@ -32,7 +32,13 @@ func (a *App) RunWorkers(ctx context.Context) {
 	}
 
 	go purgeSessions(ctx, a.queries)
-	go a.outbox.Run(ctx, a.deliverySender, a.otpStore.Active)
+	// Sin control de seguridad el correo con código no se entrega: la cola
+	// reintenta cuando el desafío vuelva a estar disponible.
+	var otpActive func(context.Context, string, string) (bool, error)
+	if a.otpStore != nil {
+		otpActive = a.otpStore.Active
+	}
+	go a.outbox.Run(ctx, a.deliverySender, otpActive)
 	go cleanupEvaluationUploads(ctx, a.evaluation)
 	go expireExams(ctx, a.exams)
 	go cleanupDocuments(ctx, a.documents)

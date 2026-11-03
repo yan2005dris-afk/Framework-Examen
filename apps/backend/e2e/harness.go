@@ -25,6 +25,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/e2edata"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
+	identityredis "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity/redis"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/appkit"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/cache"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/httpx"
@@ -164,8 +166,8 @@ func Preparar(t *testing.T) *Entorno {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	attemptsStore := cache.NewAttemptsStore(redisClient)
-	otpStore, err := cache.NewConfiguredOTPStore(redisClient, time.Second, 3)
+	attemptsStore := identityredis.NewAttemptsStore(cache.NewAttemptsStore(redisClient, identity.MaxLoginAttempts, identity.LockoutDuration))
+	otpStore, err := cache.NewConfiguredOTPStore(redisClient, identity.OTPTTL, time.Second, 3)
 	if err != nil {
 		t.Fatalf("no se pudo configurar el almacén de códigos: %v", err)
 	}
@@ -188,7 +190,7 @@ func Preparar(t *testing.T) *Entorno {
 		Version:             "e2e",
 		SessionTTL:          time.Hour,
 		AttemptsStore:       attemptsStore,
-		OTPStore:            otpStore,
+		OTPStore:            identityredis.NewOTPStore(otpStore),
 		CatalogStore:        redisClient,
 		Mailer:              correo,
 		Outbox:              outbox,

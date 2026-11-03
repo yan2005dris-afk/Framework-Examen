@@ -151,6 +151,9 @@ dependen de features ni de vistas, y `components/ui` es una hoja.
 - `internal/<contexto>/<capacidad>/` — cada capacidad trae `service.go` (casos de uso),
   `handler.go` (adaptador HTTP), `repository.go` (puerto), `dto.go`, `errors.go` y
   `postgres/` (adaptador de persistencia)
+- `internal/<contexto>/redis/` — adaptador de caché del contexto: implementa los puertos
+  del dominio y traduce los fallos de infraestructura a errores de dominio
+  (hoy sólo `identity/`)
 - `sql/queries/` — esquema (`schema.sql`) y queries de sqlc
 - `sql/migrations/` — migraciones goose embebidas
 
@@ -390,3 +393,4 @@ decisión que afecte cómo se trabaja en el repo.
 
 | 2026-11-03 | Edición modal de registros separada de operaciones de PDF y de Guardar borrador | Secciones 5–8 editan clones, validan el registro completo y confirman sólo estado local; cancelar no escribe. El respaldo usa el callback existente, que conserva la sección antes de vincular el archivo: no subir desde un borrador interno del modal con un estado padre obsoleto. Cargar/quitar PDF confirma en servidor y se avisa expresamente. |
 | 2026-11-03 | La impresión A4 representa el snapshot consultado y corta experiencia vigente al envío | Tokens de papel del set y página nombrada sobre todo el cuerpo de la vista evitan una página final vacía en Chromium. Folio en margin box; firma/hash juntos y sin forzar un número fijo de páginas. No inventar identidad civil verificada ni completar datos del ejemplo. |
+| 2026-11-03 | El contexto de identidad depende de puertos propios, no de la caché | H8 de la auditoría: `identity.Service` ya no importa `platform/cache`. Los puertos `AttemptsStore` y `OTPStore` viven en `internal/identity/repository.go`, el adaptador `internal/identity/redis/` los implementa sobre Redis y traduce los fallos de infraestructura a errores de dominio (`ErrUnavailable`, `ErrOTPLocked`, `ErrResendLimited`, `RetryError`), de modo que 503/429 y `Retry-After` no cambian. La política (tres intentos, bloqueo de diez minutos, vigencia del OTP) la fija el dominio y la caché la recibe por parámetro: hay una sola fuente de verdad y ninguna copia que pueda divergir en silencio. `internal/identity/architecture_test.go` falla si el dominio vuelve a importar la caché. |

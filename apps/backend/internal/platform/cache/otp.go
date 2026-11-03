@@ -2,19 +2,15 @@ package cache
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
-	"math/big"
 	"strings"
 	"time"
 )
 
-const OTPTTL = 10 * time.Minute
 const OTPResendDelay = time.Minute
 const MaxOTPAttempts = 3
 const MaxOTPSends = 3
@@ -33,6 +29,7 @@ type ScriptCache interface {
 /** OTPStore mantiene un desafío por finalidad/cuenta, ligado al correo y con consumo único. */
 type OTPStore struct {
 	cache       Cache
+	ttl         time.Duration
 	resendDelay time.Duration
 	maxSends    int
 }
@@ -50,27 +47,25 @@ type otpState struct {
 	Attempts int    `json:"attempts"`
 }
 
-/** NewOTPStore construye el puerto; un adaptador sin scripts falla de forma cerrada. */
-func NewOTPStore(c Cache) *OTPStore {
-	return &OTPStore{cache: c, resendDelay: OTPResendDelay, maxSends: MaxOTPSends}
+/** NewOTPStore construye el puerto; un adaptador sin scripts falla de forma cerrada.
+ * Una vigencia no positiva deja el control de seguridad inoperante: el dominio
+ * falla cerrado en vez de emitir desafíos sin plazo. */
+func NewOTPStore(c Cache, ttl time.Duration) *OTPStore {
+	if ttl <= 0 {
+		c = &UnavailableCache{}
+	}
+	return &OTPStore{cache: c, ttl: ttl, resendDelay: OTPResendDelay, maxSends: MaxOTPSends}
 }
 
-/** NewConfiguredOTPStore permite configurar reenvíos sin cambiar tres intentos ni TTL de diez minutos. */
-func NewConfiguredOTPStore(c Cache, delay time.Duration, maxSends int) (*OTPStore, error) {
-	if delay < time.Second || delay >= OTPTTL || maxSends < 1 || maxSends > 10 {
+/** NewConfiguredOTPStore permite configurar la vigencia del desafío, el reenvío y la cuota de emisiones.
+ * La vigencia y la cuota las fija el dominio; el reenvío llega del despliegue. */
+func NewConfiguredOTPStore(c Cache, ttl time.Duration, delay time.Duration, maxSends int) (*OTPStore, error) {
+	if ttl <= 0 || delay < time.Second || delay >= ttl || maxSends < 1 || maxSends > 10 {
 		return nil, ErrUnavailable
 	}
-	return &OTPStore{cache: c, resendDelay: delay, maxSends: maxSends}, nil
+	return &OTPStore{cache: c, ttl: ttl, resendDelay: delay, maxSends: maxSends}, nil
 }
 
-/** GenerateOTP usa una fuente criptográfica, nunca el reloj ni math/rand. */
-func GenerateOTP() (string, error) {
-	n, err := rand.Int(rand.Reader, big.NewInt(900000))
-	if err != nil {
-		return "", errors.New("no se pudo generar el código")
-	}
-	return fmt.Sprintf("%06d", n.Int64()+100000), nil
-}
 func digest(value string) string { h := sha256.Sum256([]byte(value)); return hex.EncodeToString(h[:]) }
 func challengeKey(purpose, identifier string) string {
 	return "identity:otp:{" + digest(purpose+":"+identifier) + "}"
@@ -136,7 +131,7 @@ func (s *OTPStore) Issue(ctx context.Context, purpose, identifier, email, code s
 	}
 	key := challengeKey(purpose, identifier)
 	emailKey := "identity:otp-email:{" + digest(purpose+"|"+strings.ToLower(strings.TrimSpace(email))) + "}:sends"
-	result, err := a.RunScript(ctx, issueOTP, []string{key, key + ":resend", key + ":sends", emailKey}, string(raw), OTPTTL.Milliseconds(), s.resendDelay.Milliseconds(), s.maxSends, MaxOTPAttempts)
+	result, err := a.RunScript(ctx, issueOTP, []string{key, key + ":resend", key + ":sends", emailKey}, string(raw), s.ttl.Milliseconds(), s.resendDelay.Milliseconds(), s.maxSends, MaxOTPAttempts)
 	if err != nil {
 		return Challenge{}, ErrUnavailable
 	}
@@ -157,7 +152,7 @@ func (s *OTPStore) Issue(ctx context.Context, purpose, identifier, email, code s
 	if result != 1 {
 		return Challenge{}, ErrUnavailable
 	}
-	return Challenge{ID: state.ID, Key: key, ExpiresAt: time.Now().UTC().Add(OTPTTL)}, nil
+	return Challenge{ID: state.ID, Key: key, ExpiresAt: time.Now().UTC().Add(s.ttl)}, nil
 }
 
 func (s *OTPStore) retryError(ctx context.Context, cause error, keys ...string) error {

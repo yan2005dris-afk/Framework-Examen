@@ -21,6 +21,8 @@ import (
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/document"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/evaluation"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/exam"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity"
+	identityredis "github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/identity/redis"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/cache"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/config"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/platform/db"
@@ -56,8 +58,8 @@ type App struct {
 	dependencies   map[string]httpx.Dependency
 	queries        *sqlcgen.Queries
 	cacheClient    cache.Cache
-	attemptsStore  *cache.AttemptsStore
-	otpStore       *cache.OTPStore
+	attemptsStore  identity.AttemptsStore
+	otpStore       identity.OTPStore
 	otpErr         error
 	outbox         *mail.Outbox
 	sender         mail.Sender
@@ -202,8 +204,8 @@ func (a *App) connectRedis(ctx context.Context, log *slog.Logger) {
 	}
 	a.cacheClient = cacheClient
 
-	attemptsStore := cache.NewAttemptsStore(securityCache)
-	otpStore, err := cache.NewConfiguredOTPStore(securityCache, a.Config.OTPResendDelay, a.Config.OTPMaxSends)
+	attemptsStore := cache.NewAttemptsStore(securityCache, identity.MaxLoginAttempts, identity.LockoutDuration)
+	otpStore, err := cache.NewConfiguredOTPStore(securityCache, identity.OTPTTL, a.Config.OTPResendDelay, a.Config.OTPMaxSends)
 	if err != nil {
 		// La configuración de OTP inválida no deja continuar: es un fallo de
 		// despliegue, no una degradación aceptable.
@@ -212,8 +214,8 @@ func (a *App) connectRedis(ctx context.Context, log *slog.Logger) {
 		a.otpErr = err
 		return
 	}
-	a.attemptsStore = attemptsStore
-	a.otpStore = otpStore
+	a.attemptsStore = identityredis.NewAttemptsStore(attemptsStore)
+	a.otpStore = identityredis.NewOTPStore(otpStore)
 }
 
 /**

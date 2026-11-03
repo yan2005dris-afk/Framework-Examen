@@ -26,7 +26,7 @@ func newAtomicTestCache(t *testing.T) *cache.RedisClient {
 
 func TestOTPPurposeEmailAndSingleConcurrentConsumer(t *testing.T) {
 	r := newAtomicTestCache(t)
-	s := cache.NewOTPStore(r)
+	s := cache.NewOTPStore(r, otpTTLReplica)
 	ctx := context.Background()
 	reg, err := s.Issue(ctx, cache.PurposeRegistration, "sujeto", "a@example.test", "123456")
 	if err != nil {
@@ -73,7 +73,7 @@ func TestOTPResendChallengeAttemptsAndExpiry(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer r.Close()
-	s := cache.NewOTPStore(r)
+	s := cache.NewOTPStore(r, otpTTLReplica)
 	ctx := context.Background()
 	old, err := s.Issue(ctx, cache.PurposeRegistration, "sujeto", "a@example.test", "123456")
 	if err != nil {
@@ -104,7 +104,7 @@ func TestOTPResendChallengeAttemptsAndExpiry(t *testing.T) {
 	if _, err := s.Issue(ctx, cache.PurposeRegistration, "sujeto", "b@example.test", "333333"); !errors.Is(err, cache.ErrOTPLocked) {
 		t.Fatal("reenvío elude bloqueo", err)
 	}
-	server.FastForward(cache.OTPTTL)
+	server.FastForward(otpTTLReplica)
 	if valid, err := s.Verify(ctx, cache.PurposeRegistration, "sujeto", "b@example.test", current.ID, "222222"); err != nil || valid {
 		t.Fatal("OTP vencido aceptado", err)
 	}
@@ -116,10 +116,10 @@ func TestOTPResendChallengeAttemptsAndExpiry(t *testing.T) {
 func TestSecurityCannotUseNoopAndCatalogCanDegrade(t *testing.T) {
 	ctx := context.Background()
 	noop := &cache.NoopCache{}
-	if _, err := cache.NewAttemptsStore(noop).IsLocked(ctx, "sujeto"); !errors.Is(err, cache.ErrUnavailable) {
+	if _, err := cache.NewAttemptsStore(noop, maxAttemptsReplica, lockoutReplica).IsLocked(ctx, "sujeto"); !errors.Is(err, cache.ErrUnavailable) {
 		t.Fatal("Noop habilitó login", err)
 	}
-	if _, err := cache.NewOTPStore(noop).Issue(ctx, cache.PurposeRecovery, "sujeto", "a@example.test", "123456"); !errors.Is(err, cache.ErrUnavailable) {
+	if _, err := cache.NewOTPStore(noop, otpTTLReplica).Issue(ctx, cache.PurposeRecovery, "sujeto", "a@example.test", "123456"); !errors.Is(err, cache.ErrUnavailable) {
 		t.Fatal("Noop aceptó OTP", err)
 	}
 	value, err := cache.NewCatalogStore(noop).GetOrSet(ctx, "catalog:prueba", func() (string, error) { return `["Ecuador"]`, nil })
@@ -154,7 +154,7 @@ func TestRedisSecurityIntegrationTTLAndAtomicity(t *testing.T) {
 	if _, err := r.Get(ctx, key); !errors.Is(err, cache.ErrNotFound) {
 		t.Fatal("INCR renovó la ventana o perdió TTL", err)
 	}
-	s := cache.NewOTPStore(r)
+	s := cache.NewOTPStore(r, otpTTLReplica)
 	subject := uuid.NewString()
 	// La cuota también es por correo: aislar cada corrida sin borrar controles de Redis.
 	email := subject + "@example.test"
@@ -185,7 +185,7 @@ func TestRedisSecurityIntegrationTTLAndAtomicity(t *testing.T) {
 
 func TestEmailSendQuotaSurvivesDifferentSubjectsAndSeparatesPurposes(t *testing.T) {
 	r := newAtomicTestCache(t)
-	s := cache.NewOTPStore(r)
+	s := cache.NewOTPStore(r, otpTTLReplica)
 	ctx := context.Background()
 	for n := 0; n < cache.MaxOTPSends; n++ {
 		if _, e := s.Issue(ctx, cache.PurposeRegistration, uuid.NewString(), " Same@Example.Test ", "123456"); e != nil {
