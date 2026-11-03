@@ -1,0 +1,22 @@
+{
+  "01a19d2f-b105-7896-9548-a41f19dfaeb7": {
+    "afiliados": true,
+    "empleadores": true,
+    "jubilados": true
+  },
+  "01a19d2f-b106-7867-8cd6-a667fcb3b8f4": {
+    "afiliados": true,
+    "empleadores": true,
+    "jubilados": true
+  },
+  "01a19d2f-b107-77f9-82e4-3759415215d6": {
+    "afiliados": false,
+    "empleadores": false,
+    "jubilados": false
+  },
+  "01a19d2f-b108-7c3b-a32a-0fbf4134a2c7": {
+    "afiliados": true,
+    "empleadores": true,
+    "jubilados": true
+  }
+}
