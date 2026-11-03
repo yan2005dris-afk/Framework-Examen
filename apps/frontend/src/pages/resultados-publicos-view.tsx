@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link, useSearchParams } from "react-router"
 import {
   ArrowLeftIcon,
@@ -48,13 +48,29 @@ import { formatearFechaEcuador } from "@/utils/fechas"
 export function ResultadosPublicosView() {
   const [parametros, setParametros] = useSearchParams()
   const listadoConvocatorias = useConvocatoriasPublicas()
-  const convocatorias =
-    listadoConvocatorias.data?.pages.flatMap((p) => p.items) ?? []
+  const convocatorias = useMemo(
+    () => listadoConvocatorias.data?.pages.flatMap((p) => p.items) ?? [],
+    [listadoConvocatorias.data],
+  )
 
   const periodSeleccionado =
     parametros.get("period") || convocatorias[0]?.id || ""
   const sectorSeleccionado = (parametros.get("sector") ||
     "afiliados") as SectorConvocatoria
+
+  // Sincronizar parámetro period en la URL cuando cargan las convocatorias si no viene especificado
+  useEffect(() => {
+    if (!parametros.get("period") && convocatorias[0]?.id) {
+      setParametros(
+        (previos) => {
+          const siguientes = new URLSearchParams(previos)
+          siguientes.set("period", convocatorias[0].id)
+          return siguientes
+        },
+        { replace: true },
+      )
+    }
+  }, [convocatorias, parametros, setParametros])
 
   const [terminoBusqueda, setTerminoBusqueda] = useState("")
 
