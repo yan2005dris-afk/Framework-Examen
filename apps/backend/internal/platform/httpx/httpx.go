@@ -292,6 +292,9 @@ func CSRF(next http.Handler, origins []string) http.Handler {
  */
 func sameOrigin(request *http.Request, origin string) bool {
 	host := strings.ToLower(strings.TrimSpace(request.Host))
+	if forwardedHost := strings.TrimSpace(strings.Split(request.Header.Get("X-Forwarded-Host"), ",")[0]); forwardedHost != "" {
+		host = strings.ToLower(forwardedHost)
+	}
 	if host == "" {
 		return false
 	}
@@ -300,7 +303,7 @@ func sameOrigin(request *http.Request, origin string) bool {
 	if request.TLS != nil {
 		scheme = "https"
 	}
-	// nginx reenvía el esquema original; detrás de un proxy el TLS termina
+	// nginx o Vercel reenvían el esquema original; detrás de un proxy el TLS termina
 	// antes de llegar a la API.
 	if forwarded := strings.TrimSpace(strings.Split(request.Header.Get("X-Forwarded-Proto"), ",")[0]); forwarded != "" {
 		scheme = strings.ToLower(forwarded)
