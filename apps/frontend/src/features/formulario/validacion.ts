@@ -451,3 +451,23 @@ export function validarCorreoSecundario(
 ): string | null {
   return correo && !validarEmail(correo) ? "Correo inválido" : null
 }
+
+/** Valida un registro completo del modal sin exigir PDF previo ni las otras secciones. */
+export function validarRegistroFormulario(
+  numero: 5 | 6 | 7 | 8,
+  registro: unknown,
+): string | null {
+  const lista = definicion.secciones.find(
+    (seccion) => seccion.numero === numero,
+  )?.lista
+  if (!lista) return "La sección de registros no es válida."
+  const resultado = validarSeccionEF12(
+    {
+      [lista]: [registro],
+      ...(numero === 7 ? { cuentaConPublicaciones: "Sí" } : {}),
+    },
+    numero,
+    true,
+  )
+  return resultado.errores[0]?.mensaje ?? null
+}

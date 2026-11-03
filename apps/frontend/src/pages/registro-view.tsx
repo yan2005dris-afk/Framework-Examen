@@ -1,3 +1,4 @@
+import { PantallaBloqueoRegistro } from "@/features/auth/pantalla-bloqueo-registro"
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import {
   CheckCircle2Icon,
@@ -101,7 +102,27 @@ export function RegistroView() {
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
   const [reenviandoOtp, setReenviandoOtp] = useState(false)
-  const [bloqueadoExpiraEn, setBloqueadoExpiraEn] = useState<Date | null>(null)
+  const [bloqueadoExpiraEn, setBloqueadoExpiraEnInterno] =
+    useState<Date | null>(() => {
+      try {
+        const fin = Number(sessionStorage.getItem("biess_registro_lockout"))
+        return Number.isFinite(new Date(fin).getTime()) && fin > Date.now()
+          ? new Date(fin)
+          : null
+      } catch {
+        return null
+      }
+    })
+  function setBloqueadoExpiraEn(fin: Date | null) {
+    try {
+      if (fin)
+        sessionStorage.setItem("biess_registro_lockout", String(fin.getTime()))
+      else sessionStorage.removeItem("biess_registro_lockout")
+    } catch {
+      /* La API conserva el bloqueo aunque el navegador no permita guardar el vencimiento. */
+    }
+    setBloqueadoExpiraEnInterno(fin)
+  }
   const [postulanteRegistrado, setPostulanteRegistrado] =
     useState<PostulanteDto | null>(null)
 
@@ -400,6 +421,17 @@ export function RegistroView() {
   // ── Renderizado ──────────────────────────────────────────────────────────
 
   const totalPasos = 3
+  if (estaBloqueado && bloqueadoExpiraEn)
+    return (
+      <PantallaBloqueoRegistro
+        expiraEn={bloqueadoExpiraEn}
+        mensaje={errorGeneral ?? undefined}
+        onExpirar={() => {
+          setBloqueadoExpiraEn(null)
+          setErrorGeneral(null)
+        }}
+      />
+    )
 
   return (
     <div className="mx-auto w-full max-w-[46rem] px-5 pt-8 pb-16">
