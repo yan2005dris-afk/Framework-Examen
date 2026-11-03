@@ -34,6 +34,8 @@ docs/
 │   └── SCHEMA.md                 # modelo de datos, DDL, índices y semillas
 ├── api-contracts/
 │   └── API_CONTRACT.md           # contrato HTTP: endpoints, errores, paginación
+├── testing/
+│   └── E2E.md                    # las dos suites E2E: interfaz (Playwright) y API (Go)
 ├── design/
 │   └── PALETA-BIESS.md             # paleta institucional: origen, tokens y contraste
 ├── decisions/
@@ -67,6 +69,7 @@ docs/
 | [`architecture/ARQUITECTURA.md`](architecture/ARQUITECTURA.md) | Diagramas C4 del sistema, reglas de dependencias, ciclo de una petición, guía para agregar un contexto | Ingeniería |
 | [`database/SCHEMA.md`](database/SCHEMA.md) | ER, DDL por tabla, índices, semillas de catálogos, flujo de migraciones | Ingeniería, DBA |
 | [`api-contracts/API_CONTRACT.md`](api-contracts/API_CONTRACT.md) | Envelope de errores, paginación, especificación de cada endpoint con ejemplos | Frontend, QA |
+| [`testing/E2E.md`](testing/E2E.md) | Las dos suites E2E: interfaz (Playwright) y API (Go), el seed compartido y cómo ejecutarlas | Backend, Frontend, QA |
 | [`design/PALETA-BIESS.md`](design/PALETA-BIESS.md) | Paleta institucional: hex del portal oficial, uso, tokens y contraste WCAG | Frontend, Diseño |
 | [`api-contracts/IDENTITY_SECURITY.md`](api-contracts/IDENTITY_SECURITY.md) | Corrección OTP/Redis y notificación durable; configuración y límites | Backend, Frontend, Operaciones |
 | [`api-contracts/REVIEW_AUDIT.md`](api-contracts/REVIEW_AUDIT.md) | T8/T9: historial, períodos, nómina, conteos y propuesta de matriz XLSX/PDF | Backend, Frontend, QA |

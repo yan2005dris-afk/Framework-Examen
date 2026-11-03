@@ -63,6 +63,9 @@ Desde la raíz del repo:
 - Stack completo: `docker compose up -d` — api, frontend, postgres y mailpit
 - Mockups (datos y enlaces):  `node docs/mockups/scripts/check-consistencia.mjs`
 - Mockups (contrato y a11y):   `node docs/mockups/scripts/check-contrato.mjs`
+- Seed E2E:          `cd apps/backend && go run ./cmd/e2e-seed`
+- E2E de API:        `cd apps/backend && E2E_TEST_DATABASE_URL=... REDIS_TEST_URL=... go test ./e2e/`
+- E2E de interfaz:   `cd apps/frontend && pnpm test:e2e` (requiere el stack arriba)
 
 El compose de desarrollo vive en `compose.yaml` (raíz). El de producción en
 `deploy/compose.yaml` y lee sus variables de `deploy/.env`:
@@ -144,13 +147,19 @@ dependen de features ni de vistas, y `components/ui` es una hoja.
 
 - `cmd/api/` — binario de la API: cableado de contextos + apagado ordenado
 - `cmd/migrate/` — runner de migraciones (goose embebido en `sql/migrations`)
+- `cmd/e2e-seed/` — siembra el conjunto de datos de las pruebas E2E (idempotente)
 - `internal/platform/` — transversal: `config`, `db`, `httpx`, `logger`, `mail`, `storage`, `sqlcgen`
+- `internal/platform/appkit/` — cableado del router: `cmd/api` y la suite E2E
+  construyen **el mismo** router (contexto, middleware y rutas)
+- `internal/e2edata/` — datos deterministas para E2E (cuentas por rol,
+  convocatoria, política de privacidad y expedientes)
 - `internal/shared/domain/` — kernel compartido: errores base y paginación
 - `internal/<contexto>/` — **un bounded context por carpeta** (screaming architecture):
   `identity/`, `submission/`, `document/`, …
 - `internal/<contexto>/<capacidad>/` — cada capacidad trae `service.go` (casos de uso),
   `handler.go` (adaptador HTTP), `repository.go` (puerto), `dto.go`, `errors.go` y
   `postgres/` (adaptador de persistencia)
+- `e2e/` — suite E2E de la API: router real sobre esquema aislado + Redis real
 - `sql/queries/` — esquema (`schema.sql`) y queries de sqlc
 - `sql/migrations/` — migraciones goose embebidas
 
@@ -234,6 +243,41 @@ Raíz del repo:
   `_test.go` en backend (`go test ./...`).
 - Las reglas puras del backend se prueban sin base de datos: `internal/identity/`
   (cédula módulo 10) y `internal/submission/` (contenido canónico, estados, hash).
+
+### Pruebas de extremo a extremo
+
+Hay **dos** suites E2E y no son intercambiables:
+
+| Suite | Ubicación | Corre contra | Cubre |
+|---|---|---|---|
+| Interfaz | `apps/frontend/e2e/` | El stack de desarrollo completo | Lo que ve la persona: navegación, formularios, mensajes, permisos visibles |
+| API | `apps/backend/e2e/` | `httptest.Server` con el router real + Postgres aislado + Redis real | El contrato HTTP: envelope de error, códigos, cabeceras, paginación, RBAC, idempotencia |
+
+Reglas de la suite de API (`apps/backend/e2e/`):
+
+- Levanta **el mismo router que el binario de producción**, construido por
+  `internal/platform/appkit`. Una suite que reimplementa el cableado diverge
+  del producto: si añades una ruta, edita `appkit`, no la suite.
+- Corre contra un **esquema de PostgreSQL aislado** (`internal/testutil.Postgres`).
+- Sin `E2E_TEST_DATABASE_URL` y `REDIS_TEST_URL` la suite se omite, con el mismo
+  criterio que las pruebas de integración.
+
+Reglas de la suite de interfaz (`apps/frontend/e2e/`):
+
+- **No hay datos hardcodeados**: cuentas, expedientes y convocatoria vienen del
+  seed (`apps/frontend/e2e/fixtures/datos.ts`), que `global-setup.ts` aplica
+  antes de la corrida.
+- Las cédulas generadas en las pruebas deben ser **válidas** (módulo 10,
+  provincia 1–24, tercer dígito < 6): usa `generarCedulaValida()`. Una cédula
+  inválida hace que el registro se rechace y el correo con el OTP nunca llegue.
+- Un test que descubre un bug **no se maquilla**: se marca `test.skip` con un
+  comentario que diga qué falla y dónde, y el bug queda reportado. Arreglar la
+  aplicación excede el alcance de la suite.
+
+El seed vive en Go (`apps/backend/internal/e2edata`) porque debe hablar el mismo
+idioma que el dominio: si el backend no acepta un documento, la suite de
+interfaz tampoco debe poder sembrarlo. Detalle completo en
+[`docs/testing/E2E.md`](docs/testing/E2E.md).
 
 ## Flujo de trabajo (git flow)
 
@@ -375,3 +419,5 @@ decisión que afecte cómo se trabaja en el repo.
 | 2026-10-31 | Métricas privadas y trazas locales explícitas, sin prometer OTLP | `METRICS_ADDR` separado del proxy; etiquetas cerradas, rutas parametrizadas, UUID de solicitud y trazas W3C locales. Redis limita operaciones/pool a 3 s y no repite scripts tras errores de red ambiguos. |
 | 2026-10-31 | Diario de estados uniforme desde migración 00019, sin backfill de actores | Triggers guardan proyecciones antes/después y motivo técnico/humano en el commit; identidad/UUID de solicitud son locales a la transacción. No duplicar formularios personales en el diario ni inferir actores históricos. |
 | 2026-11-01 | El frontend agrupa por feature y separa la lógica pura por capa, con fronteras verificadas por ESLint | `features/<dominio>/modelo.ts` y `validacion.ts` alojan la lógica pura del dominio; `helpers/` guarda la regla de este portal compartida entre features y `utils/` lo genérico. El backend Go es el dominio: el frontend sólo replica lo necesario para la UX (`features/formulario/validacion.ts` frente a `form_cases.json`). `lib/` es transporte sin reglas de negocio. `no-restricted-imports` bloquea feature→feature, shared→feature y `components/ui`→feature; `auth` queda como primitivo transversal y los módulos compartidos ya enumerados son la excepción, no un patrón. |
+
+| 2026-11-02 | E2E en dos suites con un seed único en Go, y el router extraído a `appkit` | La suite de API (`apps/backend/e2e/`) levanta el router real sobre un esquema aislado y Redis real; la de interfaz (`apps/frontend/e2e/`) habla con el stack de desarrollo. Ambas consumen el mismo seed (`internal/e2edata`), escrito en Go porque debe respetar las invariantes del dominio: política inmutable, expediente enviado inmutable, una cuenta por convocatoria. `appkit` existe para que la suite no reimplemente el cableado del binario. El seed es idempotente y respeta los triggers: repetirlo no duplica ni reescribe evidencia. Mailpit pasó a la red del compose porque con `network_mode: host` la API no alcanzaba el SMTP y ningún OTP llegaba. |
