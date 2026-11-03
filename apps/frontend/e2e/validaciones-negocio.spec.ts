@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test"
 
+import { generarCedulaValida, generarCorreo } from "./fixtures/cedulas"
+import { PASSWORD, cuentaPorCedula } from "./fixtures/datos"
+
 /**
  * Test 2: Validaciones de Reglas de Negocio
  * Criterio de rúbrica 6: Cumplimiento de Reglas del Negocio (6 pts)
@@ -27,14 +30,17 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
       // Ingresarcédula inválida (último dígito de control incorrecto)
       const cedulaInvalida = "1234567890" // Módulo 10 no valida
       await page.fill("input#cedula", cedulaInvalida)
-      await page.fill("input#correo", "test@example.com")
+      await page.fill("input#correo", generarCorreo("rn-01-invalida"))
 
       // Intentar continuar
-      const btnContinuar = page.locator("button:has-text('Continuar con la verificación')")
+      const btnContinuar = page.locator(
+        "button:has-text('Continuar con la verificación')",
+      )
       await btnContinuar.click()
 
-      // Debe mostrar error de cédula
-      const msgError = page.locator("text=/cédula.*válida|módulo.*10|cédula.*incorrecto/i").first()
+      // Debe marcar el error en el campo de cédula. El mensaje es genérico a
+      // propósito: la identidad civil no se verifica en el portal (ADR-008).
+      const msgError = page.locator("#cedula-error")
       await expect(msgError).toBeVisible({ timeout: 3000 })
       console.log(`✅ Error mostrado: "${await msgError.textContent()}"`)
     })
@@ -43,31 +49,26 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
       console.log("\n========== RN-01: CÉDULA VÁLIDA ==========\n")
 
       // Generar cédula válida
-      const base = "123456789"
-      let sum = 0
-      for (let i = 0; i < 9; i++) {
-        const digit = parseInt(base[i])
-        let result = digit * (i % 2 === 0 ? 2 : 1)
-        if (result > 9) result -= 9
-        sum += result
-      }
-      const verification = (10 - (sum % 10)) % 10
-      const cedulaValida = base + verification
+      const cedulaValida = generarCedulaValida()
 
       console.log(`Cédula generada (módulo 10): ${cedulaValida}`)
 
       await page.goto("/registro")
       await page.fill("input#cedula", cedulaValida)
-      await page.fill("input#correo", `test-${Date.now()}@example.com`)
+      await page.fill("input#correo", generarCorreo("cedula-valida"))
 
-      const btnContinuar = page.locator("button:has-text('Continuar con la verificación')")
+      const btnContinuar = page.locator(
+        "button:has-text('Continuar con la verificación')",
+      )
       await btnContinuar.click()
 
       // Debe avanzar sin error (o mostrar que espera OTP)
       const mailpitWait = page.waitForTimeout(2000)
       await mailpitWait
 
-      const errorMessage = page.locator("text=/error|inválid|incorrecto/i").first()
+      const errorMessage = page
+        .locator("text=/error|inválid|incorrecto/i")
+        .first()
       const isError = await errorMessage.isVisible({ timeout: 1000 })
 
       if (!isError) {
@@ -88,21 +89,25 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
       await page.goto("/registro")
 
       // Llenar hasta el paso de credenciales
-      await page.fill("input#cedula", "1234567890")
-      await page.fill("input#correo", `test-${Date.now()}@example.com`)
+      await page.fill("input#cedula", generarCedulaValida())
+      await page.fill("input#correo", generarCorreo("rn-02-corta"))
 
       // Mock: simular que pasó OTP verificación
       // (Este test es ilustrativo; en E2E real seguiríamos el flujo completo)
 
       // En la vista de credenciales, intentar contraseña corta
-      const inputPassword = page.locator("input[name='reg-password'], input#reg-password").first()
+      const inputPassword = page
+        .locator("input[name='reg-password'], input#reg-password")
+        .first()
       if (await inputPassword.isVisible()) {
         await inputPassword.fill("Short1!")
 
         // Esperar validación en vivo o al blurr
         await page.waitForTimeout(500)
 
-        const msgError = page.locator("text=/8.*caracteres|mínimo.*8|muy corta/i").first()
+        const msgError = page
+          .locator("text=/8.*caracteres|mínimo.*8|muy corta/i")
+          .first()
         if (await msgError.isVisible({ timeout: 1000 })) {
           console.log(`✅ Error: "${await msgError.textContent()}"`)
         } else {
@@ -118,12 +123,16 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
 
       await page.goto("/registro")
 
-      const inputPassword = page.locator("input[name='reg-password'], input#reg-password").first()
+      const inputPassword = page
+        .locator("input[name='reg-password'], input#reg-password")
+        .first()
       if (await inputPassword.isVisible()) {
         await inputPassword.fill(passwordSinMayus)
         await page.waitForTimeout(500)
 
-        const msgError = page.locator("text=/mayúscula|MAYÚSCULA|uppercase/i").first()
+        const msgError = page
+          .locator("text=/mayúscula|MAYÚSCULA|uppercase/i")
+          .first()
         if (await msgError.isVisible({ timeout: 1000 })) {
           console.log(`✅ Error: "${await msgError.textContent()}"`)
         } else {
@@ -139,12 +148,16 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
 
       await page.goto("/registro")
 
-      const inputPassword = page.locator("input[name='reg-password'], input#reg-password").first()
+      const inputPassword = page
+        .locator("input[name='reg-password'], input#reg-password")
+        .first()
       if (await inputPassword.isVisible()) {
         await inputPassword.fill(passwordSinMinus)
         await page.waitForTimeout(500)
 
-        const msgError = page.locator("text=/minúscula|lowercase|minúscula/i").first()
+        const msgError = page
+          .locator("text=/minúscula|lowercase|minúscula/i")
+          .first()
         if (await msgError.isVisible({ timeout: 1000 })) {
           console.log(`✅ Error: "${await msgError.textContent()}"`)
         } else {
@@ -160,7 +173,9 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
 
       await page.goto("/registro")
 
-      const inputPassword = page.locator("input[name='reg-password'], input#reg-password").first()
+      const inputPassword = page
+        .locator("input[name='reg-password'], input#reg-password")
+        .first()
       if (await inputPassword.isVisible()) {
         await inputPassword.fill(passwordSinNumero)
         await page.waitForTimeout(500)
@@ -181,12 +196,16 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
 
       await page.goto("/registro")
 
-      const inputPassword = page.locator("input[name='reg-password'], input#reg-password").first()
+      const inputPassword = page
+        .locator("input[name='reg-password'], input#reg-password")
+        .first()
       if (await inputPassword.isVisible()) {
         await inputPassword.fill(passwordSinSimbolo)
         await page.waitForTimeout(500)
 
-        const msgError = page.locator("text=/símbolo|especial|[@#$%^&*]/i").first()
+        const msgError = page
+          .locator("text=/símbolo|especial|[@#$%^&*]/i")
+          .first()
         if (await msgError.isVisible({ timeout: 1000 })) {
           console.log(`✅ Error: "${await msgError.textContent()}"`)
         } else {
@@ -202,7 +221,9 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
 
       await page.goto("/registro")
 
-      const inputPassword = page.locator("input[name='reg-password'], input#reg-password").first()
+      const inputPassword = page
+        .locator("input[name='reg-password'], input#reg-password")
+        .first()
       if (await inputPassword.isVisible()) {
         await inputPassword.fill(passwordValida)
         await page.waitForTimeout(500)
@@ -225,17 +246,21 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
     console.log("\n========== CÉDULA ÚNICA ==========\n")
 
     // Usar cédula del seed (postulante)
-    const cedulaDuplicada = "1710034008"
+    const cedulaDuplicada = cuentaPorCedula("2406425922").cedula
 
     await page.goto("/registro")
     await page.fill("input#cedula", cedulaDuplicada)
-    await page.fill("input#correo", `unique-test-${Date.now()}@example.com`)
+    await page.fill("input#correo", generarCorreo("unique-test"))
 
-    const btnContinuar = page.locator("button:has-text('Continuar con la verificación')")
+    const btnContinuar = page.locator(
+      "button:has-text('Continuar con la verificación')",
+    )
     await btnContinuar.click()
 
     // Debe rechazar con mensaje de cédula duplicada
-    const msgDuplicada = page.locator("text=/cédula.*registrada|ya existe|duplicada/i").first()
+    const msgDuplicada = page
+      .locator("text=/cédula.*registrada|ya existe|duplicada/i")
+      .first()
     if (await msgDuplicada.isVisible({ timeout: 2000 })) {
       console.log(`✅ Cédula rechazada: "${await msgDuplicada.textContent()}"`)
     } else {
@@ -250,18 +275,22 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
     console.log("\n========== EMAIL ÚNICO ==========\n")
 
     // Usar email del seed
-    const emailDuplicado = "postulante@biess.local"
-    const cedulaNueva = "9876543210"
+    const emailDuplicado = cuentaPorCedula("2406425922").correo
+    const cedulaNueva = generarCedulaValida()
 
     await page.goto("/registro")
     await page.fill("input#cedula", cedulaNueva)
     await page.fill("input#correo", emailDuplicado)
 
-    const btnContinuar = page.locator("button:has-text('Continuar con la verificación')")
+    const btnContinuar = page.locator(
+      "button:has-text('Continuar con la verificación')",
+    )
     await btnContinuar.click()
 
     // Debe rechazar con mensaje de email duplicado
-    const msgDuplicado = page.locator("text=/correo.*registrado|email.*existe|duplicado/i").first()
+    const msgDuplicado = page
+      .locator("text=/correo.*registrado|email.*existe|duplicado/i")
+      .first()
     if (await msgDuplicado.isVisible({ timeout: 2000 })) {
       console.log(`✅ Email rechazado: "${await msgDuplicado.textContent()}"`)
     } else {
@@ -278,16 +307,22 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
     const emailInvalido = "not-an-email"
 
     await page.goto("/registro")
-    await page.fill("input#cedula", "1234567890")
+    await page.fill("input#cedula", generarCedulaValida())
     await page.fill("input#correo", emailInvalido)
 
-    const btnContinuar = page.locator("button:has-text('Continuar con la verificación')")
+    const btnContinuar = page.locator(
+      "button:has-text('Continuar con la verificación')",
+    )
     await btnContinuar.click()
 
     // Debe rechazar
-    const msgInvalido = page.locator("text=/correo.*válido|email.*inválid|formato/i").first()
+    const msgInvalido = page
+      .locator("text=/correo.*válido|email.*inválid|formato/i")
+      .first()
     if (await msgInvalido.isVisible({ timeout: 2000 })) {
-      console.log(`✅ Email inválido rechazado: "${await msgInvalido.textContent()}"`)
+      console.log(
+        `✅ Email inválido rechazado: "${await msgInvalido.textContent()}"`,
+      )
     } else {
       console.log("⚠️  Validación de sintaxis de email no visible")
     }
@@ -299,12 +334,11 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
   test("Verificar Cookie HttpOnly en login", async ({ page }) => {
     console.log("\n========== COOKIE HTTPONLY ==========\n")
 
-    const cedulaTest = "1710034008"
-    const passwordTest = "Password.2026*"
+    const cuenta = cuentaPorCedula("2406425922")
 
     await page.goto("/login")
-    await page.fill("input#cedula", cedulaTest)
-    await page.fill("input#password", passwordTest)
+    await page.fill("input#cedula", cuenta.cedula)
+    await page.fill("input#password", PASSWORD)
 
     // Capturar respuesta del login
     const loginPromise = page.waitForResponse(
@@ -331,7 +365,9 @@ test.describe("VALIDACIONES REGLAS DE NEGOCIO — Criterio 6 (6pts)", () => {
     }
 
     // Verificar que token NO está en localStorage (no accesible desde JS)
-    const tokenEnStorage = await page.evaluate(() => localStorage.getItem("token"))
+    const tokenEnStorage = await page.evaluate(() =>
+      localStorage.getItem("token"),
+    )
     if (!tokenEnStorage) {
       console.log("✅ Token NO en localStorage (no accesible desde JS)")
     } else {

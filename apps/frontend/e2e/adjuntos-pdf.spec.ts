@@ -1,8 +1,8 @@
-import { expect, test } from "@playwright/test"
-import * as fs from "fs"
-import * as path from "path"
+import { test } from "@playwright/test"
 
-const MAILPIT_API = "http://localhost:8025/api/v1"
+import { generarCedulaValida, generarCorreo } from "./fixtures/cedulas"
+import { MAILPIT_API } from "./fixtures/datos"
+import { leerOTP, crearPDF, listarMensajes } from "./fixtures/sesion"
 
 /**
  * CRÍTICO - Test 7: Adjuntos PDF con Validación de Tamaño
@@ -18,42 +18,12 @@ const MAILPIT_API = "http://localhost:8025/api/v1"
 
 // Utilidad: generar PDF con tamaño específico (en bytes)
 function generarPDFconTamano(tamanoMB: number): Buffer {
-  // Header PDF mínimo
-  const pdfHeader = Buffer.from("%PDF-1.4\n")
-  const contentSize = tamanoMB * 1024 * 1024 - pdfHeader.length - 50
-
-  const pdfContent = Buffer.alloc(contentSize, "A")
-  const pdfFooter = Buffer.from("\n%%EOF\n")
-
-  return Buffer.concat([pdfHeader, pdfContent, pdfFooter])
-}
-
-async function obtenerOTPdeMailpit(correo: string): Promise<string | null> {
-  const response = await fetch(`${MAILPIT_API}/messages`)
-  const data = await response.json()
-  const messages = Array.isArray(data) ? data : data.messages || []
-
-  const message = messages
-    .filter((m: any) => m.To?.[0]?.Address === correo)
-    .sort((a: any, b: any) => new Date(b.Created).getTime() - new Date(a.Created).getTime())[0]
-
-  if (!message) return null
-
-  const match = message.Text?.match(/(\d{6})/) || message.HTML?.match(/(\d{6})/)
-  return match ? match[1] : null
-}
-
-async function generarCedulaTest(): Promise<string> {
-  const base = Math.random().toString().substring(2, 11).padStart(9, "0")
-  let sum = 0
-  for (let i = 0; i < 9; i++) {
-    const digit = parseInt(base[i])
-    let result = digit * (i % 2 === 0 ? 2 : 1)
-    if (result > 9) result -= 9
-    sum += result
-  }
-  const verification = (10 - (sum % 10)) % 10
-  return base + verification
+  // El PDF mínimo viene del fixture compartido; el relleno lleva el archivo
+  // al tamaño que el caso necesita superar.
+  const base = crearPDF("limite de tamano")
+  const objetivo = tamanoMB * 1024 * 1024
+  if (objetivo <= base.length) return base
+  return Buffer.concat([base, Buffer.alloc(objetivo - base.length, "A")])
 }
 
 test.describe("ADJUNTOS PDF — Validación Tamaño (8pts)", () => {
@@ -63,19 +33,19 @@ test.describe("ADJUNTOS PDF — Validación Tamaño (8pts)", () => {
   test("Validar límites de adjuntos por tipo y total", async ({ page }) => {
     console.log("\n========== SETUP: CREAR USUARIO Y LOGUEAR ==========\n")
 
-    const cedula = await generarCedulaTest()
-    const correo = `adjuntos-pdf-${cedula}@biess-test.local`
+    const cedula = generarCedulaValida()
+    const correo = generarCorreo("adjuntos-pdf")
     const password = "SecurePass.2026*"
 
     // Registro
     await page.goto("/registro")
     await page.fill("input#cedula", cedula)
     await page.fill("input#correo", correo)
-    await page.locator("button:has-text('Continuar con la verificación')").click()
+    await page
+      .locator("button:has-text('Continuar con la verificación')")
+      .click()
 
-    await page.waitForTimeout(2000)
-    const otp = await obtenerOTPdeMailpit(correo)
-    if (!otp) throw new Error(`No OTP para ${correo}`)
+    const otp = await leerOTP(correo)
 
     await page.fill("input#otp", otp)
     await page.locator("button:has-text('Verificar código')").click()
@@ -114,7 +84,9 @@ test.describe("ADJUNTOS PDF — Validación Tamaño (8pts)", () => {
     }
 
     // Buscar input file para documento de respaldo
-    const inputFileS4 = page.locator("input[type='file'][name*='documento'], input[type='file']").first()
+    const inputFileS4 = page
+      .locator("input[type='file'][name*='documento'], input[type='file']")
+      .first()
 
     if (await inputFileS4.isVisible()) {
       // Caso 1a: Adjuntar PDF válido < 4MB
@@ -128,7 +100,9 @@ test.describe("ADJUNTOS PDF — Validación Tamaño (8pts)", () => {
       await page.waitForTimeout(1000)
 
       // Verificar que se aceptó
-      let mensajeError = page.locator("text=/excede|máximo|límite|error/i").first()
+      let mensajeError = page
+        .locator("text=/excede|máximo|límite|error/i")
+        .first()
       if (await mensajeError.isVisible({ timeout: 1000 })) {
         console.log(`❌ Error inesperado: ${await mensajeError.textContent()}`)
       } else {
@@ -136,7 +110,9 @@ test.describe("ADJUNTOS PDF — Validación Tamaño (8pts)", () => {
       }
 
       // Caso 1b: Intentar adjuntar PDF > 4MB (debe rechazar)
-      console.log("\nCaso 1b: Intentando adjuntar PDF de 5MB (debe rechazar)...")
+      console.log(
+        "\nCaso 1b: Intentando adjuntar PDF de 5MB (debe rechazar)...",
+      )
       const pdfGrande = generarPDFconTamano(5)
       await inputFileS4.setInputFiles({
         name: "respaldo-grande.pdf",
@@ -153,7 +129,9 @@ test.describe("ADJUNTOS PDF — Validación Tamaño (8pts)", () => {
         console.log(`⚠️  No se mostró error (puede no estar validado en UI)`)
       }
     } else {
-      console.log("⚠️  Input file no encontrado en Sección 4 (puede no estar implementado)")
+      console.log(
+        "⚠️  Input file no encontrado en Sección 4 (puede no estar implementado)",
+      )
     }
 
     // =========================================================================
@@ -176,7 +154,9 @@ test.describe("ADJUNTOS PDF — Validación Tamaño (8pts)", () => {
       })
       await page.waitForTimeout(1000)
 
-      let mensajeError = page.locator("text=/excede|máximo|límite|error/i").first()
+      let mensajeError = page
+        .locator("text=/excede|máximo|límite|error/i")
+        .first()
       if (await mensajeError.isVisible({ timeout: 1000 })) {
         console.log(`❌ Error inesperado: ${await mensajeError.textContent()}`)
       } else {
@@ -184,7 +164,9 @@ test.describe("ADJUNTOS PDF — Validación Tamaño (8pts)", () => {
       }
 
       // Caso 2b: Intentar adjuntar PDF > 2MB (debe rechazar)
-      console.log("\nCaso 2b: Intentando adjuntar PDF de 2.5MB (debe rechazar)...")
+      console.log(
+        "\nCaso 2b: Intentando adjuntar PDF de 2.5MB (debe rechazar)...",
+      )
       const pdfGrande = generarPDFconTamano(2.5)
       await inputFileS5.setInputFiles({
         name: "formacion-grande.pdf",
@@ -217,24 +199,31 @@ test.describe("ADJUNTOS PDF — Validación Tamaño (8pts)", () => {
       const docxBuffer = Buffer.from("PK\x03\x04\x14\x00\x00\x00")
       await inputFileRechazo.setInputFiles({
         name: "documento.docx",
-        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         buffer: docxBuffer,
       })
       await page.waitForTimeout(1000)
 
-      const mensajeRechazo = page.locator("text=/solo.*PDF|formato|tipo/i").first()
+      const mensajeRechazo = page
+        .locator("text=/solo.*PDF|formato|tipo/i")
+        .first()
       if (await mensajeRechazo.isVisible()) {
         const textoRechazo = await mensajeRechazo.textContent()
         console.log(`✅ Error por tipo: "${textoRechazo}"`)
       } else {
-        console.log(`⚠️  No se validó tipo de archivo (puede no estar implementado)`)
+        console.log(
+          `⚠️  No se validó tipo de archivo (puede no estar implementado)`,
+        )
       }
     }
 
     // =========================================================================
     // TEST 4: Límite total 50MB por postulante (simulado)
     // =========================================================================
-    console.log("\n========== TEST 4: Límite total 50MB (simulado) ==========\n")
+    console.log(
+      "\n========== TEST 4: Límite total 50MB (simulado) ==========\n",
+    )
 
     // Para este test real, cargaríamos archivos en múltiples secciones
     // hasta acumular ~45MB, luego intentar agregar 10MB más
@@ -243,7 +232,9 @@ test.describe("ADJUNTOS PDF — Validación Tamaño (8pts)", () => {
     console.log("Comportamiento esperado:")
     console.log("  - Si usuario cargó 40MB en varias secciones")
     console.log("  - Al intentar cargar PDF de 15MB")
-    console.log("  - Mensaje: 'Supera límite total de 50MB (has usado 40MB, quedan 10MB)'")
+    console.log(
+      "  - Mensaje: 'Supera límite total de 50MB (has usado 40MB, quedan 10MB)'",
+    )
     console.log("✅ Límite total documentado")
 
     // =========================================================================
