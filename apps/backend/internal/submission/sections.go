@@ -1,5 +1,12 @@
 package submission
 
+import (
+	"strconv"
+	"time"
+
+	"github.com/google/uuid"
+)
+
 /**
  * Form conserva el contrato JSON del EF-12; los punteros distinguen secciones
  * ausentes de secciones guardadas, incluso cuando sus listas están vacías.
@@ -71,6 +78,14 @@ type PositionSection struct {
 	HasOrganization    string             `json:"cuentaConRespaldoOrganizacion"`
 	Organization       string             `json:"nombreOrganizacion"`
 	Document           *DocumentReference `json:"documentoRespaldoPdf,omitempty"`
+}
+
+/** NewDocumentReference arma la referencia desde los metadatos guardados del PDF,
+ * nunca desde los que declara el cliente.
+ * @returns {DocumentReference} Referencia con el formato del formulario.
+ */
+func NewDocumentReference(id uuid.UUID, name string, sizeBytes int64, sha256 string, createdAt time.Time) *DocumentReference {
+	return &DocumentReference{ID: id.String(), Name: name, Size: strconv.FormatInt(sizeBytes, 10), SHA256: sha256, UploadedAt: createdAt.UTC().Format(time.RFC3339)}
 }
 
 /** DocumentReference vincula el respaldo; el envío verifica y normaliza sus metadatos. */

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
-	"strconv"
-	"time"
 )
 
 /** referenceSlot localiza el campo del respaldo sin aceptar índices de listas.
@@ -55,7 +53,7 @@ func referenceSlot(f *submission.Form, section int, record string) (**submission
 }
 
 func documentReference(d Document) *submission.DocumentReference {
-	return &submission.DocumentReference{ID: d.ID.String(), Name: d.Name, Size: strconv.FormatInt(d.SizeBytes, 10), SHA256: d.SHA256, UploadedAt: d.CreatedAt.UTC().Format(time.RFC3339)}
+	return submission.NewDocumentReference(d.ID, d.Name, d.SizeBytes, d.SHA256, d.CreatedAt)
 }
 
 /** VerifyReferences exige los respaldos al sellar y sustituye metadatos del cliente.

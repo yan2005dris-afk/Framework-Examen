@@ -526,6 +526,13 @@ func CalculateDuration(start, end time.Time) Duration {
 	return Duration{Years: years, Months: months, Days: days, Text: strings.Join(parts, ", ")}
 }
 
+/** NormalizeDurations recalcula la duración de cada experiencia, un dato derivado
+ * que la persistencia no guarda.
+ * @param {Form} form - Formulario a completar.
+ * @param {time.Time} now - Fecha de corte de los empleos vigentes.
+ */
+func NormalizeDurations(form *Form, now time.Time) { normalizeDurations(form, now) }
+
 /** normalizeDurations reemplaza duraciones suministradas por cálculos propios. */
 func normalizeDurations(form *Form, now time.Time) {
 	if form.Experience == nil {

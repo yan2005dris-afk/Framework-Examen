@@ -77,7 +77,7 @@ func (r *Repository) create(ctx context.Context, item *submission.Submission) er
 	}
 
 	applyRow(item, row)
-	return nil
+	return r.writeForm(ctx, item, nil)
 }
 
 /**
@@ -234,6 +234,17 @@ func (r *Repository) update(ctx context.Context, item *submission.Submission) er
 	}
 	if item.Eligibility == nil {
 		evidence = nil
+	}
+	// Las tablas del formulario se escriben antes que la cabecera: al sellar, la
+	// fila todavía es un borrador y las tablas hijas aún admiten la escritura.
+	previous, err := r.queries.GetSubmissionByID(ctx, item.ID)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+	if err == nil && (&submission.Submission{Status: submission.Status(previous.Status)}).IsEditable() {
+		if err := r.writeForm(ctx, item, previous.Content); err != nil {
+			return err
+		}
 	}
 	params := sqlcgen.UpdateSubmissionParams{
 		Eligibility: evidence,

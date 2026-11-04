@@ -14,9 +14,17 @@ func normalizeDeclarations(form *Form) {
 	if form.Consent == nil {
 		form.Consent = &Consent{}
 	}
-	form.Consent.Version = consentVersion
-	form.Consent.Statements = append([]string(nil), consentStatements...)
+	ApplyConsentLiterals(form.Consent)
 	form.Consent.AcceptedAt = ""
+}
+
+/** ApplyConsentLiterals fija la versión y los cinco textos vigentes del RF.
+ * Son constantes: la persistencia no los guarda y los restituye al leer.
+ * @param {Consent} c - Consentimiento a completar.
+ */
+func ApplyConsentLiterals(c *Consent) {
+	c.Version = consentVersion
+	c.Statements = append([]string(nil), consentStatements...)
 }
 
 /** Literales del RF v1.4, EF-12 1.10.1; se incorporan al contenido sellado. */
