@@ -45,6 +45,9 @@ apps/backend/data/
 *.ppt
 *.pptx
 
+# Respaldos de la base (pg_dump): contienen datos personales de los postulantes.
+*.dump
+
 # Mockup original en React (raiz): ya no esta en el repo, fue reemplazado por
 # el set versionado de docs/mockups/. La regla se conserva como red de seguridad
 # para que una copia local nunca se versione por accidente.
