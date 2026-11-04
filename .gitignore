@@ -104,3 +104,6 @@ docs/extras/ANALISIS-*.md
 # Lock files de editores (LibreOffice, etc)
 .~lock.*
 
+# Logo duplicado de UPSE en formato WebP (uso el PNG)
+docs/latex/logo-UPSE.webp
+
