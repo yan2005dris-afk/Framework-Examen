@@ -14,14 +14,14 @@ import (
 )
 
 const countReviewSubmissions = `-- name: CountReviewSubmissions :many
-SELECT COALESCE(content->'seccion4'->>'sector','sin_sector')::text AS sector,status,
+SELECT COALESCE(sector,'sin_sector')::text AS sector,status,
     count(DISTINCT applicant_id)::bigint AS applicants,count(*)::bigint AS total
 FROM submissions
 WHERE status = 'submitted' AND hash IS NOT NULL AND hash <> '' AND submitted_at IS NOT NULL
     AND competition_id IS NOT DISTINCT FROM $1::uuid
-    AND ($2::text = '' OR content->'seccion4'->>'sector' = $2)
+    AND ($2::text = '' OR sector = $2)
     AND ($3::text = '' OR status = $3)
-GROUP BY content->'seccion4'->>'sector',status ORDER BY sector,status
+GROUP BY submissions.sector,status ORDER BY sector,status
 `
 
 type CountReviewSubmissionsParams struct {
@@ -131,7 +131,7 @@ SELECT s.id,s.code,s.status,s.content,s.hash,s.submitted_at,s.created_at,
 FROM submissions s LEFT JOIN competitions c ON c.id = s.competition_id
 WHERE s.status = 'submitted' AND s.hash IS NOT NULL AND s.hash <> '' AND s.submitted_at IS NOT NULL
     AND s.competition_id IS NOT DISTINCT FROM $1::uuid
-    AND ($2::text = '' OR s.content->'seccion4'->>'sector' = $2)
+    AND ($2::text = '' OR s.sector = $2)
     AND ($3::text = '' OR s.status = $3)
     AND (NOT $4::boolean OR (s.created_at,s.id) < ($5::timestamptz,$6::uuid))
 ORDER BY s.created_at DESC,s.id DESC LIMIT $7
@@ -200,7 +200,7 @@ SELECT count(*)::bigint AS total,COALESCE(sum(octet_length(content::text)),0)::b
 FROM submissions
 WHERE status = 'submitted' AND hash IS NOT NULL AND hash <> '' AND submitted_at IS NOT NULL
     AND competition_id IS NOT DISTINCT FROM $1::uuid
-    AND ($2::text = '' OR content->'seccion4'->>'sector' = $2)
+    AND ($2::text = '' OR sector = $2)
     AND ($3::text = '' OR status = $3)
 `
 

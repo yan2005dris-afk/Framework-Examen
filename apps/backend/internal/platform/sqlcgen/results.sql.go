@@ -318,12 +318,12 @@ func (q *Queries) ListResultLists(ctx context.Context, arg ListResultListsParams
 }
 
 const listResultSources = `-- name: ListResultSources :many
-SELECT s.id, s.applicant_id, s.code, s.status, s.content, s.hash, s.submitted_at, s.created_at, s.updated_at, s.competition_id, s.eligibility,COALESCE(mp.payload,'{}'::jsonb)::jsonb AS merit,COALESCE(e.state,'{}'::jsonb)::jsonb AS evaluation,
+SELECT s.id, s.applicant_id, s.code, s.status, s.content, s.hash, s.submitted_at, s.created_at, s.updated_at, s.competition_id, s.eligibility, s.sector,COALESCE(mp.payload,'{}'::jsonb)::jsonb AS merit,COALESCE(e.state,'{}'::jsonb)::jsonb AS evaluation,
  COALESCE((SELECT payload FROM evaluation_records t WHERE t.submission_id=s.id AND t.action='teorica.finalizada' ORDER BY ((t.payload->>'version')::bigint) DESC LIMIT 1),'{}'::jsonb)::jsonb AS theory,
  COALESCE((SELECT jsonb_agg(a.payload ORDER BY a.id) FROM reconsiderations a WHERE a.submission_id=s.id),'[]'::jsonb)::jsonb AS appeals
 FROM submissions s LEFT JOIN merit_case_streams ms ON ms.submission_id=s.id LEFT JOIN merit_publications mp ON mp.id=ms.publication_id AND mp.submission_id=s.id
 LEFT JOIN evaluation_heads e ON e.submission_id=s.id
-WHERE s.competition_id=$1::uuid AND s.content->'seccion4'->>'sector'=$2::text AND s.status='submitted' ORDER BY s.id
+WHERE s.competition_id=$1::uuid AND s.sector=$2::text AND s.status='submitted' ORDER BY s.id
 `
 
 type ListResultSourcesParams struct {
@@ -343,6 +343,7 @@ type ListResultSourcesRow struct {
 	UpdatedAt     time.Time          `json:"updated_at"`
 	CompetitionID pgtype.UUID        `json:"competition_id"`
 	Eligibility   []byte             `json:"eligibility"`
+	Sector        *string            `json:"sector"`
 	Merit         []byte             `json:"merit"`
 	Evaluation    []byte             `json:"evaluation"`
 	Theory        []byte             `json:"theory"`
@@ -370,6 +371,7 @@ func (q *Queries) ListResultSources(ctx context.Context, arg ListResultSourcesPa
 			&i.UpdatedAt,
 			&i.CompetitionID,
 			&i.Eligibility,
+			&i.Sector,
 			&i.Merit,
 			&i.Evaluation,
 			&i.Theory,
@@ -443,7 +445,7 @@ func (q *Queries) LockResultsCalendar(ctx context.Context, id uuid.UUID) (LockRe
 }
 
 const resultSourceBudget = `-- name: ResultSourceBudget :one
-SELECT count(*)::bigint AS total,COALESCE(sum(octet_length(content::text)+COALESCE((SELECT sum(octet_length(payload::text)) FROM reconsiderations a WHERE a.submission_id=submissions.id),0)+COALESCE((SELECT octet_length(state::text) FROM evaluation_heads e WHERE e.submission_id=submissions.id),0)+COALESCE((SELECT sum(octet_length(payload::text)) FROM evaluation_records e WHERE e.submission_id=submissions.id AND e.action='teorica.finalizada'),0)+COALESCE((SELECT sum(octet_length(payload::text)) FROM merit_publications m WHERE m.submission_id=submissions.id),0)),0)::bigint AS bytes FROM submissions WHERE competition_id=$1::uuid AND content->'seccion4'->>'sector'=$2::text AND status='submitted'
+SELECT count(*)::bigint AS total,COALESCE(sum(octet_length(content::text)+COALESCE((SELECT sum(octet_length(payload::text)) FROM reconsiderations a WHERE a.submission_id=submissions.id),0)+COALESCE((SELECT octet_length(state::text) FROM evaluation_heads e WHERE e.submission_id=submissions.id),0)+COALESCE((SELECT sum(octet_length(payload::text)) FROM evaluation_records e WHERE e.submission_id=submissions.id AND e.action='teorica.finalizada'),0)+COALESCE((SELECT sum(octet_length(payload::text)) FROM merit_publications m WHERE m.submission_id=submissions.id),0)),0)::bigint AS bytes FROM submissions WHERE competition_id=$1::uuid AND submissions.sector=$2::text AND status='submitted'
 `
 
 type ResultSourceBudgetParams struct {

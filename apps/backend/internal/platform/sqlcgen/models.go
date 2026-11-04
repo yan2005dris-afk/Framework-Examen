@@ -507,6 +507,7 @@ type Submission struct {
 	UpdatedAt     time.Time          `json:"updated_at"`
 	CompetitionID pgtype.UUID        `json:"competition_id"`
 	Eligibility   []byte             `json:"eligibility"`
+	Sector        *string            `json:"sector"`
 }
 
 type SubmissionEvent struct {

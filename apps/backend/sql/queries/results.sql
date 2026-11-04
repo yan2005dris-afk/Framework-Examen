@@ -1,14 +1,14 @@
 -- name: LockResultsCalendar :one
 SELECT c.*,ct.approved,ct.published,ct.sectors,ct.phases FROM competitions c JOIN competition_controls ct ON ct.competition_id=c.id WHERE c.id=$1 FOR SHARE OF c FOR UPDATE OF ct;
 -- name: ResultSourceBudget :one
-SELECT count(*)::bigint AS total,COALESCE(sum(octet_length(content::text)+COALESCE((SELECT sum(octet_length(payload::text)) FROM reconsiderations a WHERE a.submission_id=submissions.id),0)+COALESCE((SELECT octet_length(state::text) FROM evaluation_heads e WHERE e.submission_id=submissions.id),0)+COALESCE((SELECT sum(octet_length(payload::text)) FROM evaluation_records e WHERE e.submission_id=submissions.id AND e.action='teorica.finalizada'),0)+COALESCE((SELECT sum(octet_length(payload::text)) FROM merit_publications m WHERE m.submission_id=submissions.id),0)),0)::bigint AS bytes FROM submissions WHERE competition_id=sqlc.arg(competition_id)::uuid AND content->'seccion4'->>'sector'=sqlc.arg(sector)::text AND status='submitted';
+SELECT count(*)::bigint AS total,COALESCE(sum(octet_length(content::text)+COALESCE((SELECT sum(octet_length(payload::text)) FROM reconsiderations a WHERE a.submission_id=submissions.id),0)+COALESCE((SELECT octet_length(state::text) FROM evaluation_heads e WHERE e.submission_id=submissions.id),0)+COALESCE((SELECT sum(octet_length(payload::text)) FROM evaluation_records e WHERE e.submission_id=submissions.id AND e.action='teorica.finalizada'),0)+COALESCE((SELECT sum(octet_length(payload::text)) FROM merit_publications m WHERE m.submission_id=submissions.id),0)),0)::bigint AS bytes FROM submissions WHERE competition_id=sqlc.arg(competition_id)::uuid AND submissions.sector=sqlc.arg(sector)::text AND status='submitted';
 -- name: ListResultSources :many
 SELECT s.*,COALESCE(mp.payload,'{}'::jsonb)::jsonb AS merit,COALESCE(e.state,'{}'::jsonb)::jsonb AS evaluation,
  COALESCE((SELECT payload FROM evaluation_records t WHERE t.submission_id=s.id AND t.action='teorica.finalizada' ORDER BY ((t.payload->>'version')::bigint) DESC LIMIT 1),'{}'::jsonb)::jsonb AS theory,
  COALESCE((SELECT jsonb_agg(a.payload ORDER BY a.id) FROM reconsiderations a WHERE a.submission_id=s.id),'[]'::jsonb)::jsonb AS appeals
 FROM submissions s LEFT JOIN merit_case_streams ms ON ms.submission_id=s.id LEFT JOIN merit_publications mp ON mp.id=ms.publication_id AND mp.submission_id=s.id
 LEFT JOIN evaluation_heads e ON e.submission_id=s.id
-WHERE s.competition_id=sqlc.arg(competition_id)::uuid AND s.content->'seccion4'->>'sector'=sqlc.arg(sector)::text AND s.status='submitted' ORDER BY s.id;
+WHERE s.competition_id=sqlc.arg(competition_id)::uuid AND s.sector=sqlc.arg(sector)::text AND s.status='submitted' ORDER BY s.id;
 -- name: EnsureResultListStream :exec
 INSERT INTO result_list_streams(competition_id,sector) VALUES($1,$2) ON CONFLICT DO NOTHING;
 -- name: LockResultListStream :one
