@@ -1,0 +1,9 @@
+# Artefactos de compilación LaTeX (el PDF final tampoco se versiona: la raíz
+# del repositorio ignora *.pdf).
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc

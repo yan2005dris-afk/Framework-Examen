@@ -1,0 +1,1021 @@
+% !TeX program = pdflatex
+%
+% Documento de entrega tecnica -- Sistema de Registro y Postulacion al
+% Directorio del BIESS.
+%
+% Compilacion:
+%   cd docs/latex && latexmk -pdf documentacion-entrega.tex
+% o bien:
+%   cd docs/latex && pdflatex documentacion-entrega.tex
+%
+% El PDF generado no se versiona: la raiz del repositorio ignora *.pdf.
+%
+\documentclass[11pt,a4paper]{article}
+
+% ---------------------------------------------------------------------------
+% Paquetes
+% ---------------------------------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-nodecimaldot,es-noshorthands]{babel}
+\usepackage{lmodern}
+\usepackage[a4paper,top=2.6cm,bottom=2.4cm,left=2.6cm,right=2.4cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tikz}
+\usepackage{hyperref}
+\usepackage{microtype}
+
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,shapes.geometric,topaths}
+
+% ---------------------------------------------------------------------------
+% Configuracion general
+% ---------------------------------------------------------------------------
+\definecolor{upseAzul}{HTML}{003A66}
+\definecolor{upseCeleste}{HTML}{0097CC}
+\definecolor{upseBorde}{HTML}{B9C6D2}
+\definecolor{upseFondo}{HTML}{F2F6FA}
+\definecolor{upseGris}{HTML}{4A5560}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=upseAzul,
+  urlcolor=upseCeleste,
+  citecolor=upseAzul,
+  pdftitle={Documento de entrega tecnica -- Sistema de Registro y Postulacion al Directorio del BIESS},
+  pdfauthor={Equipo de Framework-Examen},
+  pdfsubject={Frameworks de Programacion Web -- septimo semestre},
+  pdfkeywords={BIESS, IESS, Go, React, PostgreSQL, Redis, ADR-002},
+}
+
+\titleformat{\section}{\normalfont\Large\bfseries\color{upseAzul}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries\color{upseAzul}}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries\color{upseGris}}{\thesubsubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{1.4ex plus .2ex}{0.8ex}
+\titlespacing*{\subsection}{0pt}{1.1ex plus .2ex}{0.5ex}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\color{upseGris}Framework-Examen \textbar{} Documento de entrega}
+\fancyhead[R]{\footnotesize\color{upseGris}Frameworks de Programaci\'on Web}
+\fancyfoot[C]{\footnotesize\color{upseGris}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\setlist[itemize]{leftmargin=1.4em,itemsep=0.2em,topsep=0.3em}
+\setlist[enumerate]{leftmargin=1.8em,itemsep=0.2em,topsep=0.3em}
+\renewcommand{\arraystretch}{1.18}
+\setlength{\emergencystretch}{3em}
+
+% ---------------------------------------------------------------------------
+% Listados de codigo
+% ---------------------------------------------------------------------------
+\lstdefinestyle{code}{
+  basicstyle=\ttfamily\small,
+  frame=single,
+  rulecolor=\color{upseBorde},
+  backgroundcolor=\color{upseFondo},
+  breaklines=true,
+  breakatwhitespace=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  tabsize=2,
+  numbers=left,
+  numberstyle=\tiny\color{upseGris},
+  numbersep=8pt,
+  xleftmargin=14pt,
+  framexleftmargin=14pt,
+  captionpos=b,
+  belowskip=6pt,
+  aboveskip=6pt,
+}
+\lstdefinelanguage{bshlite}{
+  morekeywords={pnpm,go,make,docker,git,node,npx,curl,psql,cd,cp,mkdir,openssl,python3,sh,bash},
+  sensitive=false,
+  morecomment=[l]{\#},
+  morestring=[b]",
+}
+\lstset{style=code}
+
+% ---------------------------------------------------------------------------
+% Entidades
+% ---------------------------------------------------------------------------
+\newcommand{\ent}[1]{\textsf{\textbf{#1}}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\ruta}[1]{\path{#1}}
+\newcommand{\campo}[1]{{\scriptsize\color{upseGris}#1}}
+
+% ---------------------------------------------------------------------------
+\begin{document}
+
+% ===========================================================================
+% PORTADA
+% ===========================================================================
+\begin{titlepage}
+\thispagestyle{empty}
+
+\begin{center}
+  \includegraphics[width=2.7cm]{logo-upse.png}\\[0.45cm]
+  {\Large\color{upseAzul}\textbf{UNIVERSIDAD ESTATAL PEN\'INSULA DE SANTA ELENA}}\\[0.2cm]
+  {\normalsize\color{upseGris}Unidad de Educaci\'on Superior \textbar{} Carrera de Software}\\[1.0cm]
+
+  \rule{\textwidth}{1.2pt}\\[0.6cm]
+
+  {\LARGE\bfseries\color{upseAzul} Sistema de Registro y Postulaci\'on\\ al Directorio del BIESS}\\[0.45cm]
+  {\large\color{upseGris}Documento de entrega t\'ecnica}\\[0.8cm]
+
+  \rule{\textwidth}{0.5pt}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{0.92\textwidth}
+\small
+
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}l X@{}}
+Asignatura & Frameworks de Programaci\'on Web \\
+Docente & Ing. Carlos Eduardo Mu\~noz Mendoza \\
+M\'odulo & Examen pr\'actico del primer parcial --- Sistema de Registro y Postulaci\'on al Directorio del BIESS \\
+Periodo acad\'emico & S\'eptimo semestre \\
+Requerimiento & Requerimiento Funcional v1.4 (Direcci\'on Nacional de Tecnolog\'ias de la Informaci\'on --- IESS), Resoluci\'on C.D.\ 701 \\
+Puntaje & 40 puntos (equivalente al 100\% de la evaluaci\'on pr\'actica) \\
+Despliegue en l\'inea & \url{https://framework-examen.vercel.app/}\\
+Alterno (respaldo) & \url{https://examen.labtorres.me/login}\\
+Fecha de entrega & 3 de noviembre de 2026 \\
+\end{tabularx}
+
+\vspace{0.6cm}
+
+\textbf{\color{upseAzul}Integrantes del equipo}
+
+\vspace{0.25cm}
+
+\begin{tabularx}{\textwidth}{@{}r X@{}}
+\toprule
+\# & \textbf{Integrante} \\
+\midrule
+1 & Andy Bryan Alejandro Vera \\
+2 & Alisson Yamel Reyes Ricardo \\
+3 & Yandris Miguel Rivera Torres \\
+4 & Melanie Adriana Tomala Merejildo \\
+5 & Damian Jesus Torres Cadena \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.25cm}
+{\footnotesize\color{upseGris}El detalle de la contribuci\'on de cada integrante consta en el
+historial de commits del repositorio (autores de Git), que forma parte del entregable.}
+
+\end{minipage}
+\end{center}
+
+\vfill
+
+\begin{center}
+{\footnotesize\color{upseGris}
+Repositorio: \url{https://github.com/yan2005dris-afk/Framework-Examen.git}\\
+Instancia p\'ublica: \url{https://framework-examen.vercel.app/}\\
+Instancia alterna: \url{https://examen.labtorres.me/login}\\
+Documento generado con \LaTeX{} --- fuente en \path{docs/latex/documentacion-entrega.tex}}
+\end{center}
+
+\end{titlepage}
+
+% ===========================================================================
+\tableofcontents
+\thispagestyle{plain}
+\vfill
+\newpage
+
+% ===========================================================================
+\section{Resumen ejecutivo}
+
+Este documento acompaña la entrega del m\'odulo web para el Concurso P\'ublico de M\'eritos y Oposici\'on
+para la designaci\'on de los Miembros Principales y Alternos del Directorio del Banco del Instituto
+Ecuatoriano de Seguridad Social (BIESS), en representaci\'on de los Afiliados, Jubilados y Empleadores,
+en cumplimiento de la Resoluci\'on No.\ C.D.\ 701.
+
+La soluci\'on se entrega como un monorepositorio con dos aplicaciones y una infraestructura de datos:
+
+\begin{itemize}
+  \item \textbf{Frontend}: \ent{SPA} en React 19 + Vite 8 + Tailwind CSS 4 + shadcn/ui, con estado
+  asincr\'ono mediante TanStack Query, \ent{React Router 8} para las rutas protegidas y validaci\'on en
+  cliente como \emph{feedback} inmediato (nunca como control de seguridad).
+  \item \textbf{Backend}: microservicio transaccional en Go 1.27 con \ent{chi} como enrutador HTTP,
+  \ent{sqlc} para el acceso tipado a PostgreSQL 18, \ent{goose} para las migraciones embebidas en el
+  binario y Redis 7 para el bloqueo de intentos y la cach\'e de cat\'alogos.
+  \item \textbf{Organizaci\'on}: \ent{bounded contexts} con inyecci\'on de dependencias y puertos
+  declarados en el propio dominio (ADR-002): el dominio no importa infraestructura.
+\end{itemize}
+
+El documento recorre, en el mismo orden en que lo exige el enunciado, los tres entregables de la secci\'on 4
+del examen (repositorio Git, \code{README.md} y script \code{.sql}) y la planificaci\'on de la sustentaci\'on
+funcional de diez minutos. A~nade se incluye el mapeo de cada criterio de la r\'ubrica con la evidencia
+verificable en el c\'odigo, que es el material de defensa t\'ecnica.
+
+% ===========================================================================
+\section{Identificaci\'on y alcance}
+
+\subsection{Datos del requerimiento}
+
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}l X@{}}
+\toprule
+Emisor & Direcci\'on Nacional de Tecnolog\'ias de la Informaci\'on (DNTI) --- Subdirecci\'on Nacional de Desarrollo Inform\'atico \\
+Unidad requirente & Direcci\'on General --- Direcci\'on Nacional de Servicios Corporativos --- Subdirecci\'on Nacional de Gesti\'on de Talento Humano (SDNGTH) \\
+Sustento legal & Resoluci\'on No.\ C.D.\ 701 de 26 de febrero de 2026 (Consejo Directivo del IESS) \\
+Versi\'on & Requerimiento Funcional 1.4 \\
+Objetivo & Generar un m\'odulo web para la gesti\'on integral del concurso de m\'eritos y oposici\'on para la direcci\'on del BIESS \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Especificaciones funcionales cubiertas}
+
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}l X@{}}
+\toprule
+C\'odigo & Contenido implementado \\
+\midrule
+EF-11 & Registro de postulantes y autenticaci\'on: OTP por correo, control de intentos con bloqueo
+de 10 minutos, mensajes literales del RF y realimentaci\'on de bloqueo en la interfaz. \\
+EF-12 & Formulario de postulaci\'on en nueve secciones: informaci\'on personal, domicilio y contacto,
+informaci\'on adicional, selecci\'on de cargo, formaci\'on acad\'emica y adicional, experiencia laboral,
+referencias, publicaciones, capacitaci\'on e inhabilidades; con cascada pa\'is/provincia/cant\'on,
+restricci\'on de nacionalidad ecuatoriana, c\'alculo autom\'atico de experiencia, guardado parcial y
+sellado con hash. \\
+EF-13 & M\'odulo de administraci\'on: publicaci\'on de fases y per\'iodos, tablero con conteos,
+n\'omina hist\'orica y exportaci\'on de la matriz comparativa. \\
+EF-14 & Banco de preguntas y evaluaci\'on te\'orica: configuraci\'on de banco, generaci\'on de examen
+aleatorio y \'unico por postulante, temporizador en cuenta regresiva, calificaci\'on autom\'atica y
+notificaci\'on autom\'atica del resultado. \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Actores y roles}
+
+El sistema implementa tres roles con permisos por operaci\'on, verificados en el servidor y nunca en el
+cliente: \ent{postulante} (usuario externo), \ent{analista} (Talento humano) y \ent{administrador}
+(Comisi\'on de Selecci\'on). El guard de sesi\'on y el control por rol se aplican en \ent{chi} antes de
+alcanzar los casos de uso.
+
+% ===========================================================================
+\section{Arquitectura de software}
+
+\subsection{Tecnolog\'ias empleadas}
+
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}l X@{}}
+\toprule
+Capa & Tecnolog\'ia y motivo de la elecci\'on \\
+\midrule
+Frontend & React 19, TypeScript 6, Vite 8, Tailwind CSS 4, shadcn/ui (preset \code{radix-nova}), TanStack
+Query y Router, \code{react-day-picker}, \code{recharts}, \code{sonner}. \\
+Backend & Go 1.27, \ent{chi} v5, \ent{pgx} v5, \ent{sqlc} v1.31, \ent{goose} v3, \ent{uuid} con
+identificadores UUIDv7. \\
+Datos & PostgreSQL 18 (extensi\'on \code{uuidv7()} nativa), Redis 7. \\
+Infraestructura & Docker Compose para desarrollo y para producci\'on; nginx como proxy inverso en
+producci\'on; RustFS (compatible con S3) para los PDF de respaldo; Mailpit para el correo de
+desarrollo. \\
+Calidad & Vitest (frontend), \code{go test} (backend), ESLint con fronteras de importaci\'on, Prettier,
+\code{gofmt}, \code{go vet} y \emph{continuous integration} en GitHub Actions con umbral de cobertura. \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Organizaci\'on en capas e inyecci\'on de dependencias}
+
+El backend sigue el esquema \ent{handler $\rightarrow$ service $\rightarrow$ repository} exigido por el
+enunciado, con una \'unica salvedad: el \emph{repository} es un \emph{puerto} (interfaz) declarado en el
+propio paquete del dominio, y el adaptador de PostgreSQL o Redis se inyecta en tiempo de composici\'on.
+
+\begin{itemize}
+  \item \ruta{apps/backend/internal/<contexto>/} --- un \ent{bounded context} por carpeta
+        (\emph{screaming architecture}): \code{identity}, \code{submission}, \code{document},
+        \code{catalog}, \code{competition}, \code{eligibility}, \code{evaluation}, \code{exam},
+        \code{merit}, \code{notice}, \code{privacy}, \code{results}, \code{review}, \code{audit}.
+  \item \ruta{apps/backend/internal/}\code{<contexto>/<capacidad>/} --- \code{service.go} (casos de uso),
+        \code{handler.go} (adaptador HTTP), \code{repository.go} (puertos), \code{dto.go},
+        \code{errors.go} y las carpetas de adaptadores \code{postgres/} y \code{redis/}.
+  \item \ruta{apps/backend/internal/platform/} --- c\'odigo transversal: \code{config}, \code{db},
+        \code{httpx}, \code{logger}, \code{mail}, \code{storage}, \code{cache}, \code{telemetry}.
+  \item \ruta{apps/backend/internal/app/} --- ra\'iz de composici\'on: construye los colaboradores y
+        decide qu\'e se levanta seg\'un el modo (API o worker).
+\end{itemize}
+
+El dominio no depende de ninguna infraestructura. Un ejemplo reciente y verificable: el contexto
+\code{identity} declara sus puertos \code{AttemptsStore} y \code{OTPStore} en
+\ruta{apps/backend/internal/identity/repository.go}, y el adaptador
+\ruta{apps/backend/internal/identity/redis/} los implementa sobre Redis traduciendo los fallos de
+infraestructura a errores de dominio. La prueba de arquitectura
+\ruta{apps/backend/internal/identity/architecture_test.go} falla si el dominio vuelve a importar la cach\'e.
+
+\subsection{Bounded contexts del backend}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}l X@{}}
+\toprule
+Contexto & Responsabilidad \\
+\midrule
+\code{identity} & Registro, OTP por correo, sesiones, roles y permisos. \\
+\code{submission} & Expediente de postulaci\'on, secciones, sellado, hash y printing. \\
+\code{document} & PDF de respaldo, cuota por postulante y limpieza de archivos. \\
+\code{catalog} & Cat\'alogos de divisi\'on pol\'itica y de opciones EF-12, con cach\'e en Redis. \\
+\code{competition} & Convocatorias, per\'iodos, fases y calendario. \\
+\code{eligibility} & Elegibilidad por sector, con fuente controlada de servidor. \\
+\code{evaluation} & Instrumento de evaluaci\'on psicot\'ecnica y resultados por puerto interno. \\
+\code{exam} & Configuraci\'on del examen, matrices, realizaci\'on y notas. \\
+\code{merit} & Reglas de c\'alculo de m\'eritos y publicaci\'on de resultados. \\
+\code{notice} & Avisos de etapa y notificaciones por cola cifrada. \\
+\code{privacy} & Consentimiento informado, pol\'iticas de privacidad y control de acceso. \\
+\code{results} & Listas de elegibles y publicaci\'on de nombres autorizados. \\
+\code{review} & Matriz de revisi\'on, exportaci\'on a XLSX y PDF. \\
+\code{audit} & Historial append-only de accesos y cambios de rol. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Flujo de una petici\'on}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{
+\begin{tikzpicture}[
+  node distance=7mm and 15mm,
+  box/.style={draw=upseBorde, fill=upseFondo, rounded corners=2pt, align=center,
+              inner sep=4pt, font=\tiny, text width=2.2cm},
+  port/.style={box, draw=upseCeleste, fill=white},
+  data/.style={box, draw=upseAzul, fill=white},
+  lbl/.style={font=\tiny\color{upseGris}, align=center},
+  arr/.style={-{Latex[length=1.5mm]}, thick, draw=upseAzul},
+]
+
+\node[box] (web) {Navegador\\React 19};
+\node[box, right=of web] (proxy) {Proxy\\Vite/nginx};
+\node[box, right=of proxy] (api) {API Go\\chi};
+
+\node[port, below=12mm of api] (handler) {Handler\\HTTP};
+\node[port, below=8mm of handler] (service) {Service\\Caso uso};
+\node[port, below=8mm of service] (port) {Puertos\\interfaces};
+
+\node[data, below left=12mm and 7mm of port] (pg) {postgres/\\adaptador};
+\node[data, below right=12mm and 7mm of port] (rd) {redis/\\adaptador};
+\node[data, right=18mm of service] (mail) {platform/\\mail};
+
+\node[data, below=10mm of pg] (pgdb) {PostgreSQL};
+\node[data, below=10mm of rd] (rdb) {Redis};
+\node[data, below=10mm of mail] (smtp) {SMTP};
+
+\draw[arr] (web) -- node[lbl, above, font=\tiny]{JSON} (proxy);
+\draw[arr] (proxy) -- node[lbl, above, font=\tiny]{/api} (api);
+\draw[arr] (api) -- (handler);
+\draw[arr] (handler) -- (service);
+\draw[arr] (service) -- (port);
+\draw[arr] (port) -| (pg);
+\draw[arr] (port) -| (rd);
+\draw[arr] (pg) -- (pgdb);
+\draw[arr] (rd) -- (rdb);
+\draw[arr] (service) -- node[lbl, above, font=\tiny]{notifica} (mail);
+\draw[arr] (mail) -- (smtp);
+
+\begin{scope}[on background layer]
+\node[fit=(web)(proxy)(api), draw=upseAzul, dashed, rounded corners=2pt, inner sep=4pt] {};
+\end{scope}
+\end{tikzpicture}
+}
+\caption{Flujo de una petici\'on: el borde HTTP entra por el handler, el caso de uso no conoce el
+adaptador y la infraestructura se resuelve en la ra\'iz de composici\'on.}
+\end{figure}
+
+\subsection{Modelo de datos}
+
+El esquema vive en \ruta{apps/backend/sql/queries/schema.sql}, generado desde las migraciones. El n\'ucleo
+del dominio se apoya en cinco relaciones: el postulante, la postulaci\'on y sus hijos (documentos,
+eventos, m\'eritos, evaluaci\'on y privacidad), la convocatoria que abre el concurso y el cat\'alogo
+geogr\'afico.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.93\textwidth}{!}{
+\begin{tikzpicture}[
+  node distance=9mm and 16mm,
+  ent/.style={draw=upseAzul, fill=white, rounded corners=1pt, align=left,
+              inner sep=3pt, font=\scriptsize, text width=2.8cm},
+  rel/.style={-{Latex[length=1.5mm]}, draw=upseGris, thick},
+  lbl/.style={font=\scriptsize\color{upseGris}, midway, above, sloped},
+]
+
+\node[ent] (cat) {\textbf{catalogs}\\Pa\'is, provincia\\\campo{parent\_id}};
+\node[ent, right=of cat] (comp) {\textbf{competitions}\\Convocatoria\\\campo{sector, fase}};
+\node[ent, right=of comp] (app) {\textbf{applicants}\\Postulante\\\campo{cedula, correo}};
+
+\node[ent, above=of app] (sess) {\textbf{sessions}\\HttpOnly\\\campo{token}};
+
+\node[ent, below=18mm of comp] (sub) {\textbf{submissions}\\Expediente\\\campo{code, status, hash}};
+
+\node[ent, left=of sub] (docs) {\textbf{documents}\\PDF\\\campo{storage\_key}};
+\node[ent, right=of sub] (events) {\textbf{submission\_events}\\Diario\\\campo{actor}};
+\node[ent, below left=16mm and 7mm of sub] (merit) {\textbf{merit\_*}\\C\'alculo\\\campo{versionado}};
+\node[ent, below=16mm of sub] (eval) {\textbf{evaluation\_*}\\Notas\\\campo{phase}};
+\node[ent, below right=16mm and 7mm of sub] (priv) {\textbf{privacy\_bindings}\\Consentimiento\\\campo{policy}};
+
+\draw[rel] (app) -- node[lbl]{1:N} (sub);
+\draw[rel] (comp) -- node[lbl]{1:N} (sub);
+\draw[rel] (sub) -- node[lbl]{1:N} (docs);
+\draw[rel] (sub) -- node[lbl]{1:N} (events);
+\draw[rel] (sub) -- node[lbl]{1:N} (merit);
+\draw[rel] (sub) -- node[lbl]{1:N} (eval);
+\draw[rel] (sub) -- node[lbl]{1:1} (priv);
+\draw[rel] (app) -- node[lbl]{1:N} (sess);
+\draw[rel] (cat.east) to[loop right] node[lbl]{parent} (cat.west);
+
+\end{tikzpicture}
+}
+\caption{N\'ucleo del modelo de datos. Las relaciones de \code{submissions} hacia m\'eritos, evaluaci\'on y
+privacidad son \emph{versionadas}: cada correcci\'on guarda su versi\'on y a qu\'e versi\'on sustituye.}
+\end{figure}
+
+\subsection{Diagramas de flujo interactivos (Archify)}
+
+Complementando los diagramas de arquitectura est\'atica anteriores, el repositorio incluye tres
+diagramas de secuencia interactivos generados con \ent{Archify 3.2.0} que muestran los flujos din\'amicos
+del sistema:
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}l X@{}}
+\toprule
+Diagrama & Ubicaci\'on y contenido \\
+\midrule
+EF-11: Registro y Autenticaci\'on & \ruta{.archify/01-auth-registration.html} --- flujo de registro,
+validaci\'on de identidad, login seguro con bloqueo de 3 intentos, y recuperaci\'on de contrase\~na \\
+EF-12: Formulario de Postulaci\'on & \ruta{.archify/02-application-eligibility.html} --- flujo
+de postulaci\'on, validaci\'on de elegibilidad por sector (Afiliado/Jubilado/Empleador), c\'alculo
+autom\'atico de experiencia, y asignaci\'on de c\'odigo \'unico \\
+EF-14: Evaluaci\'on Te\'orica & \ruta{.archify/03-theoretical-evaluation.html} --- flujo de
+evaluaci\'on, algoritmo de aleatoriedad, temporizador, bloqueos anti-fraude, y calificaci\'on
+autom\'atica \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Para visualizar los diagramas: abrir el archivo \ruta{.archify/INDEX.html} en un navegador web, o
+acceder directamente a cualquiera de los tres HTML anteriores. Cada diagrama es interactivo con
+animaci\'on de traza y documentaci\'on integrada.
+
+\subsection{Ciclo de vida del expediente y fases del concurso}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\textwidth}{!}{
+\begin{tikzpicture}[
+  node distance=10mm and 12mm,
+  st/.style={draw=upseAzul, fill=white, rounded corners=1pt, align=center, inner sep=4pt,
+             font=\scriptsize, text width=2.6cm},
+  ok/.style={-{Latex[length=1.5mm]}, thick, draw=upseAzul},
+  punteada/.style={-{Latex[length=1.5mm]}, thick, draw=upseCeleste, dashed},
+  lbl/.style={font=\tiny\color{upseGris}, midway, above},
+]
+
+\node[st] (draft) {\textbf{draft}\\Borrador\\editable};
+\node[st, right=of draft] (rev) {\textbf{in\_review}\\Revisi\'on\\editable};
+\node[st, right=of rev] (sub) {\textbf{submitted}\\Sellada\\inmutable};
+
+\draw[ok] (draft) -- node[lbl]{enviar} (rev);
+\draw[ok] (rev) -- node[lbl]{sellar} (sub);
+\draw[punteada] (draft) to[bend left=16] node[lbl]{directo} (sub);
+
+\node[st, below=16mm of rev, text width=2.4cm] (f1) {\textbf{meritos}\\M\'eritos};
+\node[st, right=6mm of f1, text width=2.4cm] (f2) {\textbf{oposicion\_teorica}\\Te\'orico};
+\node[st, right=6mm of f2, text width=2.4cm] (f3) {\textbf{oposicion\_psicotecnica}\\Psicot\'ecnica};
+\node[st, right=6mm of f3, text width=2.4cm] (f4) {\textbf{resultados}\\Publicaci\'on};
+
+\draw[ok] (f1) -- (f2);
+\draw[ok] (f2) -- (f3);
+\draw[ok] (f3) -- (f4);
+
+\end{tikzpicture}
+}
+\caption{Arriba, los estados del expediente: s\'olo la postulaci\'on sellada admite impresi\'on y matriz. Abajo, las fases del
+concurso: cada una exige la publicaci\'on de la anterior y se habilita por fecha.}
+\end{figure}
+
+\subsection{Decisiones de arquitectura registradas}
+
+Cada decisi\'on estructural vive en un ADR con contexto, decisi\'on y consecuencias, para que la
+defensa t\'ecnica no dependa de la memoria del equipo.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}l X@{}}
+\toprule
+ADR & Decisi\'on \\
+\midrule
+ADR-001 & \ent{chi} en lugar de Gin o Fiber: opera sobre \code{*http.Request} nativo, interoperable con
+la biblioteca est\'andar y con \code{multipart}, indispensable para los PDF adjuntos; Fiber obliga a
+\code{fasthttp.RequestCtx} y a cargar el cuerpo completo en memoria. \\
+ADR-002 & Bounded contexts con arquitectura hexagonal: los casos de uso dependen solo de interfaces
+declaradas en su propio paquete y los adaptadores traducen los fallos de infraestructura a errores de
+dominio. \\
+ADR-003 & PostgreSQL con \ent{sqlc} y \ent{goose}: SQL visible y tipado, migraciones embebidas en el
+binario sin depender del CLI en producci\'on. \\
+ADR-005 & Paginaci\'on con dos estrategias sobre un kernel com\'un: \emph{offset} para listados
+acotados y \emph{cursor por keyset} para el tablero de revisi\'on, donde el desplazamiento y el
+\code{count(*)} se degradan con cientos de miles de postulaciones. \\
+ADR-007 & PostgreSQL 18 con UUIDv7: identificadores ordenables en el tiempo y generados en la base. \\
+ADR-008 & Registro y recuperaci\'on con OTP por correo, en lugar de Registro Civil (ver
+secci\'on~\ref{sec:desviaciones}). \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ===========================================================================
+\section{Prerrequisitos de instalaci\'on}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}l l X@{}}
+\toprule
+Herramienta & Versi\'on & Para qu\'e \\
+\midrule
+Go & 1.27.3 o superior & Compilaci\'on y pruebas del backend (\code{apps/backend}) \\
+Node.js & 22 LTS & Build y desarrollo de la SPA (\code{apps/frontend}) \\
+pnpm & 12 & Gestor de paquetes del workspace; \code{pnpm-lock.yaml} es el lockfile versionado \\
+Docker + Compose v2 & Reciente & Levantar PostgreSQL, Redis, RustFS y Mailpit sin instalarlos aparte \\
+PostgreSQL & 18 & Base de datos; la imagen oficial incluye \code{uuidv7()} \\
+Redis & 7 & Bloqueo de intentos (3 fallos, 10 minutos) y cach\'e de cat\'alogos (24 horas) \\
+RustFS o S3 & Reciente & Almacenamiento de los PDF de respaldo \\
+Mailpit & Reciente & Captura el correo de desarrollo: c\'odigos OTP y avisos \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Con Docker, PostgreSQL, Redis, RustFS y Mailpit se levantan desde \ruta{compose.yaml}: no hace falta
+instalarlos por separado. El \ent{workspace} de \code{pnpm} cubre las dos aplicaciones:
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}l X@{}}
+\toprule
+Paquete & Contenido \\
+\midrule
+\ruta{apps/frontend} & SPA React + Vite + Tailwind + shadcn/ui \\
+\ruta{apps/backend} & M\'odulo Go; es un m\'odulo independiente, \emph{no} es paquete de pnpm \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ===========================================================================
+\section{Instrucciones de compilaci\'on y ejecuci\'on local}
+
+\subsection{Opci\'on A --- con Docker Compose (recomendada)}
+
+\begin{lstlisting}[language=bshlite,caption={Puesta en marcha completa}]
+# 1. Dependencias del workspace frontend
+pnpm install
+
+# 2. Levantar API, frontend, PostgreSQL, Redis, RustFS y Mailpit
+docker compose up -d
+
+# 3. Verificar el estado de los servicios
+docker compose ps
+\end{lstlisting}
+
+Al arrancar, la API aplica las migraciones \ent{goose} (22 pasos), incluidos los cat\'alogos de
+pa\'ises, provincias y cantones. La aplicaci\'on de las migraciones es idempotente y serializada con un
+bloqueo consultivo, de modo que varias r\'plicas pueden arrancar a la vez sin aplicar dos veces la misma
+versi\'on.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}l X@{}}
+\toprule
+Servicio & URL \\
+\midrule
+Frontend (Vite) & \url{http://localhost:5173} \\
+API Go & \url{http://localhost:8080} \\
+PostgreSQL & \code{localhost:5432/biess} \\
+Redis & \code{localhost:6379} \\
+RustFS: API S3 / consola & \url{http://localhost:9000} \textbar{} \url{http://localhost:9001} \\
+Bandeja de correo (Mailpit) & \url{http://localhost:8025} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Opci\'on B --- sin Docker}
+
+\begin{lstlisting}[language=bshlite,caption={Arranque con servicios instalados en el sistema}]
+# Base de datos
+createdb biess
+psql -U postgres -d biess -f apps/backend/sql/queries/schema.sql
+psql -U postgres -d biess -f apps/backend/sql/seeds/catalogs.sql
+
+# Backend (aplica las migraciones pendientes y sirve la API)
+cd apps/backend
+make run          # equivalente a: go run ./cmd/api
+
+# Frontend, en otra terminal
+pnpm dev
+\end{lstlisting}
+
+\subsection{Comandos de verificaci\'on}
+
+\begin{lstlisting}[language=bshlite,caption={Comprobaciones que deben pasar en verde antes de la entrega}]
+# Frontend
+pnpm lint
+pnpm build
+pnpm test
+pnpm format:check
+
+# Backend
+cd apps/backend
+gofmt -l .
+go build ./...
+go vet ./...
+go test ./...
+
+# Documentacion de mockups (datos y enlaces; contrato y accesibilidad)
+node docs/mockups/scripts/check-consistencia.mjs
+node docs/mockups/scripts/check-contrato.mjs
+\end{lstlisting}
+
+\subsection{Despliegue en l\'inea}
+
+La instancia p\'ublica del proyecto est\'a disponible en \url{https://framework-examen.vercel.app/};
+si ese enlace no respondiera, el respaldo es \url{https://examen.labtorres.me/login}.
+El repositorio incluye adem\'as el apilado de producci\'on para levantar la soluci\'on completa en
+un servidor propio:
+
+\begin{itemize}
+  \item \ruta{deploy/compose.yaml}: servicios \code{frontend} (nginx), \code{api}, \code{worker},
+        \code{postgres}, \code{redis} y \code{rustfs}.
+  \item \ruta{deploy/nginx.conf}: proxy inverso que sirve la SPA y reenv\'ia \code{/api} a la API
+        y \code{/downloads} al listener privado de objetos, de modo que la aplicaci\'on corre en un
+        solo origen.
+  \item \ruta{deploy/.env.example}: variables del despliegue (dominios p\'ublicos y secretos).
+  \item \ruta{deploy/monitoring/}: alertas de observabilidad del despliegue.
+\end{itemize}
+
+El despliegue separa el proceso que sirve tr\'afico HTTP (\code{cmd/api}) del que levanta las colas en
+segundo plano (\code{cmd/worker}): cada parte escala por separado y las r\'eplicas de la API no
+compiten por las tareas peri\'odicas.
+
+\subsection{Datos de prueba (solo desarrollo)}
+
+Las cuentas de prueba y la convocatoria \emph{no} se crean solas: los migrations no siembran cuentas, para
+que un despliegue en producci\'on nunca arrastre una credencial conocida.
+
+\begin{lstlisting}[language=bshlite]
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U postgres -d biess < apps/backend/sql/seeds/users.sql
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U postgres -d biess < apps/backend/sql/seeds/competitions.sql
+\end{lstlisting}
+
+La semilla de \code{users.sql} se niega a ejecutarse contra \code{APP\_ENV=production}; las claves se
+generan en tiempo de ejecuci\'on a partir de \code{SEED\_PASSWORD}.
+
+% ===========================================================================
+\section{Variables de entorno de ejemplo}
+
+Se versionan dos plantillas; los archivos \code{.env} reales nunca se versionan.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}l X@{}}
+\toprule
+Plantilla & Uso \\
+\midrule
+\ruta{apps/backend/.env.example} & Backend: API, base de datos, Redis, almacenamiento, SMTP y cola de correo \\
+\ruta{deploy/.env.example} & Producci\'on: proxy inverso, dominios p\'ublicos y secretos de despliegue \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Las variables de mayor impacto en la operaci\'on son las siguientes; la lista completa, con su
+explicaci\'on, est\'a en la plantilla del backend.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}p{4.8cm} X@{}}
+\toprule
+Variable & Significado \\
+\midrule
+\code{APP\_ENV} & \code{development} o \code{production}. \\
+\code{APP\_URL} & URL p\'ublica del frontend; se usa en los enlaces de los correos. \\
+\code{DATABASE\_URL} & Cadena de conexi\'on a PostgreSQL. \\
+\code{REDIS\_URL} & URL de Redis. Sin Redis, la API arranca sin cach\'e y el login falla cerrado. \\
+\code{DB\_REQUIRED} & Si es \code{true}, la API no arranca sin conexi\'on a la base de datos. \\
+\code{STORAGE\_DRIVER} & \code{local} (firma HMAC de cinco minutos) o \code{s3} (firma SigV4). \\
+\code{STORAGE\_SIGNING\_KEY} & Clave de firma en el modo local; se genera fuera del repositorio. \\
+\code{MAIL\_OUTBOX\_KEY} & Clave base64 de 32 bytes que cifra la cola de correo. \\
+\code{INIT\_ADMIN\_PASSWORD} & Contraseña del administrador que crea la migraci\'on de arranque; sin ella
+la migraci\'on falla y la API no levanta. \\
+\code{OTP\_RESEND\_DELAY}, \code{OTP\_MAX\_SENDS} & Ventana de reenv\'io y n\'umero de emisiones por
+c\'odigo. \\
+\code{SMTP\_HOST}, \code{SMTP\_PORT}, \code{SMTP\_USER}, \code{SMTP\_PASSWORD}, \code{SMTP\_FROM}, \code{SMTP\_TLS} & Transporte de correo. \\
+\code{CORS\_ALLOWED\_ORIGINS} & Orígenes admitidos; definida y vac\'ia significa denegar todo origen cruzado. \\
+\code{METRICS\_ADDR} & Escucha de m\'etricas, separada del proxy p\'ublico. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ===========================================================================
+\section{Script DDL y datos semilla de cat\'alogos}\label{sec:ddl}
+
+El entregable \code{.sql} del enunciado se resuelve con dos archivos versionados, ambos generados y
+verificados por el pipeline.
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}l X@{}}
+\toprule
+Archivo & Contenido \\
+\midrule
+\ruta{apps/backend/sql/queries/schema.sql} & Esquema completo (DDL) de las tablas, \'indices,
+restricciones y disparadores. Se genera desde las migraciones con \code{make db-schema}. \\
+\ruta{apps/backend/sql/seeds/catalogs.sql} & DDL y semilla aut\'onoma de la divisi\'on pol\'itica:
+194 pa\'ises, 24 provincias y 221 cantones. Se genera con \code{make catalog-seed}. \\
+\ruta{apps/backend/sql/migrations/} & Migraciones \ent{goose} (21 archivos \code{.sql} y un paso en Go
+para la cuenta de administrador). Viajan embebidas en el binario. \\
+\ruta{apps/backend/sql/queries/} & Consultas tipadas por contexto, fuente de verdad de \ent{sqlc}. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{lstlisting}[language=bshlite,caption={Carga manual del esquema y de la semilla}]
+psql -U postgres -d biess -v ON_ERROR_STOP=1 -f apps/backend/sql/queries/schema.sql
+psql -U postgres -d biess -v ON_ERROR_STOP=1 -f apps/backend/sql/seeds/catalogs.sql
+\end{lstlisting}
+
+La semilla de cat\'alogos es reproducible: se genera desde la definici\'on EF-12 y la geograf\'a del RF, de
+modo que regenerarla no produce deriva entre el repositorio y la base de datos. En el flujo normal no hace
+falta cargar estos archivos a mano: la API aplica las migraciones al arrancar.
+
+% ===========================================================================
+\section{Entregables exigidos por la secci\'on 4 del enunciado}
+
+\subsection{Entregable 1 --- Repositorio Git con historial y ramas ordenadas}
+
+\begin{itemize}
+  \item \textbf{Enlace}: \url{https://github.com/yan2005dris-afk/Framework-Examen.git} para la clonaci\'on
+        y \url{https://github.com/yan2005dris-afk/Framework-Examen} para la navegaci\'on.
+  \item \textbf{Instancia p\'ublica}: \url{https://framework-examen.vercel.app/} (alterna:
+        \url{https://examen.labtorres.me/login}), desplegada y
+        accesible sin infraestructura local; es el entorno donde se hace la demostraci\'on funcional.
+  \item \textbf{Flux de trabajo}: \code{main} es producci\'on; \code{develop} es la rama de integraci\'on
+        y el punto de partida del trabajo diario; \code{feature/*}, \code{release/*}, \code{hotfix/*} y
+        \code{support/*} se crean con \code{git flow}. Las pull requests apuntan a \code{develop}.
+  \item \textbf{Commits}: formato \ent{Conventional Commits} (\code{feat:}, \code{fix:}, \code{docs:},
+        \code{refactor:}, \code{chore:}, \code{test:}) con asunto en imperativo y sin punto final.
+  \item \textbf{Integridad}: los secretos nunca se versionan (\code{.git*}), los PDF de postulantes est\'an
+        excluidos y los artefactos de compilaci\'on no se versionan.
+  \item \textbf{Integraci\'on continua}: \ruta{.github/workflows/ci.yml} ejecuta formato, lint y pruebas
+        de frontend y backend, y falla si la cobertura total baja del 50\%.
+\end{itemize}
+
+El historial es real y trazable: cada commit lleva autor, fecha y mensaje; el resumen por autor
+obtenido del propio repositorio es el siguiente.
+
+\begin{lstlisting}[language=bshlite,caption={Historial por autor (git shortlog -sn --all)}]
+$ git shortlog -sn --all
+     53  Yandris Rivera Torres
+     37  Damian Torres
+     27  Ali-Rr26
+     23  MelanieTomala
+     20  Andy Alejandro
+     16  DevTorres404
+\end{lstlisting}
+
+% ===========================================================================
+\subsection{Entregable 2 --- Archivo \code{README.md}}
+
+El \code{README.md} de la ra\'iz es la puerta de entrada y contiene:
+
+\begin{itemize}
+  \item \textbf{Prerrequisitos}: tabla de versiones (Go 1.27.3+, Node.js 22 LTS, pnpm 12, Docker Compose,
+        PostgreSQL 18, Redis 7, RustFS, Mailpit).
+  \item \textbf{Compilaci\'on y ejecuci\'on local}: puesta en marcha con Docker y alternativa sin Docker,
+        tabla de URLs de cada servicio, y los datos de prueba de desarrollo.
+  \item \textbf{Variables de entorno}: referencias a las dos plantillas \code{.env.example}.
+  \item \textbf{Estructura, comandos y documentaci\'on}: \'indice de \ruta{docs/} y \'indice de entregables.
+\end{itemize}
+
+\subsection{Entregable 3 --- Archivo \code{.sql} con DDL y semilla de cat\'alogos}
+
+Cubierto en la secci\'on~\ref{sec:ddl}: \ruta{apps/backend/sql/queries/schema.sql} (DDL completo) y
+\ruta{apps/backend/sql/seeds/catalogs.sql} (semilla aut\'onoma de la divisi\'on pol\'itica).
+
+\subsection{Entregable 4 --- Demostraci\'on funcional de diez minutos}
+
+Planificada en la secci\'on~\ref{sec:plan-demo}. Cada equipo debe explicar la arquitectura implementada y
+responder preguntas t\'ecnicas sobre el c\'odigo.
+
+% ===========================================================================
+\section{Evidencia por criterio de la r\'ubrica}
+
+La tabla siguiente es el material de defensa: cada criterio se enlaza con los archivos que lo implementan
+y con la forma de verificarlo en vivo.
+
+\begin{center}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}p{3.1cm} X X@{}}
+\toprule
+Criterio & Implementaci\'on & Verificaci\'on \\
+\midrule
+1. Arquitectura backend e inyecci\'on de dependencias (8 pts) &
+Puertos en \code{repository.go} de cada contexto, casos de uso en \code{service.go}, adaptadores en
+\code{postgres/} y \code{redis/}; composici\'on en \ruta{internal/app/}. &
+\code{go build ./...}, \code{go vet ./...} y la prueba de fronteras
+\ruta{internal/identity/architecture_test.go}. \\
+2. Persistencia relacional y transacciones (8 pts) &
+\ent{sqlc} sobre PostgreSQL 18; \code{TxManager.WithinTx} con \code{BEGIN}/\code{COMMIT}/\code{ROLLBACK};
+sellado de la postulaci\'on y revocaci\'on de sesiones en la misma transacci\'on. &
+Migraciones \ent{goose} en \ruta{sql/migrations/}; \code{schema.sql} regenerado con
+\code{make db-schema}. \\
+3. Cach\'e, expiraci\'on y rate limiting (6 pts) &
+Bloqueo de 3 intentos con 10 minutos mediante un \'unico script Lua at\'omico (sin
+\code{GET}/\code{DELETE} ni mutex); cat\'alogos con TTL de 24 horas y respaldo en PostgreSQL; cola de
+correo cifrada con \code{leases} y reintentos. &
+\ruta{internal/platform/cache/} y \ruta{internal/identity/redis/}; pruebas de expiraci\'on con Redis real. \\
+4. Frontend SPA: reactividad, componentes y estado (6 pts) &
+SPA modular con Vite y Tailwind 4; estado remoto con TanStack Query; \emph{loaders}, validaciones
+inmediatas y realimentaci\'on visual; 36 pantallas de referencia en \ruta{docs/mockups/}. &
+\code{pnpm lint}, \code{pnpm build}, \code{pnpm test}. \\
+5. Consumo de API y manejo as\'incrono (6 pts) &
+Cliente HTTP tipado por dominio (\ruta{src/lib/clientes/}), \code{ErrorApi} con estado y
+\code{Retry-After}; rutas protegidas por sesi\'on y permisos por rol en el servidor. &
+Pruebas del cliente con \code{msw} y suite E2E de \ruta{apps/frontend/e2e/}. \\
+6. Cumplimiento de reglas de negocio (6 pts) &
+Bloqueo de intentos y mensajes literales del RF; restricci\'on de nacionalidad ecuatoriana en el
+servidor; cascada pa\'is/provincia/cant\'on contra la API; c\'alculo de experiencia y durations
+compartidas entre Go y TypeScript. &
+Pruebas de \ent{identity}, \ent{eligibility} y \ent{catalog}; \code{check-consistencia.mjs} y
+\code{check-contrato.mjs} sobre los mockups. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ===========================================================================
+\section{Desviaciones y riesgos declarados}\label{sec:desviaciones}
+
+Declararlas por adelantado es parte de la defensa t\'ecnica: el equipo muestra que la decisi\'on fue
+consciente, est\'a documentada y tiene consecuencias asumidas.
+
+\subsection{Validaci\'on dactilar y fecha de expedici\'on (ADR-008)}
+
+El RF exige comprobar la identidad mediante la interoperabilidad con el Registro Civil, solicitando la
+fecha de expedici\'on (DD/MM/AAAA) o el c\'odigo dactilar. El proyecto no dispone de ese servicio, de modo
+que la decisi\'on \ent{ADR-008} sustituy\'o esa comprobaci\'on por un c\'odigo de un solo uso enviado al
+correo electr\'onico, con las siguientes consecuencias:
+
+\begin{itemize}
+  \item La identidad se acredita por control del correo (OTP de seis d\'igitos, vigencia de diez minutos) y
+        la estructura de la c\'edula se comprueba con el algoritmo de m\'odulo 10.
+  \item Ning\'un dato se presenta como certificado por el Registro Civil: la cuenta persiste
+        \code{metodo\_validacion = otp\_correo} y la \'unica precarga del formulario son los datos de la
+        cuenta disponibles.
+  \item La fecha de expedici\'on y el c\'odigo dactilar no se solicitan ni se simulan.
+\end{itemize}
+
+Consecuencia sobre la r\'ubrica: el criterio 6 nombra la validaci\'on dactilar simulada, de modo que la
+calificaci\'on podr\'ia quedar por debajo del m\'aximo en ese punto. La alternativa ---implementar una
+simulaci\'on--- est\'a evaluada y documentada, pero requiere la revocaci\'on expl\'ita de ADR-008 por parte
+de la autoridad que tom\'o esa decisi\'on, porque una decisi\'on registrada no se reescribe por iniciativa
+del equipo t\'ecnico.
+
+\subsection{Enrutador HTTP distinto al enunciado}
+
+El enunciado menciona Fiber o Gin. El proyecto usa \ent{chi} (ADR-001) por interoperabilidad con la
+biblioteca est\'andar y con \code{multipart}, que es el punto cr\'itico del env\'io de PDF. La arquitectura
+en capas, la inyecci\'on de dependencias y el contrato HTTP se mantienen id\'enticos a lo solicitado.
+
+\subsection{Tama\~no m\'aximo de los PDF de respaldo}
+
+El RF fija 50 MiB por postulante para el conjunto de sus archivos. El sistema aplica ese l\'imite de forma
+agregada por cuenta, no por archivo, y lo verifica al sellar la postulaci\'on.
+
+% ===========================================================================
+\section{Plan de sustentaci\'on (diez minutos)}\label{sec:plan-demo}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}p{2.1cm} X@{}}
+\toprule
+Minuto & Contenido \\
+\midrule
+0:00--1:30 & \textbf{Contexto y alcance}. El requerimiento funcional v1.4 y la Resoluci\'on C.D.\ 701;
+los tres actores y por qu\'e el flujo se parte en registro, postulaci\'on y administraci\'on. \\
+1:30--4:00 & \textbf{Arquitectura}. El diagrama de la secci\'on 3.3: bounded contexts, puertos,
+adaptadores, inyecci\'on de dependencias en la ra\'iz de composici\'on y por qu\'e el dominio no importa
+infraestructura (ADR-002). Demostrar en el c\'odigo: el puerto \code{AttemptsStore} y su adaptador Redis. \\
+4:00--6:00 & \textbf{Datos y control}. PostgreSQL 18 con UUIDv7, migraciones embebidas, \ent{sqlc},
+transacciones reales y el script Lua at\'omico del bloqueo de tres intentos con diez minutos. \\
+6:00--8:00 & \textbf{Frontend y flujo}. Cascada geogr\'afica contra la API, restricci\'on de nacionalidad,
+guardado parcial, sellado con hash e impresi\'on; \emph{loaders} y manejo de \code{429} con
+\code{Retry-After}. \\
+8:00--9:30 & \textbf{Seguridad y datos personales}. Sesiones en base de datos, control por rol,
+consentimiento informado, lista p\'ublica sin datos de contacto y trazabilidad append-only. \\
+9:30--10:00 & \textbf{Cierre y entrega}. Repositorio, \code{README.md}, script \code{.sql} y la
+demostraci\'on de la suite de pruebas en verde, sobre la instancia p\'ublica
+\url{https://framework-examen.vercel.app/}. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection*{Preguntas t\'ecnicas previsibles}
+
+\begin{itemize}
+  \item \emph{``Por qu\'e no usan Fiber como pide el enunciado?''} --- ADR-001:
+        interoperabilidad con \code{multipart} y con la biblioteca est\'andar.
+  \item \emph{``C\'omo garantizan que no haya dos compras del mismo documento?''} ---
+        \'unicidad con bloqueos de fila y \code{FOR UPDATE} dentro de la transacci\'on.
+  \item \emph{``C\'omo manejan la concurrencia en el bloqueo de
+        intentos?''} --- un \'unico script Lua at\'omico en Redis; nunca \code{GET}/\code{DELETE} separados ni
+        mutex del proceso.
+  \item \emph{``Qu\'e pasa si Redis no est\'a disponible?''} --- el login
+        falla cerrado con \code{503}; los cat\'alogos consultan PostgreSQL.
+  \item \emph{``C\'omo se evita el or\'aculo de existencia en la
+        recuperaci\'on?''} --- la recuperaci\'on devuelve siempre el mismo mensaje y un desaf\'io indistinguible;
+        el correo s\'olo se env\'ia al correo ya registrado.
+  \item \emph{``C\'omo se valida el examen sin exponer la respuesta
+        correcta?''} --- el examen se genera contra el banco vigente en el servidor y la nota se calcula
+        dentro de la transacci\'on de la entrega.
+\end{itemize}
+
+% ===========================================================================
+\appendix
+% ===========================================================================
+\section{Estructura del repositorio}
+
+\begin{lstlisting}[language=bshlite,caption={Mapa del workspace (extracto)}]
+Framework-Examen/
+|-- apps/
+|   |-- frontend/          # SPA React 19 + Vite 8 + Tailwind 4 + shadcn/ui
+|   |   `-- src/
+|   |       |-- components/    # componentes propios y ui/ (generado por shadcn)
+|   |       |-- features/      # una feature por dominio de negocio
+|   |       |-- layouts/       # guard por layout (admin, postulante, publico)
+|   |       |-- lib/           # transporte e infraestructura (api, errores, rutas)
+|   |       `-- utils/         # utilidades genericas (cedula, fechas, correo)
+|   `-- backend/           # API Go 1.27 + chi + pgx
+|       |-- cmd/               # api, worker, migrate, seed, demo
+|       |-- internal/
+|       |   |-- <contexto>/    # bounded contexts y sus capacidades
+|       |   |-- platform/      # config, db, httpx, mail, storage, cache, telemetry
+|       |   `-- shared/        # kernel de dominio (errores, paginacion)
+|       |-- e2e/               # suite de extremo a extremo (PostgreSQL + Redis reales)
+|       `-- sql/               # migraciones goose, consultas sqlc, semillas
+|-- docs/                 # PRD, TRD, arquitectura, base de datos, contratos, ADR, mockups
+|-- deploy/               # compose de produccion, nginx y plantillas de entorno
+|-- compose.yaml          # stack de desarrollo
+`-- AGENTS.md             # definicion del proyecto y bitacora de decisiones
+\end{lstlisting}
+
+\section{Comandos de operaci\'on del backend}
+
+\begin{lstlisting}[language=bshlite,caption={Targets del Makefile del backend}]
+make help            # lista los targets disponibles
+make run             # API en desarrollo (puerto 8080)
+make db-migrate      # aplica las migraciones goose
+make db-status       # estado de las migraciones
+make db-schema       # regenera sql/queries/schema.sql desde las migraciones
+make catalog-seed    # regenera la migracion de catalogos y sql/seeds/catalogs.sql
+make sqlc-generate   # regenera el codigo tipado de sqlc
+make test            # go test ./...
+make vet             # go vet ./...
+make fmt             # gofmt
+\end{lstlisting}
+
+\section{Referencias documentales}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\bfseries\color{upseAzul}}l X@{}}
+\toprule
+Documento & Contenido \\
+\midrule
+\ruta{docs/prd/PRD.md} & Requisitos de producto: alcance, historias y reglas de negocio. \\
+\ruta{docs/trd/TRD.md} & Requisitos t\'ecnicos: stack, modelo de datos, API y seguridad. \\
+\ruta{docs/architecture/ARQUITECTURA.md} & Vistas del sistema, capas y ciclo de una petici\'on. \\
+\ruta{docs/database/SCHEMA.md} & Modelo de datos, DDL, \'indices y semillas. \\
+\ruta{docs/api-contracts/API_CONTRACT.md} & Contrato HTTP: endpoints, errores y paginaci\'on. \\
+\ruta{docs/decisions/} & Decisiones de arquitectura (ADR-001 a ADR-009). \\
+\ruta{docs/mockups/} & 36 pantallas en HTML est\'atico: referencia de dise\~no y contrato de migraci\'on. \\
+\ruta{docs/extras/DescripcionExamen.md} & Enunciado del examen y r\'ubrica de evaluaci\'on. \\
+\ruta{docs/extras/requerimiento.pdf} & Requerimiento Funcional v1.4 (original de la entidad requirente). \\
+\ruta{AGENTS.md} & Convenciones del repositorio y bit\'acora de decisiones. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\vfill
+\begin{center}
+{\footnotesize\color{upseGris}
+Universidad Estatal Pen\'insula de Santa Elena --- Carrera de Software --- Frameworks de Programaci\'on Web\\
+Documento de entrega t\'ecnica --- Framework-Examen --- 3 de noviembre de 2026}
+\end{center}
+
+\end{document}
