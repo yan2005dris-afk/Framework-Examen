@@ -510,6 +510,78 @@ type Submission struct {
 	Sector        *string            `json:"sector"`
 }
 
+type SubmissionAdditional struct {
+	SubmissionID uuid.UUID `json:"submission_id"`
+	Section      *int16    `json:"section"`
+	HasRelatives string    `json:"has_relatives"`
+}
+
+type SubmissionConsent struct {
+	SubmissionID      uuid.UUID          `json:"submission_id"`
+	PrivacyPolicyID   string             `json:"privacy_policy_id"`
+	PrivacyPolicyHash string             `json:"privacy_policy_hash"`
+	AcceptedAt        pgtype.Timestamptz `json:"accepted_at"`
+	DataProcessing    bool               `json:"data_processing"`
+	Truthfulness      bool               `json:"truthfulness"`
+	CompetitionRules  bool               `json:"competition_rules"`
+	NamePublication   bool               `json:"name_publication"`
+	PhysicalDelivery  bool               `json:"physical_delivery"`
+	Signature         string             `json:"signature"`
+	SignedAt          string             `json:"signed_at"`
+}
+
+type SubmissionContact struct {
+	SubmissionID    uuid.UUID   `json:"submission_id"`
+	Section         *int16      `json:"section"`
+	CountryID       pgtype.UUID `json:"country_id"`
+	CountryKind     *string     `json:"country_kind"`
+	ProvinceID      pgtype.UUID `json:"province_id"`
+	ProvinceName    string      `json:"province_name"`
+	CityID          pgtype.UUID `json:"city_id"`
+	CityName        string      `json:"city_name"`
+	Mobile          string      `json:"mobile"`
+	SecondaryEmail  string      `json:"secondary_email"`
+	MainStreet      string      `json:"main_street"`
+	Number          string      `json:"number"`
+	SecondaryStreet string      `json:"secondary_street"`
+	Area            string      `json:"area"`
+	Reference       string      `json:"reference"`
+	Phone           string      `json:"phone"`
+}
+
+type SubmissionDegree struct {
+	SubmissionID uuid.UUID   `json:"submission_id"`
+	Section      *int16      `json:"section"`
+	Position     int32       `json:"position"`
+	RecordKey    string      `json:"record_key"`
+	Level        string      `json:"level"`
+	Institution  string      `json:"institution"`
+	Type         string      `json:"type"`
+	Title        string      `json:"title"`
+	Area         string      `json:"area"`
+	Registry     string      `json:"registry"`
+	RegistryDate pgtype.Date `json:"registry_date"`
+	DocumentID   pgtype.UUID `json:"document_id"`
+}
+
+type SubmissionDisqualification struct {
+	SubmissionID uuid.UUID `json:"submission_id"`
+	Section      *int16    `json:"section"`
+	Q1           string    `json:"q1"`
+	Q2           string    `json:"q2"`
+	Q3           string    `json:"q3"`
+	Q4           string    `json:"q4"`
+	Q5           string    `json:"q5"`
+	Q6           string    `json:"q6"`
+	Q7           string    `json:"q7"`
+	Q8           string    `json:"q8"`
+	Q9           string    `json:"q9"`
+	Q10          string    `json:"q10"`
+	Q11          string    `json:"q11"`
+	Q12          string    `json:"q12"`
+	Q13          string    `json:"q13"`
+}
+
 type SubmissionEvent struct {
 	ID           uuid.UUID `json:"id"`
 	SubmissionID uuid.UUID `json:"submission_id"`
@@ -518,6 +590,106 @@ type SubmissionEvent struct {
 	Payload      []byte    `json:"payload"`
 	CreatedAt    time.Time `json:"created_at"`
 	ActorRole    string    `json:"actor_role"`
+}
+
+type SubmissionExperience struct {
+	SubmissionID uuid.UUID   `json:"submission_id"`
+	Section      *int16      `json:"section"`
+	Position     int32       `json:"position"`
+	RecordKey    string      `json:"record_key"`
+	Type         string      `json:"type"`
+	JobTitle     string      `json:"job_title"`
+	Institution  string      `json:"institution"`
+	StartDate    pgtype.Date `json:"start_date"`
+	EndDate      pgtype.Date `json:"end_date"`
+	IsCurrent    bool        `json:"is_current"`
+	Activities   string      `json:"activities"`
+	Functions    string      `json:"functions"`
+	DocumentID   pgtype.UUID `json:"document_id"`
+}
+
+type SubmissionPersonal struct {
+	SubmissionID  uuid.UUID   `json:"submission_id"`
+	Section       *int16      `json:"section"`
+	FirstName     string      `json:"first_name"`
+	LastName      string      `json:"last_name"`
+	Gender        string      `json:"gender"`
+	BirthDate     pgtype.Date `json:"birth_date"`
+	Nationality   string      `json:"nationality"`
+	MaritalStatus string      `json:"marital_status"`
+	SpouseName    string      `json:"spouse_name"`
+	SpouseIDCard  string      `json:"spouse_id_card"`
+}
+
+type SubmissionPosition struct {
+	SubmissionID       uuid.UUID   `json:"submission_id"`
+	Section            *int16      `json:"section"`
+	Eligible           *bool       `json:"eligible"`
+	VerificationDetail string      `json:"verification_detail"`
+	HasOrganization    string      `json:"has_organization"`
+	Organization       string      `json:"organization"`
+	DocumentID         pgtype.UUID `json:"document_id"`
+	DocumentRecord     *string     `json:"document_record"`
+}
+
+type SubmissionPublication struct {
+	SubmissionID uuid.UUID   `json:"submission_id"`
+	Section      *int16      `json:"section"`
+	Position     int32       `json:"position"`
+	RecordKey    string      `json:"record_key"`
+	Title        string      `json:"title"`
+	Type         string      `json:"type"`
+	Medium       string      `json:"medium"`
+	PublishedOn  pgtype.Date `json:"published_on"`
+	Related      string      `json:"related"`
+	DocumentID   pgtype.UUID `json:"document_id"`
+}
+
+type SubmissionPublicationsInfo struct {
+	SubmissionID    uuid.UUID `json:"submission_id"`
+	Section         *int16    `json:"section"`
+	HasPublications string    `json:"has_publications"`
+}
+
+type SubmissionRelative struct {
+	SubmissionID uuid.UUID `json:"submission_id"`
+	Position     int32     `json:"position"`
+	RecordKey    string    `json:"record_key"`
+	Name         string    `json:"name"`
+	Relationship string    `json:"relationship"`
+	Institution  string    `json:"institution"`
+	Area         string    `json:"area"`
+	JobTitle     string    `json:"job_title"`
+}
+
+type SubmissionRemovalDetail struct {
+	SubmissionID uuid.UUID   `json:"submission_id"`
+	Q7           *string     `json:"q7"`
+	Institution  string      `json:"institution"`
+	JobTitle     string      `json:"job_title"`
+	EndDate      pgtype.Date `json:"end_date"`
+	Reason       string      `json:"reason"`
+}
+
+type SubmissionSection struct {
+	SubmissionID  uuid.UUID          `json:"submission_id"`
+	Section       int16              `json:"section"`
+	ItemsDeclared bool               `json:"items_declared"`
+	SavedAt       pgtype.Timestamptz `json:"saved_at"`
+}
+
+type SubmissionTraining struct {
+	SubmissionID uuid.UUID   `json:"submission_id"`
+	Section      *int16      `json:"section"`
+	Position     int32       `json:"position"`
+	RecordKey    string      `json:"record_key"`
+	Type         string      `json:"type"`
+	Name         string      `json:"name"`
+	Institution  string      `json:"institution"`
+	StartDate    pgtype.Date `json:"start_date"`
+	EndDate      pgtype.Date `json:"end_date"`
+	Hours        int64       `json:"hours"`
+	DocumentID   pgtype.UUID `json:"document_id"`
 }
 
 type WorkflowEvent struct {
