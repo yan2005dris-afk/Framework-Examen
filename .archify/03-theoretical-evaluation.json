@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "EF-14: Evaluación Teórica - Banco de Preguntas y Calificación",
+    "output": "03-theoretical-evaluation.html",
+    "viewBox": [1000, 1200],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    { "id": "admin", "type": "external", "label": "Administrador", "sublabel": "SDNGTH" },
+    { "id": "platform", "type": "frontend", "label": "Plataforma BIESS", "sublabel": "Evaluación" },
+    { "id": "db", "type": "database", "label": "Base de Datos", "sublabel": "Preguntas" },
+    { "id": "postulante", "type": "external", "label": "Postulante", "sublabel": "Elegible" },
+    { "id": "engine", "type": "backend", "label": "Motor Evaluación", "sublabel": "Calificación" }
+  ],
+  "segments": [
+    { "from": 160, "to": 340, "label": "Carga Banco Preguntas" },
+    { "from": 354, "to": 510, "label": "Habilitación Postulante" },
+    { "from": 544, "to": 775, "label": "Evaluación en Tiempo Real" },
+    { "from": 785, "to": 960, "label": "Calificación & Notificación" }
+  ],
+  "messages": [
+    { "from": "admin", "to": "platform", "y": 170, "label": "Accede 'Gestión Banco Preguntas'", "variant": "emphasis" },
+    { "from": "platform", "to": "admin", "y": 200, "label": "Módulo bloqueado (oculto)", "variant": "return" },
+    { "from": "admin", "to": "platform", "y": 230, "label": "Carga preguntas múltiple opción", "variant": "emphasis" },
+    { "from": "platform", "to": "db", "y": 260, "label": "Almacena banco completo", "variant": "emphasis" },
+    { "from": "db", "to": "platform", "y": 290, "label": "✓ Con matriz respuestas", "variant": "return" },
+    { "from": "admin", "to": "platform", "y": 320, "label": "Selecciona postulantes elegibles", "variant": "emphasis" },
+    { "from": "platform", "to": "admin", "y": 350, "label": "Estado: 'Evaluación Técnica'", "variant": "return" },
+    { "from": "admin", "to": "platform", "y": 380, "label": "Define fecha y hora examen", "variant": "default" },
+    { "from": "postulante", "to": "platform", "y": 410, "label": "Accede día/hora programados", "variant": "emphasis" },
+    { "from": "platform", "to": "engine", "y": 440, "label": "Valida hora exacta", "variant": "emphasis" },
+    { "from": "engine", "to": "db", "y": 470, "label": "Algoritmo aleatoriedad", "variant": "emphasis" },
+    { "from": "db", "to": "engine", "y": 500, "label": "Extrae N preguntas al azar", "variant": "return" },
+    { "from": "postulante", "to": "platform", "y": 530, "label": "Click 'Iniciar Evaluación'", "variant": "emphasis" },
+    { "from": "platform", "to": "postulante", "y": 560, "label": "Pregunta 1/N + reloj regresivo", "variant": "return" },
+    { "from": "platform", "to": "postulante", "y": 590, "label": "Bloquea: 'Atrás' + Copy/Paste", "variant": "emphasis" },
+    { "from": "postulante", "to": "platform", "y": 620, "label": "Selecciona opción → siguiente", "variant": "default" },
+    { "from": "platform", "to": "postulante", "y": 650, "label": "Pregunta 2/N (orden aleatorio)", "variant": "return" },
+    { "from": "postulante", "to": "platform", "y": 680, "label": "Responde TODO o timeout", "variant": "default" },
+    { "from": "platform", "to": "postulante", "y": 710, "label": "Si timeout=0: cierre automático", "variant": "emphasis" },
+    { "from": "postulante", "to": "platform", "y": 740, "label": "Click 'Finalizar y Calificar'", "variant": "emphasis" },
+    { "from": "platform", "to": "engine", "y": 770, "label": "Envía respuestas", "variant": "emphasis" },
+    { "from": "engine", "to": "db", "y": 800, "label": "Compara con matriz correcta", "variant": "emphasis" },
+    { "from": "db", "to": "engine", "y": 830, "label": "Calcula nota matemáticamente", "variant": "return" },
+    { "from": "engine", "to": "platform", "y": 860, "label": "Almacena en expediente digital", "variant": "emphasis" },
+    { "from": "platform", "to": "postulante", "y": 890, "label": "Email: resultado + PDF", "variant": "emphasis" },
+    { "from": "platform", "to": "postulante", "y": 920, "label": "✓ Resultado en perfil", "variant": "emphasis" }
+  ],
+  "activations": [
+    { "participant": "platform", "from": 160, "to": 930, "type": "frontend" },
+    { "participant": "db", "from": 255, "to": 295, "type": "database" },
+    { "participant": "engine", "from": 435, "to": 870, "type": "backend" },
+    { "participant": "db", "from": 465, "to": 835, "type": "database" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Aleatoriedad & Seguridad (EF-14)",
+      "items": [
+        "Algoritmo extrae N preguntas",
+        "Cada postulante: orden diferente",
+        "Imposible acceder igual dos veces",
+        "Bloqueo 'Atrás' + Copy/Paste"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Flujo Evaluación",
+      "items": [
+        "Una pregunta a la vez",
+        "Reloj cuenta regresiva visible",
+        "Tiempo parametrizable",
+        "Timeout fuerza cierre"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Calificación Automática",
+      "items": [
+        "Compara respuestas con matriz",
+        "Cálculo matemático instantáneo",
+        "PDF generado inmediatamente",
+        "Almacena en expediente digital"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Notificación & Auditoría",
+      "items": [
+        "Email automático con resultado",
+        "PDF en módulo administración",
+        "Trazabilidad completa",
+        "Imposible modificar retroactivamente"
+      ]
+    }
+  ]
+}

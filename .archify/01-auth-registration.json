@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "EF-11: Registro y Autenticación - Flujo de Identidad",
+    "output": "01-auth-registration.html",
+    "viewBox": [900, 1200],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    { "id": "postulante", "type": "external", "label": "Postulante", "sublabel": "Navegador" },
+    { "id": "platform", "type": "frontend", "label": "Plataforma BIESS", "sublabel": "Web" },
+    { "id": "registry", "type": "cloud", "label": "Registro Civil", "sublabel": "Interoperabilidad" },
+    { "id": "api", "type": "backend", "label": "API", "sublabel": "Validación" }
+  ],
+  "segments": [
+    { "from": 160, "to": 360, "label": "Registro" },
+    { "from": 360, "to": 615, "label": "Login" },
+    { "from": 625, "to": 900, "label": "Recuperación Contraseña" }
+  ],
+  "messages": [
+    { "from": "postulante", "to": "platform", "y": 170, "label": "Accede 'Registrarse'", "variant": "emphasis" },
+    { "from": "platform", "to": "postulante", "y": 200, "label": "Solicita cédula", "variant": "return" },
+    { "from": "postulante", "to": "platform", "y": 230, "label": "Ingresa cédula", "variant": "default" },
+    { "from": "platform", "to": "registry", "y": 260, "label": "Valida cédula (Fecha exp/Código Dactilar)", "variant": "emphasis" },
+    { "from": "registry", "to": "platform", "y": 290, "label": "Respuesta válida/inválida", "variant": "return" },
+    { "from": "platform", "to": "postulante", "y": 320, "label": "Si válido: Solicita email + pwd", "variant": "return" },
+    { "from": "postulante", "to": "platform", "y": 350, "label": "Ingresa email + pwd (intento 1/3)", "variant": "default" },
+    { "from": "platform", "to": "api", "y": 380, "label": "Crea usuario (hash pwd)", "variant": "emphasis" },
+    { "from": "api", "to": "platform", "y": 410, "label": "Usuario creado", "variant": "return" },
+    { "from": "platform", "to": "postulante", "y": 440, "label": "✓ Registro exitoso → Login", "variant": "emphasis" },
+    { "from": "postulante", "to": "platform", "y": 470, "label": "Click 'Iniciar Sesión'", "variant": "emphasis" },
+    { "from": "platform", "to": "postulante", "y": 500, "label": "Formulario: cédula + pwd", "variant": "return" },
+    { "from": "postulante", "to": "platform", "y": 530, "label": "Credenciales (intento 1)", "variant": "default" },
+    { "from": "platform", "to": "api", "y": 560, "label": "Autentica cédula + pwd", "variant": "emphasis" },
+    { "from": "api", "to": "platform", "y": 590, "label": "✓ Autenticado", "variant": "return" },
+    { "from": "platform", "to": "postulante", "y": 620, "label": "Redirige a Formulario (EF-12)", "variant": "emphasis" },
+    { "from": "postulante", "to": "platform", "y": 650, "label": "Click '¿Olvidaste contraseña?'", "variant": "emphasis" },
+    { "from": "platform", "to": "postulante", "y": 680, "label": "Solicita cédula + fecha/dactilar", "variant": "return" },
+    { "from": "postulante", "to": "platform", "y": 710, "label": "Ingresa cédula + validación", "variant": "default" },
+    { "from": "platform", "to": "registry", "y": 740, "label": "Valida identidad RC", "variant": "emphasis" },
+    { "from": "registry", "to": "platform", "y": 770, "label": "Identidad válida", "variant": "return" },
+    { "from": "platform", "to": "postulante", "y": 800, "label": "Email: enlace reset", "variant": "emphasis" },
+    { "from": "postulante", "to": "platform", "y": 830, "label": "Click enlace → nueva pwd", "variant": "default" },
+    { "from": "platform", "to": "api", "y": 860, "label": "Actualiza pwd", "variant": "emphasis" },
+    { "from": "api", "to": "platform", "y": 890, "label": "✓ Pwd actualizada", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "platform", "from": 160, "to": 900, "type": "frontend" },
+    { "participant": "api", "from": 375, "to": 415, "type": "backend" },
+    { "participant": "registry", "from": 255, "to": 295, "type": "cloud" },
+    { "participant": "registry", "from": 735, "to": 775, "type": "cloud" },
+    { "participant": "api", "from": 555, "to": 595, "type": "backend" },
+    { "participant": "api", "from": 855, "to": 895, "type": "backend" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Seguridad Registro (EF-11)",
+      "items": [
+        "Max 3 intentos fallidos",
+        "Lockout 10 min si falla",
+        "Validación cédula + Código Dactilar",
+        "Interop Registro Civil Ecuador"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Flujo Login",
+      "items": [
+        "Cédula (username) + pwd",
+        "Error genérico si falla",
+        "Link 'Olvidaste pwd' funcional"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Recuperación",
+      "items": [
+        "Revalida identidad RC",
+        "Email con enlace reset",
+        "Permite nueva pwd sin vieja"
+      ]
+    }
+  ]
+}

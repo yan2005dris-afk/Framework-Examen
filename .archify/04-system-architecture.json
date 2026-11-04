@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "EF-1: Arquitectura General - Plataforma BIESS Concurso de Méritos",
+    "output": "04-system-architecture.html",
+    "viewBox": [1200, 1000],
+    "animation": "trace",
+    "visual_preset": "enterprise",
+    "quality_profile": "showcase"
+  },
+  "layers": [
+    {
+      "id": "external",
+      "name": "Interoperabilidades Externas",
+      "y": 50,
+      "components": [
+        {
+          "id": "registry-civil",
+          "name": "Registro Civil de Ecuador",
+          "type": "cloud",
+          "description": "Validación identidad, datos personales, fecha expedición, código dactilar"
+        },
+        {
+          "id": "iess-db",
+          "name": "IESS (Historial Laboral)",
+          "type": "database",
+          "description": "Elegibilidad: afiliado/jubilado, estatus empleador"
+        },
+        {
+          "id": "email-service",
+          "name": "Servicio Correo",
+          "type": "cloud",
+          "description": "Notificaciones automáticas (resultados, enlaces reset, etc)"
+        }
+      ]
+    },
+    {
+      "id": "presentation",
+      "name": "Capa Presentación (Frontend Web)",
+      "y": 200,
+      "components": [
+        {
+          "id": "public-portal",
+          "name": "Portal Público",
+          "type": "frontend",
+          "description": "Registro, Login, Formulario Postulación (EF-11, EF-12)"
+        },
+        {
+          "id": "evaluation-portal",
+          "name": "Portal Evaluación",
+          "type": "frontend",
+          "description": "Módulo evaluación teórica (EF-14) - bloqueado para postulantes elegibles"
+        },
+        {
+          "id": "admin-portal",
+          "name": "Portal Administración",
+          "type": "frontend",
+          "description": "Dashboard, gestión postulantes, banco preguntas (EF-13, EF-14)"
+        }
+      ]
+    },
+    {
+      "id": "business",
+      "name": "Capa Lógica de Negocio",
+      "y": 380,
+      "components": [
+        {
+          "id": "auth-service",
+          "name": "Servicio Autenticación",
+          "type": "backend",
+          "description": "Registro (3 intentos, 10 min lockout), Login, Reset contraseña"
+        },
+        {
+          "id": "application-service",
+          "name": "Servicio Postulación",
+          "type": "backend",
+          "description": "Validación elegibilidad por sector, cálculo experiencia, almacenamiento documentos"
+        },
+        {
+          "id": "evaluation-engine",
+          "name": "Motor Evaluación Teórica",
+          "type": "backend",
+          "description": "Algoritmo aleatoriedad, temporizador, comparación respuestas, calificación"
+        },
+        {
+          "id": "notification-service",
+          "name": "Servicio Notificaciones",
+          "type": "backend",
+          "description": "Envío automático de resultados, recordatorios, confirmaciones"
+        }
+      ]
+    },
+    {
+      "id": "persistence",
+      "name": "Capa Persistencia (Base de Datos)",
+      "y": 560,
+      "components": [
+        {
+          "id": "users-db",
+          "name": "Usuarios (Postulantes)",
+          "type": "database",
+          "description": "Credenciales, cédula, email, estado (Activo/Locked/Evaluación)"
+        },
+        {
+          "id": "applications-db",
+          "name": "Postulaciones",
+          "type": "database",
+          "description": "Formulario completo, código único, sector, documento de respaldo, timestamp"
+        },
+        {
+          "id": "questions-db",
+          "name": "Banco de Preguntas",
+          "type": "database",
+          "description": "Pool de preguntas múltiple opción, matriz respuestas correctas, nivel dificultad"
+        },
+        {
+          "id": "evaluations-db",
+          "name": "Evaluaciones",
+          "type": "database",
+          "description": "Respuestas de postulante, calificación, PDF generado, timestamp, IP origen"
+        },
+        {
+          "id": "documents-db",
+          "name": "Almacén Documentos",
+          "type": "storage",
+          "description": "PDFs (certificados, respaldos) - max 2-4 MB por archivo"
+        }
+      ]
+    },
+    {
+      "id": "actors",
+      "name": "Actores del Sistema",
+      "y": 740,
+      "components": [
+        {
+          "id": "postulante",
+          "name": "Postulante",
+          "type": "external",
+          "description": "Usuario externo (público) - se registra, completa formulario, realiza evaluación"
+        },
+        {
+          "id": "admin-talento",
+          "name": "Administrador SDNGTH",
+          "type": "external",
+          "description": "Subdirección Gestión de Talento Humano - publica fases, carga preguntas, gestiona postulantes"
+        },
+        {
+          "id": "selection-committee",
+          "name": "Comisión de Selección",
+          "type": "external",
+          "description": "Revisa postulaciones, genera matriz comparativa, determina elegibles Fase Méritos"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    { "from": "postulante", "to": "public-portal", "label": "Acceso: Registro, Login, Formulario" },
+    { "from": "postulante", "to": "evaluation-portal", "label": "Acceso: Evaluación (si elegible)" },
+    { "from": "public-portal", "to": "auth-service", "label": "Valida identidad, cédula, credenciales" },
+    { "from": "public-portal", "to": "application-service", "label": "Envía formulario, documentos" },
+    { "from": "auth-service", "to": "registry-civil", "label": "Interop: Valida fecha exp / código dactilar" },
+    { "from": "application-service", "to": "iess-db", "label": "Interop: Valida elegibilidad por sector" },
+    { "from": "application-service", "to": "applications-db", "label": "Almacena postulación completa" },
+    { "from": "application-service", "to": "documents-db", "label": "Almacena PDFs de documentos" },
+    { "from": "admin-talento", "to": "admin-portal", "label": "Acceso: Publicar fases, cargar preguntas, gestionar postulantes" },
+    { "from": "admin-portal", "to": "questions-db", "label": "Carga/edita banco de preguntas" },
+    { "from": "evaluation-portal", "to": "evaluation-engine", "label": "Ejecuta evaluación con seguridad" },
+    { "from": "evaluation-engine", "to": "questions-db", "label": "Extrae preguntas (aleatoriedad)" },
+    { "from": "evaluation-engine", "to": "evaluations-db", "label": "Almacena respuestas y calificación" },
+    { "from": "auth-service", "to": "users-db", "label": "CRUD: usuarios, credenciales, estado" },
+    { "from": "notification-service", "to": "email-service", "label": "Envía notificaciones automáticas" },
+    { "from": "application-service", "to": "notification-service", "label": "Dispara: confirmación postulación" },
+    { "from": "evaluation-engine", "to": "notification-service", "label": "Dispara: resultado evaluación" },
+    { "from": "selection-committee", "to": "admin-portal", "label": "Acceso: matriz comparativa, elegibles" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Módulos Principales (EF)",
+      "items": [
+        "EF-11: Registro y autenticación (3 intentos, lockout 10 min)",
+        "EF-12: Formulario postulación (7 secciones, auto-validación)",
+        "EF-13: Administración (dashboard, detalle histórico, matriz)",
+        "EF-14: Evaluación teórica (aleatoriedad, temporizador, autocalificación)"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Interoperabilidades Críticas",
+      "items": [
+        "Registro Civil: validación cédula + identidad",
+        "IESS Historial Laboral: elegibilidad por sector",
+        "Correo Electrónico: notificaciones automáticas",
+        "Todas requieren configuración previa"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Seguridad y Validaciones",
+      "items": [
+        "Cédula ecuatoriana validada con RC",
+        "Fecha expedición O código dactilar (10 dígitos)",
+        "Max 3 intentos registro, lockout 10 min",
+        "Max 3 intentos login, mensaje error genérico",
+        "Bloqueo botón 'Atrás' y Copy/Paste en evaluación"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Trazabilidad Completa",
+      "items": [
+        "Código único por postulación",
+        "Todos los archivos timestamped y auditables",
+        "Expediente digital cada postulante",
+        "PDF generado automáticamente",
+        "Imposible modificar datos después"
+      ]
+    }
+  ]
+}

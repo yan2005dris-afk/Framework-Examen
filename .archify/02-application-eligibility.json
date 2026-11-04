@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "EF-12: Formulario de Postulación y Validación de Elegibilidad",
+    "output": "02-application-eligibility.html",
+    "viewBox": [1000, 1100],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    { "id": "postulante", "type": "external", "label": "Postulante", "sublabel": "Autenticado" },
+    { "id": "platform", "type": "frontend", "label": "Plataforma BIESS", "sublabel": "Formulario" },
+    { "id": "registry", "type": "cloud", "label": "Registro Civil", "sublabel": "Datos" },
+    { "id": "iessdb", "type": "database", "label": "IESS", "sublabel": "Elegibilidad" },
+    { "id": "api", "type": "backend", "label": "API Backend", "sublabel": "Storage" }
+  ],
+  "segments": [
+    { "from": 160, "to": 340, "label": "Datos Personales" },
+    { "from": 360, "to": 520, "label": "Validación Sector" },
+    { "from": 540, "to": 720, "label": "Académica & Experiencia" },
+    { "from": 740, "to": 920, "label": "Finalización" }
+  ],
+  "messages": [
+    { "from": "postulante", "to": "platform", "y": 170, "label": "Login OK → Formulario", "variant": "emphasis" },
+    { "from": "platform", "to": "registry", "y": 200, "label": "Obtiene datos personales", "variant": "emphasis" },
+    { "from": "registry", "to": "platform", "y": 230, "label": "Retorna nombres, FN, etc", "variant": "return" },
+    { "from": "platform", "to": "postulante", "y": 260, "label": "Muestra auto-cargado", "variant": "return" },
+    { "from": "postulante", "to": "platform", "y": 290, "label": "Completa domicilio", "variant": "default" },
+    { "from": "platform", "to": "api", "y": 320, "label": "Almacena domiciliaria", "variant": "emphasis" },
+    { "from": "postulante", "to": "platform", "y": 380, "label": "Selecciona sector: Afiliado", "variant": "emphasis" },
+    { "from": "platform", "to": "iessdb", "y": 410, "label": "¿Cédula afiliado?", "variant": "emphasis" },
+    { "from": "iessdb", "to": "platform", "y": 440, "label": "Retorna: Afiliado/No", "variant": "return" },
+    { "from": "platform", "to": "postulante", "y": 470, "label": "Si NO: Cierra", "variant": "emphasis" },
+    { "from": "platform", "to": "postulante", "y": 500, "label": "Si SÍ: Solicita org", "variant": "return" },
+    { "from": "postulante", "to": "platform", "y": 580, "label": "Académica + Experiencia", "variant": "default" },
+    { "from": "platform", "to": "postulante", "y": 610, "label": "Calcula años/meses/días", "variant": "return" },
+    { "from": "postulante", "to": "platform", "y": 640, "label": "Publicaciones + Capacitaciones", "variant": "default" },
+    { "from": "postulante", "to": "platform", "y": 670, "label": "13 preguntas inhabilidades", "variant": "default" },
+    { "from": "postulante", "to": "platform", "y": 760, "label": "Guardar + Términos", "variant": "emphasis" },
+    { "from": "platform", "to": "postulante", "y": 790, "label": "Consentimiento (5 declaraciones)", "variant": "return" },
+    { "from": "platform", "to": "api", "y": 820, "label": "Almacena + código único", "variant": "emphasis" },
+    { "from": "postulante", "to": "platform", "y": 850, "label": "Enviar Postulación", "variant": "emphasis" },
+    { "from": "platform", "to": "postulante", "y": 880, "label": "Email PDF + código", "variant": "emphasis" }
+  ],
+  "activations": [
+    { "participant": "platform", "from": 160, "to": 890, "type": "frontend" },
+    { "participant": "registry", "from": 195, "to": 235, "type": "cloud" },
+    { "participant": "iessdb", "from": 405, "to": 445, "type": "database" },
+    { "participant": "api", "from": 315, "to": 330, "type": "backend" },
+    { "participant": "api", "from": 815, "to": 830, "type": "backend" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Validaciones por Sector (EF-12)",
+      "items": [
+        "Afiliado: validar con IESS",
+        "Jubilado: validar jubilación",
+        "Empleador: validar calidad",
+        "Si no cumple: cierre automático"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Información Requerida",
+      "items": [
+        "Personal (auto de RC)",
+        "Domiciliaria",
+        "Académica (múltiple)",
+        "Experiencia (auto-calculo)",
+        "Inhabilidades (13 preguntas)"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Documentos",
+      "items": [
+        "Respaldo org: max 4 MB",
+        "Certificados: max 2 MB",
+        "Experiencia: max 2 MB"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Finalización",
+      "items": [
+        "Código único asignado",
+        "Consentimiento (5 declaraciones)",
+        "PDF a email automático"
+      ]
+    }
+  ]
+}
