@@ -230,10 +230,7 @@ func seedCompetition(ctx context.Context, tx pgx.Tx) error {
 	const competition = `
 INSERT INTO competitions (id, code, title, opens_at, closes_at)
 VALUES (uuidv7(), $1, $2, $3, $4)
-ON CONFLICT (code) DO UPDATE SET
-	title = EXCLUDED.title,
-	opens_at = EXCLUDED.opens_at,
-	closes_at = EXCLUDED.closes_at`
+ON CONFLICT (code) DO NOTHING`
 	if _, err := tx.Exec(ctx, competition,
 		competitionCode,
 		"Concurso Público de Méritos y Oposición BIESS 2026",
