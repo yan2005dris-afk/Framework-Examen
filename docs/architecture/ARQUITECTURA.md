@@ -397,7 +397,7 @@ de mantener la lógica de negocio fuera de los handlers.
 | Capa | Estado | Pendiente principal |
 |---|---|---|
 | Bounded contexts y cableado | Implementado | — |
-| Transacciones | Implementado | Uso real en el guardado multi-tabla |
+| Transacciones | Implementado | — (guardado multi-tabla del formulario y sello en un solo commit, [ADR-010](../decisions/ADR-010-formulario-normalizado-y-snapshot-sellado.md)) |
 | Paginación (offset y cursor) | Implementado | — |
 | Redis (bloqueo y caché) | Implementado | — |
 | Contextos `identity`, `document`, `catalog`, `review` | Parcial | EF-11, adjuntos, dashboard (la cascada con la API ya está implementada) |

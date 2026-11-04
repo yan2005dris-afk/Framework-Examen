@@ -45,7 +45,8 @@ docs/
 │   ├── ADR-006-sesiones-en-base-de-datos.md
 │   ├── ADR-007-postgresql-18-y-uuidv7.md
 │   ├── ADR-008-registro-y-recuperacion-con-otp.md
-│   └── ADR-009-paleta-institucional-biess.md
+│   ├── ADR-009-paleta-institucional-biess.md
+│   └── ADR-010-formulario-normalizado-y-snapshot-sellado.md
 ├── deployment/
 │   ├── LOCAL_DEPLOYMENT.md       # entorno de desarrollo
 │   └── PRODUCTION_DEPLOYMENT.md  # entorno de producción
@@ -90,13 +91,14 @@ consecuencias. Son cortos y se leen en minutos.
 |---|---|---|
 | [ADR-001](decisions/ADR-001-chi-en-vez-de-gin-fiber.md) | chi v5 en lugar de Gin o Fiber | Aceptada |
 | [ADR-002](decisions/ADR-002-bounded-contexts-y-hexagonal.md) | Bounded contexts con puertos y adaptadores | Aceptada |
-| [ADR-003](decisions/ADR-003-postgres-sqlc-goose.md) | PostgreSQL + sqlc + goose | Aceptada |
+| [ADR-003](decisions/ADR-003-postgres-sqlc-goose.md) | PostgreSQL + sqlc + goose | Aceptada, modificada por ADR-010 |
 | [ADR-004](decisions/ADR-004-ingles-en-codigo-espanol-en-comentarios.md) | Identificadores en inglés, comentarios en español | Aceptada |
 | [ADR-005](decisions/ADR-005-paginacion-offset-y-cursor.md) | Paginación offset y cursor sobre un kernel compartido | Aceptada |
 | [ADR-006](decisions/ADR-006-sesiones-en-base-de-datos.md) | Sesiones en PostgreSQL con cookie `HttpOnly` | Aceptada |
 | [ADR-007](decisions/ADR-007-postgresql-18-y-uuidv7.md) | PostgreSQL 18 y UUIDv7 como estrategia de identificadores | Aceptada |
 | [ADR-008](decisions/ADR-008-registro-y-recuperacion-con-otp.md) | Registro y recuperación con OTP por correo, sin Registro Civil | Aceptada |
 | [ADR-009](decisions/ADR-009-paleta-institucional-biess.md) | Paleta institucional extraída del CSS del portal oficial del BIESS | Aceptada |
+| [ADR-010](decisions/ADR-010-formulario-normalizado-y-snapshot-sellado.md) | Formulario normalizado mientras se edita y snapshot sellado al enviar | Aceptada |
 
 ---
 

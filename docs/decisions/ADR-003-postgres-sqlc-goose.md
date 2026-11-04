@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | ADR | 003 |
-| Estado | **Aceptada** |
+| Estado | **Aceptada**, modificada por [ADR-010](ADR-010-formulario-normalizado-y-snapshot-sellado.md) |
 | Fecha | 2026-10-30 |
 | Ámbito | Backend (persistencia) |
 | Referencia | [`../database/SCHEMA.md`](../database/SCHEMA.md) |
@@ -74,8 +74,11 @@ migraciones instalado en la máquina.
   idempotentes (`INSERT ... ON CONFLICT DO NOTHING`).
 - `pgx` da acceso directo al protocolo PostgreSQL: pool, conexiones
   preparadas y transacciones reales, sin capa intermedia.
-- `jsonb` para el contenido del formulario: el RF evoluciona sin migraciones
-  por cada campo nuevo.
+- ~~`jsonb` para el contenido del formulario: el RF evoluciona sin migraciones
+  por cada campo nuevo.~~ **Modificada por
+  [ADR-010](ADR-010-formulario-normalizado-y-snapshot-sellado.md):** el
+  formulario se normaliza en tablas mientras se edita, y `jsonb` queda solo
+  para el snapshot sellado del envío, sobre el que se calcula el hash.
 
 ### Negativas
 

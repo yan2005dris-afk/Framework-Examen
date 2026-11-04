@@ -50,8 +50,9 @@ erDiagram
         uuid id PK "UUIDv7"
         uuid applicant_id FK
         varchar code UK "EF12-AAAA-XXXXXX"
-        varchar status "draft | in_review | submitted"
-        jsonb content "9 secciones del EF-12"
+        varchar status "draft | in_review | submitted | closed"
+        varchar sector "afiliados | jubilados | empleadores"
+        jsonb content "snapshot sellado; NULL en borradores (§10)"
         varchar hash "SHA-256 del contenido canónico"
         timestamptz submitted_at
         timestamptz created_at
@@ -174,7 +175,8 @@ DROP TABLE IF EXISTS applicants;
 |---|---|
 | `id UUID` **v7** generado en la aplicación | El identificador se conoce antes de insertar (el dominio no depende de la base) y, al estar ordenado en el tiempo, no fragmenta el índice del PRIMARY KEY. Ver [ADR-007](../decisions/ADR-007-postgresql-18-y-uuidv7.md) |
 | `DEFAULT uuidv7()` en la base | Red de seguridad para los caminos de inserción que no fijan el identificador: semillas, importaciones o SQL manual |
-| `content JSONB` | Las 9 secciones del EF-12 evolucionan con el RF; no se fuerza una migración por cada campo nuevo |
+| `content JSONB` | **Desde `00026`, solo el snapshot sellado** de los expedientes enviados y cerrados, sobre el que se calcula el hash. Los borradores viven en tablas normalizadas (§10, [ADR-010](../decisions/ADR-010-formulario-normalizado-y-snapshot-sellado.md)) |
+| `sector` | Columna propia (`00023`, escrita por el adaptador desde `00026`): filtra revisión y resultados con índice. Un trigger la deriva del snapshot si no viene y un `CHECK` impide que discrepen |
 | Columnas propias para lo que se consulta | `code`, `status`, `applicant_id` y `hash` tienen índice y filtro propios |
 | `CHECK` sobre `status` | El conjunto de estados es un invariante del dominio y queda garantizado en la base, no solo en Go |
 | `ON DELETE CASCADE` | No existen postulaciones huérfanas: si se elimina el postulante, se va su postulación |
@@ -374,6 +376,13 @@ err := txManager.WithinTx(ctx, func(tx pgx.Tx) error {
 - `mapError` traduce las violaciones de restricciones a errores de dominio:
   `23505` → `ErrDuplicateCode`, `23503` → `ErrInvalidApplicant`.
 
+**Guardar una sección del formulario es una transacción multi-tabla.** Dentro
+del `WithinTx` de `Repository.Mutate`, bajo `SELECT … FOR UPDATE` de la
+postulación, se reescriben las tablas de las secciones que cambiaron (§10), se
+actualiza la cabecera y se registra el evento de auditoría. Si cualquier paso
+falla, `ROLLBACK` deja todo como estaba. El sello agrega, en el mismo commit, el
+snapshot, el consentimiento, el vínculo de privacidad y la cola de correo.
+
 ---
 
 ## 6. Integridad del contenido
@@ -393,6 +402,10 @@ De ahí se derivan dos garantías:
 1. El hash es **estable**: el mismo formulario produce la misma huella.
 2. El hash es **verificable**: en cualquier momento se recalcula sobre el
    contenido almacenado y se compara con `submissions.hash`.
+
+Por eso el expediente enviado conserva su snapshot JSON aunque el borrador viva
+en tablas: si el documento se rearmara desde un esquema que cambió, el hash
+dejaría de coincidir.
 
 ---
 
@@ -428,6 +441,15 @@ Reglas:
 |---|---|
 | `00001_init.sql` | Crea `applicants` y `submissions`, con su índice y su restricción de estado |
 | `00002_uuidv7.sql` | Pone `DEFAULT uuidv7()` en los identificadores y recompone el índice con `id DESC` |
+| … | (`00003`–`00022`: identidad, documentos, catálogos, revisión, ciclo de vida, auditoría y descargas) |
+| `00023_submission_sector.sql` | `sector` como columna propia; índice de revisión y triggers dejan de leer el JSON |
+| `00024_submission_form_tables.sql` | Catorce tablas normalizadas del formulario, con sus `CHECK`, claves y triggers (§10) |
+| `00025_submission_form_backfill.go` | Rellena las tablas desde `content`; verifica cada borrador byte a byte o falla |
+| `00026_submission_content_snapshot.sql` | `content` solo para expedientes sellados o cerrados; `sector` escrito por el adaptador |
+| `00027_submission_draft_content.go` | Vacía el `content` de los borradores tras repetir la verificación; la reversión lo reconstruye |
+
+Las migraciones `.go` usan `goose.AddMigrationNoTxContext`: toman la conexión
+pgx nativa y abren su propia transacción para reutilizar el adaptador.
 
 ### 7.2 El volumen de PostgreSQL 18
 
@@ -455,7 +477,7 @@ actualización está en
 |---|---|---|
 | Migraciones | `apps/backend/sql/migrations/` | Fuente de verdad del esquema |
 | Esquema para sqlc | `apps/backend/sql/queries/schema.sql` | Generado con `make db-schema` |
-| Queries | `apps/backend/sql/queries/submissions.sql` | Escritas a mano |
+| Queries | `apps/backend/sql/queries/*.sql` (`submissions.sql`, `submission_form.sql`, …) | Escritas a mano |
 | Código generado | `apps/backend/internal/platform/sqlcgen/` | **No editar**: se regenera |
 
 ```bash
@@ -486,6 +508,64 @@ archivos.
 
 ---
 
+## 10. Formulario de postulación normalizado
+
+Decisión y alternativas en
+[ADR-010](../decisions/ADR-010-formulario-normalizado-y-snapshot-sellado.md).
+Migraciones `00023`–`00027`.
+
+| Estado | Fuente del formulario | `submissions.content` |
+|---|---|---|
+| `draft`, `in_review` | Tablas de esta sección | `NULL` |
+| `submitted`, `closed` | `content` | Snapshot JSON canónico; el envío lleva además `hash` |
+
+### 10.1 Tablas
+
+| Tabla | Sección del RF | Clave | Contenido |
+|---|---|---|---|
+| `submission_sections` | — | `(submission_id, section)` | Secciones guardadas; `items_declared` distingue una lista vacía de una no declarada |
+| `submission_personal` | 1.1 | `submission_id` | Nombres, género, nacimiento, nacionalidad (solo «Ecuatoriana»), estado civil y pareja |
+| `submission_contact` | 1.2 | `submission_id` | País (id), provincia y cantón (id para Ecuador, texto para otro país), teléfonos, dirección |
+| `submission_additional` · `submission_relatives` | 1.3 | `submission_id` · `(submission_id, position)` | Respuesta Sí/No y familiares en IESS/BIESS |
+| `submission_position` | 1.4 | `submission_id` | Elegibilidad declarada, organización y respaldo PDF |
+| `submission_degrees` | 1.5 | `(submission_id, position)` | Títulos con nivel, tipo, área, SENESCYT y respaldo |
+| `submission_experiences` | 1.6 | `(submission_id, position)` | Experiencias; funciones ≤ 1000 caracteres; empleo vigente sin fecha de fin |
+| `submission_publications_info` · `submission_publications` | 1.7 | `submission_id` · `(submission_id, position)` | Respuesta Sí/No y publicaciones |
+| `submission_trainings` | 1.8 | `(submission_id, position)` | Capacitaciones; horas ≥ 0 en borrador |
+| `submission_disqualifications` · `submission_removal_details` | 1.9 | `submission_id` | Trece respuestas Sí/No y el detalle de 1.9.7 |
+| `submission_consents` | 1.10 | `submission_id` | Cinco aceptaciones, firma, política de privacidad y fecha de aceptación |
+
+`position` es el orden del arreglo, del que depende el hash. `record_key` es el
+identificador que genera el cliente: puede faltar en un borrador, por eso solo
+es único cuando existe (índice parcial).
+
+### 10.2 Integridad
+
+- Cada tabla de datos referencia `submission_sections(submission_id, section)`
+  con la sección como columna generada constante: sin sección guardada no hay
+  datos, y quitarla los borra en cascada.
+- `(province_id, country_id)` y `(city_id, province_id)` →
+  `catalogs(id, parent_id)`; el país, con su `kind`, → `catalogs(id, kind)`.
+- Respaldos: `(document_id, submission_id, section, record_key)` →
+  `documents(id, submission_id, section, record_id)`, `DEFERRABLE INITIALLY
+  DEFERRED`.
+- `submission_removal_details(submission_id, q7 = 'Sí')` →
+  `submission_disqualifications(submission_id, q7)`, diferida.
+- Opciones del RF como `CHECK`, iguales a `definition.json` (lo verifica
+  `TestPostgresFormChecksMatchDefinition`). Ningún `CHECK` es más estricto que
+  la validación del borrador en Go.
+- `enforce_submission_child` en las catorce tablas: solo borradores, dentro de la
+  ventana de la convocatoria y sin cambio de titular. `TRUNCATE` prohibido.
+
+### 10.3 Lo que no se guarda
+
+Cédula y correo (de `applicants`), duración de la experiencia (se calcula),
+metadatos del PDF (de `documents`), `verificadoRegistroCivil` (siempre falso) y
+los textos del consentimiento (constantes del RF). El snapshot sellado los
+conserva tal como se enviaron.
+
+---
+
 **Ver también**: [`../trd/TRD.md`](../trd/TRD.md) ·
 [`../architecture/ARQUITECTURA.md`](../architecture/ARQUITECTURA.md) ·
 [`../api-contracts/API_CONTRACT.md`](../api-contracts/API_CONTRACT.md)
@@ -497,7 +577,8 @@ archivos.
 y SHA-256 hexadecimal. La clave de almacenamiento también es única.
 La cuota de 50 MiB se comprueba sumando todas las postulaciones de la cuenta
 bajo `SELECT applicants ... FOR UPDATE`; luego se bloquea la postulación.
-La mutación confirma juntos el documento y la referencia JSON del formulario.
+La mutación confirma juntos el documento y su vínculo con el registro
+(`document_id` en la tabla de la sección, §10).
 
 El verificador del envío lee documentos con la misma conexión transaccional,
 mediante el contexto compartido por adaptadores. Las bajas activan un trigger

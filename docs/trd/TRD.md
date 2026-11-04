@@ -208,8 +208,9 @@ erDiagram
         uuid id PK
         uuid applicant_id FK
         varchar codigo UK "EF12-2026-XXXXXX"
-        varchar status "draft | in_review | submitted"
-        jsonb content "9 secciones del EF-12"
+        varchar status "draft | in_review | submitted | closed"
+        varchar sector "afiliados | jubilados | empleadores"
+        jsonb content "snapshot sellado; NULL en borradores"
         varchar hash "SHA-256 del contenido canónico"
         timestamptz submitted_at
         timestamptz created_at
@@ -257,10 +258,14 @@ erDiagram
 
 ### 4.1 Decisiones de modelado
 
-- **`content jsonb`**: las 9 secciones del EF-12 se guardan como un documento
-  JSON. El formulario evoluciona con el RF y no obliga a migraciones por cada
-  campo nuevo. Los datos que sí se consultan (código, sector, estado,
-  postulante) tienen columna propia.
+- **Formulario normalizado mientras se edita, snapshot sellado al enviar**
+  ([ADR-010](../decisions/ADR-010-formulario-normalizado-y-snapshot-sellado.md)):
+  cada sección y cada registro repetible tienen su tabla, con claves foráneas al
+  catálogo geográfico y a los PDF y con las opciones del RF como `CHECK`.
+  Guardar una sección es una transacción multi-tabla. Al enviar, el formulario se
+  congela en `content jsonb`, el documento sobre el que se calcula el hash; los
+  borradores no guardan `content`. Código, sector, estado y postulante tienen
+  columna propia. Detalle en [`SCHEMA.md` §10](../database/SCHEMA.md).
 - **Claves foráneas reales**: `submissions.applicant_id` referencia
   `applicants.id` con `ON DELETE CASCADE`; no hay postulaciones huérfanas.
 - **`sha256` en documentos**: permite verificar la integridad del archivo
@@ -461,6 +466,7 @@ de las oficiales de GitHub.
 | [ADR-005](../decisions/ADR-005-paginacion-offset-y-cursor.md) | Paginación offset y cursor sobre un kernel compartido |
 | [ADR-006](../decisions/ADR-006-sesiones-en-base-de-datos.md) | Sesiones en PostgreSQL con cookie `HttpOnly` |
 | [ADR-007](../decisions/ADR-007-postgresql-18-y-uuidv7.md) | PostgreSQL 18 y UUIDv7 como estrategia de identificadores |
+| [ADR-010](../decisions/ADR-010-formulario-normalizado-y-snapshot-sellado.md) | Formulario normalizado mientras se edita y snapshot sellado al enviar |
 
 ---
 
