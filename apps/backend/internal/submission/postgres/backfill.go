@@ -81,6 +81,11 @@ func BackfillForms(ctx context.Context, tx pgx.Tx, now time.Time) (BackfillRepor
 	failed := []string{}
 	for _, p := range items {
 		editable := (&submission.Submission{Status: submission.Status(p.status)}).IsEditable()
+		// Desde 00027 un borrador sin content ya vive sólo en las tablas.
+		if editable && p.content == nil {
+			report.Drafts++
+			continue
+		}
 		err := backfillOne(ctx, tx, repo, p.id, p.content, p.updated, editable, now)
 		switch {
 		case err == nil && editable:

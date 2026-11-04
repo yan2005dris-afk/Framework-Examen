@@ -25,8 +25,8 @@ func (q *Queries) CountSubmissionsByApplicant(ctx context.Context, applicantID u
 }
 
 const createSubmission = `-- name: CreateSubmission :one
-INSERT INTO submissions (id, applicant_id, code, status, content, created_at, updated_at, competition_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO submissions (id, applicant_id, code, status, content, created_at, updated_at, competition_id, sector)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at, competition_id, eligibility, sector
 `
 
@@ -39,8 +39,10 @@ type CreateSubmissionParams struct {
 	CreatedAt     time.Time   `json:"created_at"`
 	UpdatedAt     time.Time   `json:"updated_at"`
 	CompetitionID pgtype.UUID `json:"competition_id"`
+	Sector        *string     `json:"sector"`
 }
 
+// content es NULL en borradores: su formulario vive en las tablas normalizadas.
 func (q *Queries) CreateSubmission(ctx context.Context, arg CreateSubmissionParams) (Submission, error) {
 	row := q.db.QueryRow(ctx, createSubmission,
 		arg.ID,
@@ -51,6 +53,7 @@ func (q *Queries) CreateSubmission(ctx context.Context, arg CreateSubmissionPara
 		arg.CreatedAt,
 		arg.UpdatedAt,
 		arg.CompetitionID,
+		arg.Sector,
 	)
 	var i Submission
 	err := row.Scan(
@@ -302,7 +305,7 @@ func (q *Queries) ListSubmissionsByApplicantCursorFirst(ctx context.Context, arg
 
 const updateSubmission = `-- name: UpdateSubmission :one
 UPDATE submissions
-SET content = $2, status = $3, hash = $4, submitted_at = $5, updated_at = $6, eligibility = $7
+SET content = $2, status = $3, hash = $4, submitted_at = $5, updated_at = $6, eligibility = $7, sector = $8
 WHERE id = $1 AND status IN ('draft','in_review')
 RETURNING id, applicant_id, code, status, content, hash, submitted_at, created_at, updated_at, competition_id, eligibility, sector
 `
@@ -315,6 +318,7 @@ type UpdateSubmissionParams struct {
 	SubmittedAt pgtype.Timestamptz `json:"submitted_at"`
 	UpdatedAt   time.Time          `json:"updated_at"`
 	Eligibility []byte             `json:"eligibility"`
+	Sector      *string            `json:"sector"`
 }
 
 func (q *Queries) UpdateSubmission(ctx context.Context, arg UpdateSubmissionParams) (Submission, error) {
@@ -326,6 +330,7 @@ func (q *Queries) UpdateSubmission(ctx context.Context, arg UpdateSubmissionPara
 		arg.SubmittedAt,
 		arg.UpdatedAt,
 		arg.Eligibility,
+		arg.Sector,
 	)
 	var i Submission
 	err := row.Scan(

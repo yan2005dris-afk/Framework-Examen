@@ -1,6 +1,7 @@
 -- name: CreateSubmission :one
-INSERT INTO submissions (id, applicant_id, code, status, content, created_at, updated_at, competition_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, sqlc.narg(competition_id))
+-- content es NULL en borradores: su formulario vive en las tablas normalizadas.
+INSERT INTO submissions (id, applicant_id, code, status, content, created_at, updated_at, competition_id, sector)
+VALUES ($1, $2, $3, $4, $5, $6, $7, sqlc.narg(competition_id), sqlc.narg(sector))
 RETURNING *;
 
 -- name: GetSubmissionByID :one
@@ -33,7 +34,7 @@ LIMIT $4;
 
 -- name: UpdateSubmission :one
 UPDATE submissions
-SET content = $2, status = $3, hash = $4, submitted_at = $5, updated_at = $6, eligibility = $7
+SET content = $2, status = $3, hash = $4, submitted_at = $5, updated_at = $6, eligibility = $7, sector = sqlc.narg(sector)
 WHERE id = $1 AND status IN ('draft','in_review')
 RETURNING *;
 

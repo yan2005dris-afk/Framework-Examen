@@ -246,7 +246,7 @@ func TestPostgresFormTablesIntegrity(t *testing.T) {
 
 	t.Run("expediente enviado inmutable", func(t *testing.T) {
 		ctx := context.Background()
-		if _, err := pool.Exec(ctx, `UPDATE submissions SET status='submitted',hash=repeat('b',64),submitted_at=now() WHERE id=$1`, f.submission); err != nil {
+		if _, err := pool.Exec(ctx, `UPDATE submissions SET status='submitted',content='{}'::jsonb,hash=repeat('b',64),submitted_at=now() WHERE id=$1`, f.submission); err != nil {
 			t.Fatal(err)
 		}
 		for _, statement := range []string{

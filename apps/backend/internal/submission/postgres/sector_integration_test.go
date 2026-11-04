@@ -6,28 +6,33 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/submission"
+	"github.com/yan2005dris-afk/Framework-Examen/apps/backend/internal/testutil"
 )
 
-// TestPostgresSectorColumnFollowsContent comprueba que el sector es una columna
-// propia, calculada por PostgreSQL y restringida a las opciones del formulario.
-func TestPostgresSectorColumnFollowsContent(t *testing.T) {
+// TestPostgresSectorColumnFollowsForm comprueba que el sector es una columna propia
+// que escribe el adaptador, restringida a las opciones del formulario y coherente
+// con el snapshot de los expedientes que ya no se editan.
+func TestPostgresSectorColumnFollowsForm(t *testing.T) {
 	repo, item, pool := integrationEnvironment(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	sector := func() *string {
+	header := func(id uuid.UUID) (*string, bool) {
 		t.Helper()
-		var value *string
-		if err := pool.QueryRow(ctx, `SELECT sector FROM submissions WHERE id=$1`, item.ID).Scan(&value); err != nil {
+		var sector *string
+		var hasContent bool
+		if err := pool.QueryRow(ctx, `SELECT sector, content IS NOT NULL FROM submissions WHERE id=$1`, id).Scan(&sector, &hasContent); err != nil {
 			t.Fatal(err)
 		}
-		return value
+		return sector, hasContent
 	}
 
-	if value := sector(); value != nil {
-		t.Fatalf("sin sección 4 el sector debe ser NULL: %q", *value)
+	if sector, _ := header(item.ID); sector != nil {
+		t.Fatalf("sin sección 4 el sector debe ser NULL: %q", *sector)
 	}
-
 	for _, want := range []string{"afiliados", "jubilados", ""} {
 		if err := item.UpdateContent(json.RawMessage(`{"seccion4":{"sector":"`+want+`"}}`), time.Now().UTC()); err != nil {
 			t.Fatal(err)
@@ -35,14 +40,19 @@ func TestPostgresSectorColumnFollowsContent(t *testing.T) {
 		if err := repo.Update(ctx, item); err != nil {
 			t.Fatalf("guardar sector %q: %v", want, err)
 		}
-		if value := sector(); value == nil || *value != want {
-			t.Fatalf("sector esperado %q, obtenido %v", want, value)
+		sector, hasContent := header(item.ID)
+		if sector == nil || *sector != want {
+			t.Fatalf("sector esperado %q, obtenido %v", want, sector)
+		}
+		// El borrador vive sólo en las tablas.
+		if hasContent {
+			t.Fatal("un borrador no debe guardar content")
 		}
 	}
 
-	// Un valor fuera de definition.json lo rechaza la base aunque se salte el servicio:
+	// Un sector fuera de definition.json lo rechaza la base aunque se salte el servicio:
 	// primero la ventana de la convocatoria y, debajo, el CHECK de la columna.
-	invalid := `UPDATE submissions SET content='{"seccion4":{"sector":"otro"}}' WHERE id=$1`
+	invalid := `UPDATE submissions SET sector='otro' WHERE id=$1`
 	if _, err := pool.Exec(ctx, invalid, item.ID); err == nil || !strings.Contains(err.Error(), "El sector no está habilitado") {
 		t.Fatalf("la ventana debe rechazar un sector no habilitado: %v", err)
 	}
@@ -61,9 +71,31 @@ func TestPostgresSectorColumnFollowsContent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// La columna es generada: no admite escrituras directas que la desincronicen del contenido.
-	if _, err := pool.Exec(ctx, `UPDATE submissions SET sector='empleadores' WHERE id=$1`, item.ID); err == nil {
-		t.Fatal("la columna generada no debe aceptar escrituras directas")
+	// Un snapshot insertado sin sector lo recibe del propio snapshot; uno que discrepa se rechaza.
+	snapshot := json.RawMessage(`{"seccion4":{"sector":"jubilados"}}`)
+	canonical, _ := submission.CanonicalContent(snapshot)
+	insert := func(sector any) (uuid.UUID, error) {
+		id := uuid.New()
+		_, err := pool.Exec(ctx, `INSERT INTO submissions(id,applicant_id,code,status,content,hash,submitted_at,competition_id,sector)
+			VALUES($1,$2,$3,'submitted',$4,$5,now(),$6,$7)`, id, item.ApplicantID, "SNAP-"+id.String()[:8], snapshot,
+			submission.HashContent(canonical), testutil.OpenCompetition(t, pool), sector)
+		return id, err
+	}
+	derived, err := insert(nil)
+	if err != nil {
+		t.Fatalf("snapshot sin sector: %v", err)
+	}
+	if sector, hasContent := header(derived); sector == nil || *sector != "jubilados" || !hasContent {
+		t.Fatalf("el sector debe derivarse del snapshot: %v", sector)
+	}
+	if _, err := insert("empleadores"); err == nil || !strings.Contains(err.Error(), "submissions_sector_snapshot") {
+		t.Fatalf("un sector que discrepa del snapshot debe rechazarse: %v", err)
+	}
+	// Todo expediente enviado conserva su snapshot.
+	if _, err := pool.Exec(ctx, `INSERT INTO submissions(id,applicant_id,code,status,hash,submitted_at,competition_id)
+		VALUES($1,$2,'SIN-SNAPSHOT','submitted',repeat('a',64),now(),$3)`, uuid.New(), item.ApplicantID, testutil.OpenCompetition(t, pool)); err == nil ||
+		!strings.Contains(err.Error(), "submissions_sealed_content") {
+		t.Fatalf("un expediente enviado sin snapshot debe rechazarse: %v", err)
 	}
 
 	// El índice de revisión usa la columna, no una expresión sobre el JSON.

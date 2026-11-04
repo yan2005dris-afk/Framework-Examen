@@ -60,15 +60,17 @@ func (r *Repository) Create(ctx context.Context, item *submission.Submission) er
 	return r.create(ctx, item)
 }
 func (r *Repository) create(ctx context.Context, item *submission.Submission) error {
+	form := item.Content
 	params := sqlcgen.CreateSubmissionParams{
 		CompetitionID: nullableUUID(item.CompetitionID),
 		ID:            item.ID,
 		ApplicantID:   item.ApplicantID,
 		Code:          item.Code,
 		Status:        string(item.Status),
-		Content:       item.Content,
+		Content:       snapshotContent(item),
 		CreatedAt:     item.CreatedAt,
 		UpdatedAt:     item.UpdatedAt,
+		Sector:        formSector(form),
 	}
 
 	row, err := r.queries.CreateSubmission(ctx, params)
@@ -77,6 +79,8 @@ func (r *Repository) create(ctx context.Context, item *submission.Submission) er
 	}
 
 	applyRow(item, row)
+	// La fila no guarda el formulario de un borrador: se escribe en las tablas.
+	item.Content = form
 	if err := r.writeForm(ctx, item, nil); err != nil {
 		return err
 	}
@@ -257,18 +261,24 @@ func (r *Repository) update(ctx context.Context, item *submission.Submission) er
 		return err
 	}
 	if err == nil && (&submission.Submission{Status: submission.Status(previous.Status)}).IsEditable() {
-		if err := r.writeForm(ctx, item, previous.Content); err != nil {
+		// Se compara contra las tablas, la fuente del borrador.
+		stored, err := r.formContent(ctx, item.ID)
+		if err != nil {
+			return err
+		}
+		if err := r.writeForm(ctx, item, stored); err != nil {
 			return err
 		}
 	}
 	params := sqlcgen.UpdateSubmissionParams{
 		Eligibility: evidence,
 		ID:          item.ID,
-		Content:     item.Content,
+		Content:     snapshotContent(item),
 		Status:      string(item.Status),
 		Hash:        optionalString(item.Hash),
 		SubmittedAt: timestamptz(item.SubmittedAt),
 		UpdatedAt:   item.UpdatedAt,
+		Sector:      formSector(item.Content),
 	}
 
 	row, err := r.queries.UpdateSubmission(ctx, params)

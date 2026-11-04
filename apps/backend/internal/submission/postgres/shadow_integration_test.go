@@ -20,18 +20,32 @@ func (a accountReader) GetByID(context.Context, uuid.UUID) (*identity.Applicant,
 	return a.applicant, nil
 }
 
-// assertShadow compara el formulario armado desde las tablas con `content`, la fuente de lectura de esta fase.
-func assertShadow(t *testing.T, repo *Repository, id uuid.UUID, step string) {
+// capturingRepository guarda el formulario que el servicio calculó dentro de la
+// última mutación: el oráculo independiente de lo que después se lee de las tablas.
+type capturingRepository struct {
+	*Repository
+	content json.RawMessage
+}
+
+func (c *capturingRepository) Mutate(ctx context.Context, id uuid.UUID, change func(context.Context, *submission.Submission) error) (*submission.Submission, error) {
+	return c.Repository.Mutate(ctx, id, func(ctx context.Context, item *submission.Submission) error {
+		if err := change(ctx, item); err != nil {
+			return err
+		}
+		c.content = append(json.RawMessage(nil), item.Content...)
+		return nil
+	})
+}
+
+// assertShadow compara el formulario armado desde las tablas con el que calculó el servicio.
+func assertShadow(t *testing.T, capture *capturingRepository, id uuid.UUID, step string) {
 	t.Helper()
 	ctx := context.Background()
 	now := time.Now().UTC()
-	item, err := repo.FindByID(ctx, id)
-	if err != nil || item == nil {
-		t.Fatalf("%s: postulación: %v", step, err)
-	}
-	stored, err := submission.DecodeForm(item.Content)
+	repo := capture.Repository
+	stored, err := submission.DecodeForm(capture.content)
 	if err != nil {
-		t.Fatalf("%s: content: %v", step, err)
+		t.Fatalf("%s: formulario del servicio: %v", step, err)
 	}
 	submission.NormalizeDurations(stored, now)
 	loaded, err := repo.loadForm(ctx, id, now)
@@ -72,7 +86,8 @@ func TestPostgresFormDualWriteShadowsContent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	service := submission.NewService(repo).WithApplicants(accountReader{&identity.Applicant{
+	capture := &capturingRepository{Repository: repo}
+	service := submission.NewService(capture).WithApplicants(accountReader{&identity.Applicant{
 		ID: item.ApplicantID, IDCard: card, FirstName: "Persona", LastName: "Prueba", Email: "prueba@example.test",
 	}})
 	_, cases := sharedCases(t)
@@ -82,7 +97,7 @@ func TestPostgresFormDualWriteShadowsContent(t *testing.T) {
 		if _, err := service.SaveSection(ctx, item.ID, number, sectionOf(t, base, number)); err != nil {
 			t.Fatalf("guardar sección %d: %v", number, err)
 		}
-		assertShadow(t, repo, item.ID, fmt.Sprintf("sección %d", number))
+		assertShadow(t, capture, item.ID, fmt.Sprintf("sección %d", number))
 	}
 
 	// Guardar una sección no reescribe las demás.
@@ -91,7 +106,7 @@ func TestPostgresFormDualWriteShadowsContent(t *testing.T) {
 	if _, err := service.SaveSection(ctx, item.ID, 1, json.RawMessage(`{"estadoCivil":"Casado/a","nombreConyuge":"Persona Pareja","cedulaConyuge":"1710034016"}`)); err != nil {
 		t.Fatal(err)
 	}
-	assertShadow(t, repo, item.ID, "pareja")
+	assertShadow(t, capture, item.ID, "pareja")
 	if !savedAt(t, pool, item.ID, 5).Equal(before) {
 		t.Fatal("guardar la sección 1 reescribió la sección 5")
 	}
@@ -126,7 +141,7 @@ func TestPostgresFormDualWriteShadowsContent(t *testing.T) {
 		if _, err := service.SaveSection(ctx, item.ID, step.section, json.RawMessage(step.patch)); err != nil {
 			t.Fatalf("%s: %v", step.name, err)
 		}
-		assertShadow(t, repo, item.ID, step.name)
+		assertShadow(t, capture, item.ID, step.name)
 	}
 
 	// Una referencia a un PDF ajeno no bloquea el borrador: se descarta en las tablas.
@@ -140,7 +155,7 @@ func TestPostgresFormDualWriteShadowsContent(t *testing.T) {
 	if _, err := service.SaveSection(ctx, item.ID, 7, sectionOf(t, base, 7)); err != nil {
 		t.Fatal(err)
 	}
-	assertShadow(t, repo, item.ID, "publicaciones sin referencia")
+	assertShadow(t, capture, item.ID, "publicaciones sin referencia")
 
 	// El sello escribe las tablas antes de cambiar el estado y quedan iguales al snapshot.
 	sealed, err := service.Submit(ctx, item.ID, &submission.Consent{DataProcessing: true, Truthfulness: true, CompetitionRules: true, NamePublication: true, PhysicalDelivery: true})
@@ -152,7 +167,11 @@ func TestPostgresFormDualWriteShadowsContent(t *testing.T) {
 	if err != nil || sealed.Status != submission.StatusSubmitted || sealed.Hash != submission.HashContent(canonical) {
 		t.Fatalf("sello inesperado: %s %s %v", sealed.Status, sealed.Hash, err)
 	}
-	assertShadow(t, repo, item.ID, "sello")
+	assertShadow(t, capture, item.ID, "sello")
+	// El snapshot guardado es exactamente el formulario que selló el servicio.
+	if sealedForm, _ := submission.CanonicalContent(capture.content); string(sealedForm) != string(canonical) {
+		t.Fatal("el snapshot sellado difiere del formulario calculado por el servicio")
+	}
 	var accepted *time.Time
 	if err := pool.QueryRow(ctx, `SELECT accepted_at FROM submission_consents WHERE submission_id=$1`, item.ID).Scan(&accepted); err != nil || accepted == nil {
 		t.Fatalf("la aceptación sellada debe quedar en la tabla: %v %v", accepted, err)

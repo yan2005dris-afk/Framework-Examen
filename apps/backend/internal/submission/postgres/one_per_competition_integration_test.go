@@ -113,7 +113,7 @@ func TestPostgresClosedSubmissionStillBlocksNewDraft(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	if _, err := pool.Exec(ctx, `UPDATE submissions SET status='closed', eligibility='{"elegible":false}'::jsonb WHERE id=$1`, item.ID); err != nil {
+	if _, err := pool.Exec(ctx, `UPDATE submissions SET status='closed', content='{}'::jsonb, eligibility='{"elegible":false}'::jsonb WHERE id=$1`, item.ID); err != nil {
 		t.Fatal(err)
 	}
 	err := repo.Create(ctx, newDraft(t, item.ApplicantID, *item.CompetitionID))

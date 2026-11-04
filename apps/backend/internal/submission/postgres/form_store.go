@@ -378,6 +378,40 @@ func formWriteError(err error) error {
 }
 
 /**
+ * snapshotContent devuelve lo que la cabecera guarda en `content`: el snapshot de
+ * un expediente que ya no se edita (enviado o cerrado) o NULL para un borrador.
+ */
+func snapshotContent(item *submission.Submission) []byte {
+	if item.IsEditable() {
+		return nil
+	}
+	return item.Content
+}
+
+/** formSector toma el sector de la sección 4; NULL si la sección no se guardó. */
+func formSector(content json.RawMessage) *string {
+	form, err := submission.DecodeForm(content)
+	if err != nil || form.Position == nil {
+		return nil
+	}
+	sector := form.Position.Sector
+	return &sector
+}
+
+/** formContent serializa el borrador tal como está en las tablas, para compararlo. */
+func (r *Repository) formContent(ctx context.Context, id uuid.UUID) (json.RawMessage, error) {
+	form, err := r.loadForm(ctx, id, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	raw, err := json.Marshal(form)
+	if err != nil {
+		return nil, err
+	}
+	return submission.CanonicalContent(raw)
+}
+
+/**
  * Hydrate reemplaza el contenido de un borrador por el formulario armado desde
  * las tablas normalizadas, su fuente desde la fase 4. Las postulaciones enviadas
  * o cerradas conservan `content`, que es su snapshot.
@@ -389,19 +423,11 @@ func (r *Repository) Hydrate(ctx context.Context, item *submission.Submission) e
 	if item == nil || !item.IsEditable() {
 		return nil
 	}
-	form, err := r.loadForm(ctx, item.ID, time.Now())
+	content, err := r.formContent(ctx, item.ID)
 	if err != nil {
 		return fmt.Errorf("no se pudo leer el formulario: %w", err)
 	}
-	raw, err := json.Marshal(form)
-	if err != nil {
-		return err
-	}
-	canonical, err := submission.CanonicalContent(raw)
-	if err != nil {
-		return err
-	}
-	item.Content = canonical
+	item.Content = content
 	return nil
 }
 
