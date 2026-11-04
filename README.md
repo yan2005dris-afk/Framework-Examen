@@ -170,6 +170,40 @@ docs/            # documentación completa del proyecto
 
 ---
 
+## Diagramas de flujo interactivos
+
+El repositorio incluye tres diagramas de secuencia interactivos (generados con **Archify 3.2.0**) que visualizan los flujos dinámicos principales del sistema:
+
+### Acceso rápido
+
+```bash
+# Abrir el índice visual (menú de diagramas)
+open .archify/INDEX.html
+
+# O acceder directamente a cada diagrama
+open .archify/01-auth-registration.html         # EF-11: Registro y Autenticación
+open .archify/02-application-eligibility.html  # EF-12: Formulario de Postulación
+open .archify/03-theoretical-evaluation.html   # EF-14: Evaluación Teórica
+```
+
+### Diagramas disponibles
+
+| Especificación | Diagrama | Ubicación |
+|---|---|---|
+| **EF-11** | Registro y Autenticación | `.archify/01-auth-registration.html` |
+| **EF-12** | Formulario de Postulación | `.archify/02-application-eligibility.html` |
+| **EF-14** | Evaluación Teórica | `.archify/03-theoretical-evaluation.html` |
+
+Cada diagrama es:
+- ✅ **Interactivo** — animación de traza que visualiza el flujo
+- ✅ **Responsive** — se adapta al tamaño de la pantalla
+- ✅ **Documentado** — tarjetas de información integradas (validaciones, seguridad, etc)
+- ✅ **Embebido** — todo en un archivo HTML (sin dependencias externas)
+
+**Más información:** [`docs/.archify/README.md`](.archify/README.md)
+
+---
+
 ## Comandos
 
 | Tarea | Comando |
