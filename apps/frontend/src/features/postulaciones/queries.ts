@@ -2,10 +2,11 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  type QueryClient,
   type UseQueryOptions,
 } from "@tanstack/react-query"
 import { useEffect } from "react"
-import { useSearchParams } from "react-router"
+import { useLocation, useSearchParams } from "react-router"
 import { toast } from "sonner"
 
 import { esErrorApi } from "@/lib/api-error"
@@ -32,7 +33,7 @@ import {
   type ListarPostulacionesParams,
   type PostulacionDto,
 } from "@/lib/clientes/postulaciones"
-import { resolverPostulacionActual } from "./modelo"
+import { quitarPostulacionDePagina, resolverPostulacionActual } from "./modelo"
 import type { Pagina } from "@/types/api"
 
 /**
@@ -97,6 +98,7 @@ const LIMITE_POSTULACIONES_PROPIAS = 50
  */
 export function usePostulacionActual() {
   const [parametros, setParametros] = useSearchParams()
+  const ubicacion = useLocation()
   const convocatoriaParametro = parametros.get("convocatoria") || undefined
 
   const consulta = useQuery({
@@ -118,6 +120,9 @@ export function usePostulacionActual() {
       ? resolucion.postulacion.convocatoriaId
       : undefined
 
+  // Conserva el estado de navegación (p. ej. «borrador descartado»): fijar la
+  // convocatoria en la URL no es una elección del postulante.
+  const estadoNavegacion: unknown = ubicacion.state
   useEffect(() => {
     if (convocatoriaParametro || !convocatoriaResuelta) return
     setParametros(
@@ -126,9 +131,14 @@ export function usePostulacionActual() {
         siguientes.set("convocatoria", convocatoriaResuelta)
         return siguientes
       },
-      { replace: true },
+      { replace: true, state: estadoNavegacion },
     )
-  }, [convocatoriaParametro, convocatoriaResuelta, setParametros])
+  }, [
+    convocatoriaParametro,
+    convocatoriaResuelta,
+    setParametros,
+    estadoNavegacion,
+  ])
 
   return {
     resolucion,
@@ -331,12 +341,28 @@ export function useSellarPostulacion() {
 /**
  * Mutación para eliminar un borrador de postulación.
  */
+/**
+ * Retira una postulación eliminada de la caché: su detalle se descarta y
+ * desaparece de todas las listas. Invalidar no basta, porque la copia vieja se
+ * muestra mientras se recarga y la pantalla volvería a seleccionarla.
+ * @param queryClient - Cliente de TanStack Query
+ * @param id - Postulación eliminada
+ */
+export function olvidarPostulacion(queryClient: QueryClient, id: string) {
+  queryClient.removeQueries({ queryKey: postulacionKeys.detalle(id) })
+  queryClient.setQueriesData(
+    { queryKey: postulacionKeys.todas },
+    (datos: unknown) => quitarPostulacionDePagina(datos, id),
+  )
+}
+
 export function useEliminarPostulacion() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (id: string) => eliminarPostulacion(id),
-    onSuccess: () => {
+    onSuccess: (_resultado, id) => {
+      olvidarPostulacion(queryClient, id)
       queryClient.invalidateQueries({ queryKey: postulacionKeys.todas })
       toast.success("Postulación eliminada.")
     },

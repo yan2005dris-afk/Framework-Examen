@@ -59,6 +59,7 @@ import {
   usePostulacionActual,
 } from "@/features/postulaciones/queries"
 import { DescartarBorrador } from "@/features/postulaciones/descartar-borrador"
+import { debeCrearBorrador } from "@/features/postulaciones/modelo"
 import { ListaMisPostulaciones } from "@/features/postulaciones/lista-mis-postulaciones"
 import { convocatoriasAbiertas } from "@/features/convocatorias/modelo"
 import { useConvocatoriasPublicas } from "@/features/convocatorias/queries"
@@ -150,7 +151,7 @@ const FORMULARIO_BASE_DEFAULT: FormularioPostulacionState = {
 export function PostulacionView() {
   const { seccion } = useParams<{ seccion: string }>()
   const navegar = useNavigate()
-  const { state: estadoNavegacion } = useLocation()
+  const { state: estadoNavegacion, key: claveUbicacion } = useLocation()
   const [parametros, setParametros] = useSearchParams()
 
   const numeroSeccion = seccion ? Number(seccion) : 1
@@ -184,16 +185,25 @@ export function PostulacionView() {
   const abiertas = convocatoriasAbiertas(convocatoriasPublicadas, ahora)
   const necesitaConvocatoria =
     resolucion?.estado === "sin_postulacion" && !parametros.get("convocatoria")
-  const recienDescartado = Boolean(
-    (estadoNavegacion as { borradorDescartado?: boolean } | null)
-      ?.borradorDescartado,
-  )
+  // Se marca antes de pedir el borrado: entre la respuesta del servidor y la
+  // navegación, la URL todavía nombra la convocatoria y no debe recrearse. La
+  // marca vale sólo en la ubicación donde se descartó; después la conserva el
+  // estado de navegación `borradorDescartado`.
+  const [descartadoEn, setDescartadoEn] = useState<string | null>(null)
+  const recienDescartado =
+    descartadoEn === claveUbicacion ||
+    Boolean(
+      (estadoNavegacion as { borradorDescartado?: boolean } | null)
+        ?.borradorDescartado,
+    )
   const convocatoriaAutomatica =
     necesitaConvocatoria && !recienDescartado && abiertas.length === 1
       ? abiertas[0].id
       : undefined
 
   function elegirConvocatoria(convocatoriaId: string) {
+    // Elegir la convocatoria cambia la ubicación sin `borradorDescartado`: es una
+    // decisión explícita y vuelve a permitir crear el borrador.
     setParametros(
       (previos) => {
         const siguientes = new URLSearchParams(previos)
@@ -226,8 +236,12 @@ export function PostulacionView() {
   useEffect(() => {
     if (
       convocatoriaSinPostulacion &&
-      abiertaConvocatoria &&
-      crearPostulacionMutation.isIdle
+      debeCrearBorrador({
+        convocatoriaId: convocatoriaSinPostulacion,
+        abierta: abiertaConvocatoria,
+        creacionLibre: crearPostulacionMutation.isIdle,
+        borradorDescartado: recienDescartado,
+      })
     ) {
       crearPostulacionMutation.mutate({
         convocatoriaId: convocatoriaSinPostulacion,
@@ -237,6 +251,7 @@ export function PostulacionView() {
     convocatoriaSinPostulacion,
     abiertaConvocatoria,
     crearPostulacionMutation,
+    recienDescartado,
   ])
 
   // Contenido local del formulario sincronizado con la postulación
@@ -574,7 +589,14 @@ export function PostulacionView() {
   /** Descarta el borrador y vuelve a la elección de convocatoria sin recrearlo. */
   async function descartarBorrador() {
     if (!postulacionActiva) return
-    await eliminarPostulacionMutation.mutateAsync(postulacionActiva.id)
+    setDescartadoEn(claveUbicacion)
+    try {
+      await eliminarPostulacionMutation.mutateAsync(postulacionActiva.id)
+    } catch (error) {
+      // El borrador sigue existiendo: la pantalla vuelve a su estado normal.
+      setDescartadoEn(null)
+      throw error
+    }
     crearPostulacionMutation.reset()
     setPrevId(null)
     setFormData(FORMULARIO_BASE_DEFAULT)
