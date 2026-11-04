@@ -97,3 +97,10 @@ SUBIR_CAMBIOS*.md
 # Evidencia visual local (no se versiona)
 docs/design/evidence/
 
+# Análisis temporal de hallazgos y correcciones (no se versionan)
+.context/
+docs/extras/ANALISIS-*.md
+
+# Lock files de editores (LibreOffice, etc)
+.~lock.*
+
