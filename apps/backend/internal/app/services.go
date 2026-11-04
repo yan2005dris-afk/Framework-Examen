@@ -103,25 +103,18 @@ func (a *App) buildServices(ctx context.Context, log *slog.Logger, mode Mode) er
 	eligibilityService := eligibility.NewService(conditions, eligibilitypostgres.NewRepository(queries))
 
 	var objects document.Storage
-	switch cfg.StorageDriver {
-	case "local":
-		objects, err = storage.NewSignedLocal(cfg.StorageDir, cfg.StoragePublicURL, cfg.StorageSigningKey)
-	case "s3":
-		objects, err = storage.NewS3(storage.S3Config{
-			Endpoint:       cfg.S3Endpoint,
-			PublicEndpoint: cfg.S3PublicEndpoint,
-			Region:         cfg.S3Region,
-			AccessKey:      cfg.S3AccessKey,
-			SecretKey:      cfg.S3SecretKey,
-			SessionToken:   cfg.S3SessionToken,
-		})
-	default:
-		err = fmt.Errorf("STORAGE_DRIVER debe ser local o s3")
-	}
+	s3Storage, err := storage.NewS3(storage.S3Config{
+		Endpoint:       cfg.S3Endpoint,
+		PublicEndpoint: cfg.S3PublicEndpoint,
+		Region:         cfg.S3Region,
+		AccessKey:      cfg.S3AccessKey,
+		SecretKey:      cfg.S3SecretKey,
+		SessionToken:   cfg.S3SessionToken,
+	})
 	if err != nil {
 		return fmt.Errorf("no se pudo configurar el almacenamiento: %w", err)
 	}
-	objects = &storage.Observed{Next: objects}
+	objects = &storage.Observed{Next: s3Storage}
 
 	publicDownload := os.Getenv("DOWNLOAD_PUBLIC_URL")
 	if publicDownload == "" {

@@ -247,18 +247,11 @@ func CSRF(next http.Handler, origins []string) http.Handler {
 			return
 		}
 
-		// El navegador envía Sec-Fetch-Site en toda petición y no permite que
-		// el sitio lo fije: "cross-site" delata una falsificación.
+		rawOrigin := strings.TrimSpace(r.Header.Get("Origin"))
 		site := strings.ToLower(strings.TrimSpace(r.Header.Get("Sec-Fetch-Site")))
-		if site == "cross-site" {
-			RespondError(w, r, http.StatusForbidden, "origen_no_permitido", "Petición cruzada no autorizada.")
-			return
-		}
 
-		origin := strings.TrimRight(strings.TrimSpace(r.Header.Get("Origin")), "/")
-		if origin == "" {
-			// Sin Origin ni Sec-Fetch-Site no hay forma de verificar de dónde
-			// viene la llamada: se rechaza en lugar de asumir que es propia.
+		// Si no hay Origin, nos guiamos por Sec-Fetch-Site:
+		if rawOrigin == "" {
 			if site != "same-origin" {
 				RespondError(w, r, http.StatusForbidden, "origen_no_verificable", "No se pudo verificar el origen de la petición.")
 				return
@@ -267,19 +260,29 @@ func CSRF(next http.Handler, origins []string) http.Handler {
 			return
 		}
 
-		// Mismo origen: el navegador no puede emitir un Origin distinto del
-		// suyo, así que la comparación es concluyente.
+		// RFC 6454 / Fetch spec: los orígenes válidos nunca terminan en barra ("/")
+		if strings.HasSuffix(rawOrigin, "/") {
+			RespondError(w, r, http.StatusForbidden, "origen_no_permitido", "Origen de la petición no autorizado.")
+			return
+		}
+
+		origin := rawOrigin
+
+		// Si coincide con el mismo origen exacto:
 		if sameOrigin(r, origin) {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		if _, ok := allowed[origin]; !ok {
-			RespondError(w, r, http.StatusForbidden, "origen_no_permitido", "Origen de la petición no autorizado.")
+		// Si es cross-origin o cross-site, sólo se permite si el Origin está
+		// explícitamente autorizado en CORS_ALLOWED_ORIGINS:
+		if _, ok := allowed[origin]; ok {
+			next.ServeHTTP(w, r)
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		RespondError(w, r, http.StatusForbidden, "origen_no_permitido", "Origen de la petición no autorizado.")
+		return
 	})
 }
 

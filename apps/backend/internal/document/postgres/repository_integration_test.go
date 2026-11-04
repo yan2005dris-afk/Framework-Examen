@@ -118,10 +118,7 @@ func TestPostgresConcurrentQuotaAndRollback(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	objects, err := storage.NewSignedLocal(t.TempDir(), "http://objects.example.test", strings.Repeat("k", 32))
-	if err != nil {
-		t.Fatal(err)
-	}
+	objects := storage.NewMemory()
 	service := document.NewService(repo, objects)
 	data := make([]byte, document.MaxFileBytes)
 	copy(data, "%PDF-1.7")
@@ -179,10 +176,7 @@ func TestPostgresSealBlocksDocumentsAndCascadesQueueObjects(t *testing.T) {
 	repo, pool, item := postgresFixture(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	objects, err := storage.NewSignedLocal(t.TempDir(), "http://objects.example.test", strings.Repeat("k", 32))
-	if err != nil {
-		t.Fatal(err)
-	}
+	objects := storage.NewMemory()
 	service := document.NewService(repo, objects)
 	in := document.UploadInput{ApplicantID: item.ApplicantID, SubmissionID: item.ID, Section: 5, RecordID: "nuevo-1", Name: "prueba.pdf", MIME: "application/pdf", Content: strings.NewReader("%PDF-1.7")}
 	d, err := service.Upload(ctx, in)

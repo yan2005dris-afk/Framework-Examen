@@ -49,7 +49,6 @@ services:
       LOG_LEVEL: info
       DOWNLOAD_PUBLIC_URL: http://localhost:5173/downloads
       DOWNLOAD_LISTEN_ADDR: 0.0.0.0:8082
-      STORAGE_DRIVER: s3
       S3_ENDPOINT: http://rustfs:9000/biess
       S3_PUBLIC_ENDPOINT: http://localhost:9000/biess
       S3_ACCESS_KEY: rustfsadmin

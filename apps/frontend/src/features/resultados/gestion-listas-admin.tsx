@@ -397,11 +397,15 @@ export function GestionListasAdmin() {
                       </td>
                       <td className="p-3">
                         <span className="font-semibold">
-                          {lista.reglas.orden.join(" → ")}
+                          {lista.reglas?.orden?.length
+                            ? lista.reglas.orden.join(" → ")
+                            : "Orden por defecto"}
                         </span>
-                        <p className="text-[10px] text-muted-foreground">
-                          {lista.reglas.referenciaOrden}
-                        </p>
+                        {lista.reglas?.referenciaOrden && (
+                          <p className="text-[10px] text-muted-foreground">
+                            {lista.reglas.referenciaOrden}
+                          </p>
+                        )}
                       </td>
                       <td className="p-3 font-mono text-[10px] truncate max-w-[120px]">
                         {lista.hashFuentes}

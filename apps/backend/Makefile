@@ -55,11 +55,13 @@ sqlc-generate:
 catalog-seed:
 	go run ./cmd/catalog-seed
 
+SEED_PASSWORD ?= Password123!
+
 user-seed:
-	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/user-seed
+	DATABASE_URL="$(DATABASE_URL)" SEED_PASSWORD="$(SEED_PASSWORD)" go run ./cmd/user-seed
 
 user-seed-reset:
-	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/user-seed -reset-password
+	DATABASE_URL="$(DATABASE_URL)" SEED_PASSWORD="$(SEED_PASSWORD)" go run ./cmd/user-seed -reset-password
 
 db-schema:
 	@printf '%s\n' '-- Esquema que consume sqlc. Se regenera desde las migraciones con `make db-schema`.' > sql/queries/schema.sql

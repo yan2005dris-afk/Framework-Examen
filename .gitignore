@@ -98,3 +98,4 @@ SUBIR_CAMBIOS*.md
 # Evidencia visual local (no se versiona)
 docs/design/evidence/
 
+.pandorx/pandorx.db

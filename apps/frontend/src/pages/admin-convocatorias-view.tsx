@@ -393,9 +393,13 @@ export function AdminConvocatoriasView() {
                   id="codigo"
                   required
                   maxLength={64}
+                  placeholder="ej. convocatoria-2026-01 o BIESS-2026-01"
                   value={form.codigo}
                   onChange={(e) => setForm({ ...form, codigo: e.target.value })}
                 />
+                <p className="text-[11px] text-muted-foreground">
+                  Identificador alfanumérico único para el período (sin espacios, usar guiones).
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="titulo">Título de la convocatoria</Label>
@@ -403,6 +407,7 @@ export function AdminConvocatoriasView() {
                   id="titulo"
                   required
                   maxLength={200}
+                  placeholder="ej. Concurso Público de Méritos y Oposición BIESS 2026"
                   value={form.titulo}
                   onChange={(e) => setForm({ ...form, titulo: e.target.value })}
                 />
