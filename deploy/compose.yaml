@@ -43,7 +43,6 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       DOWNLOAD_PUBLIC_URL: ${APP_URL}/downloads
       DOWNLOAD_LISTEN_ADDR: 0.0.0.0:8082
-      STORAGE_DRIVER: s3
       S3_ENDPOINT: http://rustfs:9000/biess
       S3_PUBLIC_ENDPOINT: http://localhost:9000/biess
       S3_ACCESS_KEY: rustfsadmin
@@ -97,7 +96,6 @@ services:
       DATABASE_URL: ${DATABASE_URL:?define DATABASE_URL en deploy/.env}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       DB_REQUIRED: "true"
-      STORAGE_DRIVER: s3
       S3_ENDPOINT: http://rustfs:9000/biess
       S3_PUBLIC_ENDPOINT: http://localhost:9000/biess
       S3_ACCESS_KEY: rustfsadmin

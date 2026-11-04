@@ -1,199 +1,183 @@
 package storage
 
 import (
+	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"mime"
-	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 /** S3Config configura un bucket privado con credenciales inyectadas por entorno.
  * Endpoint incluye el bucket: https://bucket.s3.region.amazonaws.com o
- * http://minio:9000/bucket. PublicEndpoint permite otro host para las descargas.
+ * http://minio:9000/bucket. PublicEndpoint permite otro host para las descargas públicas.
  */
-type S3Config struct{ Endpoint, PublicEndpoint, Region, AccessKey, SecretKey, SessionToken string }
+type S3Config struct {
+	Endpoint       string
+	PublicEndpoint string
+	Region         string
+	AccessKey      string
+	SecretKey      string
+	SessionToken   string
+}
 
-/** S3 implementa las tres operaciones necesarias con Signature Version 4.
- * La firma sigue la especificación y el vector oficial de AWS; no requiere SDK.
+/** S3 implementa la interfaz document.Storage utilizando el AWS SDK for Go v2 oficial.
+ * Soporta AWS S3 nativo y motores compatibles (MinIO, RustFS, Cloudflare R2, Ceph).
  */
 type S3 struct {
-	config S3Config
-	client *http.Client
-	now    func() time.Time
+	bucket        string
+	client        *s3.Client
+	presignClient *s3.PresignClient
 }
 
-/** NewS3 valida configuración sin enviar credenciales durante el arranque.
- * @returns {S3, error} Adaptador para un bucket ya aprovisionado y privado.
+/** parseEndpoint descompone un endpoint con bucket (ej: http://rustfs:9000/biess)
+ * en el BaseEndpoint (http://rustfs:9000) y el nombre del bucket (biess).
  */
-func NewS3(config S3Config) (*S3, error) {
-	if config.PublicEndpoint == "" {
-		config.PublicEndpoint = config.Endpoint
+func parseEndpoint(raw string) (baseEndpoint, bucket string, err error) {
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		return "", "", errors.New("endpoint S3 no válido")
 	}
-	for _, endpoint := range []string{config.Endpoint, config.PublicEndpoint} {
-		u, err := url.Parse(endpoint)
-		if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
-			return nil, errors.New("endpoint S3 no válido")
+	baseEndpoint = fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+	bucket = strings.Trim(u.Path, "/")
+	if bucket == "" {
+		return "", "", errors.New("el endpoint S3 debe incluir el nombre del bucket en la ruta (ej: http://host:9000/mi-bucket)")
+	}
+	return baseEndpoint, bucket, nil
+}
+
+/** NewS3 valida configuración y construye el cliente S3 con aws-sdk-go-v2.
+ * @returns {S3, error} Adaptador para un bucket aprovisionado y privado.
+ */
+func NewS3(cfg S3Config) (*S3, error) {
+	if cfg.Endpoint == "" {
+		return nil, errors.New("endpoint S3 no válido")
+	}
+	baseEndpoint, bucket, err := parseEndpoint(cfg.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+	if cfg.PublicEndpoint != "" {
+		if _, _, err := parseEndpoint(cfg.PublicEndpoint); err != nil {
+			return nil, err
 		}
 	}
-	if config.AccessKey == "" || config.SecretKey == "" || config.Region == "" {
+	if cfg.AccessKey == "" || cfg.SecretKey == "" || cfg.Region == "" {
 		return nil, errors.New("S3 requiere región y credenciales")
 	}
-	return &S3{config: config, client: &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, now: time.Now}, nil
+
+	awsCfg, err := config.LoadDefaultConfig(context.Background(),
+		config.WithRegion(cfg.Region),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+			cfg.AccessKey,
+			cfg.SecretKey,
+			cfg.SessionToken,
+		)),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error al inicializar configuración de AWS SDK: %w", err)
+	}
+
+	client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(baseEndpoint)
+		o.UsePathStyle = true
+	})
+
+	// El presign para el broker de descargas internas debe usar el endpoint interno (baseEndpoint)
+	// de modo que la API pueda alcanzar el bucket dentro de la red del cluster/Docker.
+	presignClient := s3.NewPresignClient(client)
+
+	return &S3{
+		bucket:        bucket,
+		client:        client,
+		presignClient: presignClient,
+	}, nil
 }
 
-/** Save sube un PDF sin ACL pública y sin incluir su nombre en la clave.
- * @returns {error} Fallo remoto sin filtrar URL firmada ni cuerpo de error.
+/** Save sube un documento PDF sin ACL pública y sin exponer información sensible.
+ * @returns {error} Fallo remoto sin filtrar credenciales ni detalles de conexión.
  */
 func (s *S3) Save(ctx context.Context, key string, content io.Reader) error {
-	return s.request(ctx, http.MethodPut, key, content)
-}
-
-/** Delete es idempotente, como DeleteObject de S3.
- * @returns {error} Fallo HTTP o transporte; la cola mantendrá la baja pendiente.
- */
-func (s *S3) Delete(ctx context.Context, key string) error {
-	return s.request(ctx, http.MethodDelete, key, nil)
-}
-
-func (s *S3) request(ctx context.Context, method, key string, body io.Reader) error {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	u, err := s.presign(s.config.Endpoint, method, key, nil, 5*time.Minute)
+	if key == "" || strings.HasPrefix(key, "/") || strings.Contains(key, "..") {
+		return errors.New("clave S3 no válida")
+	}
+	// Si el contenido viene como io.Reader, se puede leer en un buffer o subir directamente
+	var body io.Reader = content
+	if b, ok := content.(*bytes.Buffer); ok {
+		body = bytes.NewReader(b.Bytes())
+	}
+	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucket),
+		Key:         aws.String(key),
+		Body:        body,
+		ContentType: aws.String("application/pdf"),
+	})
 	if err != nil {
-		return err
-	}
-	r, err := http.NewRequestWithContext(ctx, method, u, body)
-	if err != nil {
-		return errors.New("no se pudo crear la solicitud S3")
-	}
-	if method == http.MethodPut {
-		r.Header.Set("Content-Type", "application/pdf")
-	}
-	resp, err := s.client.Do(r)
-	if err != nil {
-		return errors.New("no se pudo contactar con el almacenamiento S3")
-	}
-	defer resp.Body.Close()
-	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 8192))
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("el almacenamiento S3 respondió HTTP %d", resp.StatusCode)
+		return fmt.Errorf("el almacenamiento S3 respondió error al guardar: %w", err)
 	}
 	return nil
 }
 
-/** PresignGet firma la descarga de cinco minutos con nombre seguro y sin caché.
- * @returns {string, error} URL directa al bucket accesible por el navegador.
+/** Delete es idempotente, como DeleteObject de S3.
+ * @returns {error} Fallo de comunicación con el bucket.
+ */
+func (s *S3) Delete(ctx context.Context, key string) error {
+	if key == "" || strings.HasPrefix(key, "/") || strings.Contains(key, "..") {
+		return errors.New("clave S3 no válida")
+	}
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return fmt.Errorf("el almacenamiento S3 respondió error al eliminar: %w", err)
+	}
+	return nil
+}
+
+/** PresignGet firma la descarga temporal (default 5m) con Content-Disposition attachment.
+ * @returns {string, error} URL pre-firmada válida con Signature Version 4.
  */
 func (s *S3) PresignGet(ctx context.Context, key, name string, ttl time.Duration) (string, error) {
-	if err := ctx.Err(); err != nil {
-		return "", err
+	if key == "" || strings.HasPrefix(key, "/") || strings.Contains(key, "..") {
+		return "", errors.New("clave S3 no válida")
 	}
 	if ttl < time.Second || ttl > 15*time.Minute {
 		return "", errors.New("duración de descarga no válida")
 	}
-	q := url.Values{"response-content-type": {"application/pdf"}, "response-cache-control": {"no-store"}, "response-content-disposition": {mime.FormatMediaType("attachment", map[string]string{"filename": name})}}
-	return s.presign(s.config.PublicEndpoint, http.MethodGet, key, q, ttl)
-}
+	disposition := mime.FormatMediaType("attachment", map[string]string{"filename": name})
 
-// awsEncode codifica cada byte con las reglas RFC 3986 exigidas por S3.
-func awsEncode(value string, slash bool) string {
-	var b strings.Builder
-	const digits = "0123456789ABCDEF"
-	for i := 0; i < len(value); i++ {
-		c := value[i]
-		if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || strings.ContainsRune("-_.~", rune(c)) || c == '/' && !slash {
-			b.WriteByte(c)
-		} else {
-			b.WriteByte('%')
-			b.WriteByte(digits[c>>4])
-			b.WriteByte(digits[c&15])
-		}
-	}
-	return b.String()
-}
-
-func awsQuery(q url.Values) string { return strings.ReplaceAll(q.Encode(), "+", "%20") }
-func hmacBytes(key []byte, value string) []byte {
-	h := hmac.New(sha256.New, key)
-	h.Write([]byte(value))
-	return h.Sum(nil)
-}
-
-func (s *S3) presign(endpoint, method, key string, q url.Values, ttl time.Duration) (string, error) {
-	return s.presignRequest(endpoint, method, key, q, ttl, false)
-}
-func (s *S3) presignRequest(endpoint, method, key string, q url.Values, ttl time.Duration, bucketHead bool) (string, error) {
-	if key == "" && !bucketHead || strings.HasPrefix(key, "/") || strings.Contains(key, "\\") {
-		return "", errors.New("clave S3 no válida")
-	}
-	for _, part := range strings.Split(key, "/") {
-		if part == ".." || part == "." {
-			return "", errors.New("clave S3 no válida")
-		}
-	}
-	u, err := url.Parse(endpoint)
+	req, err := s.presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket:                     aws.String(s.bucket),
+		Key:                        aws.String(key),
+		ResponseContentType:        aws.String("application/pdf"),
+		ResponseCacheControl:       aws.String("no-store"),
+		ResponseContentDisposition: aws.String(disposition),
+	}, s3.WithPresignExpires(ttl))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("no se pudo pre-firmar la descarga S3: %w", err)
 	}
-	if key != "" {
-		u.Path = strings.TrimRight(u.Path, "/") + "/" + key
-	} else if u.Path == "" {
-		u.Path = "/"
-	}
-	u.RawPath = awsEncode(u.Path, false)
-	if q == nil {
-		q = make(url.Values)
-	}
-	now := s.now().UTC()
-	date := now.Format("20060102")
-	stamp := now.Format("20060102T150405Z")
-	scope := date + "/" + s.config.Region + "/s3/aws4_request"
-	q.Set("X-Amz-Algorithm", "AWS4-HMAC-SHA256")
-	q.Set("X-Amz-Credential", s.config.AccessKey+"/"+scope)
-	q.Set("X-Amz-Date", stamp)
-	q.Set("X-Amz-Expires", strconv.FormatInt(int64(ttl/time.Second), 10))
-	q.Set("X-Amz-SignedHeaders", "host")
-	if s.config.SessionToken != "" {
-		q.Set("X-Amz-Security-Token", s.config.SessionToken)
-	}
-	canonical := method + "\n" + u.EscapedPath() + "\n" + awsQuery(q) + "\nhost:" + u.Host + "\n\nhost\nUNSIGNED-PAYLOAD"
-	sum := sha256.Sum256([]byte(canonical))
-	toSign := "AWS4-HMAC-SHA256\n" + stamp + "\n" + scope + "\n" + hex.EncodeToString(sum[:])
-	k := hmacBytes([]byte("AWS4"+s.config.SecretKey), date)
-	k = hmacBytes(k, s.config.Region)
-	k = hmacBytes(k, "s3")
-	k = hmacBytes(k, "aws4_request")
-	q.Set("X-Amz-Signature", hex.EncodeToString(hmacBytes(k, toSign)))
-	u.RawQuery = awsQuery(q)
-	return u.String(), nil
+	return req.URL, nil
 }
 
-/** Ready comprueba el bucket privado con HEAD firmado, sin escribir ni enumerar objetos. */
+/** Ready comprueba que el bucket privado responda y esté operativo usando HeadBucket.
+ * @returns {error} Error descriptivo si el almacenamiento no está listo.
+ */
 func (s *S3) Ready(ctx context.Context) error {
-	signed, e := s.presignRequest(s.config.Endpoint, "HEAD", "", nil, time.Minute, true)
-	if e != nil {
-		return errors.New("almacenamiento no disponible")
-	}
-	r, e := http.NewRequestWithContext(ctx, "HEAD", signed, nil)
-	if e != nil {
-		return errors.New("almacenamiento no disponible")
-	}
-	response, e := s.client.Do(r)
-	if e != nil {
-		return errors.New("almacenamiento no disponible")
-	}
-	defer response.Body.Close()
-	if response.StatusCode != 200 {
-		return errors.New("almacenamiento no disponible")
+	_, err := s.client.HeadBucket(ctx, &s3.HeadBucketInput{
+		Bucket: aws.String(s.bucket),
+	})
+	if err != nil {
+		return fmt.Errorf("almacenamiento no disponible: %w", err)
 	}
 	return nil
 }

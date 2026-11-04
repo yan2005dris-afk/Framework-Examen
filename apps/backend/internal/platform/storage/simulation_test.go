@@ -5,79 +5,84 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 )
 
-// Ejecutar la simulación Postman document-storage y apuntar S3_SIMULATION_ENDPOINT
-// a http://127.0.0.1:4011/s3/bucket. Nunca usar un bucket real en esta prueba.
 func TestS3SimulationRoundTrip(t *testing.T) {
-	endpoint := os.Getenv("S3_SIMULATION_ENDPOINT")
-	if endpoint == "embedded" {
-		var mu sync.Mutex
-		objects := map[string][]byte{}
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			mu.Lock()
-			defer mu.Unlock()
-			switch r.Method {
-			case "PUT":
-				v, _ := io.ReadAll(io.LimitReader(r.Body, 4<<20))
-				objects[r.URL.Path] = v
-				w.WriteHeader(200)
-			case "GET":
-				v, ok := objects[r.URL.Path]
-				if !ok {
-					w.WriteHeader(404)
-					return
-				}
-				_, _ = w.Write(v)
-			case "DELETE":
-				delete(objects, r.URL.Path)
-				w.WriteHeader(204)
-			default:
-				w.WriteHeader(501)
+	var mu sync.Mutex
+	objects := map[string][]byte{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		path := r.URL.Path
+		switch r.Method {
+		case "HEAD":
+			w.WriteHeader(200)
+		case "PUT":
+			v, _ := io.ReadAll(io.LimitReader(r.Body, 4<<20))
+			objects[path] = v
+			w.WriteHeader(200)
+		case "GET":
+			v, ok := objects[path]
+			if !ok {
+				w.WriteHeader(404)
+				return
 			}
-		}))
-		defer server.Close()
-		endpoint = server.URL + "/bucket"
-	}
-	if endpoint == "" {
-		t.Skip("defina S3_SIMULATION_ENDPOINT para probar el doble HTTP de Postman")
-	}
-	s, err := NewS3(S3Config{Endpoint: endpoint, Region: "us-east-1", AccessKey: "simulation", SecretKey: "simulation-only"})
+			_, _ = w.Write(v)
+		case "DELETE":
+			delete(objects, path)
+			w.WriteHeader(204)
+		default:
+			w.WriteHeader(501)
+		}
+	}))
+	defer server.Close()
+
+	s, err := NewS3(S3Config{
+		Endpoint:  server.URL + "/test-bucket",
+		Region:    "us-east-1",
+		AccessKey: "test-access",
+		SecretKey: "test-secret",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	key := "submission/5/roundtrip.pdf"
-	if err := s.Save(ctx, key, strings.NewReader("%PDF-1.7\n%%EOF")); err != nil {
+	payload := "%PDF-1.7\n%%EOF"
+	if err := s.Save(ctx, key, strings.NewReader(payload)); err != nil {
 		t.Fatal(err)
 	}
+
 	link, err := s.PresignGet(ctx, key, "prueba.pdf", 5*time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := http.NewRequestWithContext(ctx, "GET", link, nil)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", link, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp, err := s.client.Do(r)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Fatal("no se pudo consultar el doble HTTP")
+		t.Fatal("no se pudo consultar el servidor simulado:", err)
 	}
 	data, _ := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if resp.StatusCode != 200 || string(data) != "%PDF-1.7\n%%EOF" {
-		t.Fatal("la simulación no conservó el archivo")
+	_ = resp.Body.Close()
+	if resp.StatusCode != 200 || string(data) != payload {
+		t.Fatalf("la simulación no devolvió el archivo (status %d, contenido %s)", resp.StatusCode, string(data))
 	}
+
 	if err := s.Delete(ctx, key); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.Delete(ctx, key); err != nil {
-		t.Fatal("DELETE no fue idempotente", err)
+		t.Fatal("DELETE no fue idempotente:", err)
 	}
 }

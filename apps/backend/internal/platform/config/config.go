@@ -24,10 +24,6 @@ type Config struct {
 	DatabaseURL               string
 	DatabaseRequired          bool
 	RedisURL                  string
-	StorageDir                string
-	StorageDriver             string
-	StoragePublicURL          string
-	StorageSigningKey         string
 	S3Endpoint                string
 	S3PublicEndpoint          string
 	S3Region                  string
@@ -134,15 +130,11 @@ func Load() (Config, error) {
 		DatabaseURL:       getString("DATABASE_URL", ""),
 		DatabaseRequired:  databaseRequired,
 		RedisURL:          getString("REDIS_URL", ""),
-		StorageDir:        getString("STORAGE_DIR", "./data/uploads"),
-		StorageDriver:     getString("STORAGE_DRIVER", "s3"),
-		StoragePublicURL:  getString("STORAGE_PUBLIC_URL", ""),
-		StorageSigningKey: getString("STORAGE_SIGNING_KEY", ""),
-		S3Endpoint:        getString("S3_ENDPOINT", ""),
+		S3Endpoint:        getString("S3_ENDPOINT", "http://rustfs:9000/biess"),
 		S3PublicEndpoint:  getString("S3_PUBLIC_ENDPOINT", ""),
 		S3Region:          getString("S3_REGION", "us-east-1"),
-		S3AccessKey:       getString("S3_ACCESS_KEY", ""),
-		S3SecretKey:       getString("S3_SECRET_KEY", ""),
+		S3AccessKey:       getString("S3_ACCESS_KEY", "rustfsadmin"),
+		S3SecretKey:       getString("S3_SECRET_KEY", "rustfsadmin"),
 		S3SessionToken:    getString("S3_SESSION_TOKEN", ""),
 		CORSOrigins:       loadOrigins(environment),
 		SessionTTL:        sessionTTL,
