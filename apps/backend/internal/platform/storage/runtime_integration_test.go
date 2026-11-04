@@ -44,7 +44,7 @@ func TestS3RuntimeRoundTrip(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	if err := s.Ready(ctx); err != nil {
+	if err := s.EnsureBucket(ctx); err != nil {
 		t.Skipf("bucket no disponible para pruebas: %v", err)
 	}
 

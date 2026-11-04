@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 /** S3Config configura un bucket privado con credenciales inyectadas por entorno.
@@ -178,6 +179,28 @@ func (s *S3) Ready(ctx context.Context) error {
 	})
 	if err != nil {
 		return fmt.Errorf("almacenamiento no disponible: %w", err)
+	}
+	return nil
+}
+
+/** EnsureBucket crea el bucket configurado si no existe aún (idempotente).
+ * @param {context.Context} ctx - Contexto de ejecución.
+ * @returns {error} Error si no se pudo asegurar la existencia del bucket.
+ */
+func (s *S3) EnsureBucket(ctx context.Context) error {
+	if err := s.Ready(ctx); err == nil {
+		return nil
+	}
+	_, err := s.client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(s.bucket),
+	})
+	if err != nil {
+		var bae *s3types.BucketAlreadyExists
+		var bao *s3types.BucketAlreadyOwnedByYou
+		if errors.As(err, &bae) || errors.As(err, &bao) {
+			return nil
+		}
+		return fmt.Errorf("no se pudo crear bucket S3: %w", err)
 	}
 	return nil
 }

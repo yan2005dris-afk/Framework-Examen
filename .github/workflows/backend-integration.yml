@@ -74,14 +74,17 @@ jobs:
         with:
           go-version: "1.27"
           cache-dependency-path: apps/backend/go.sum
-      - name: Esperar disponibilidad de RustFS
+      - name: Esperar disponibilidad de RustFS e inicializar bucket de pruebas
         run: |
           for attempt in $(seq 1 60); do
-            if curl --silent --fail http://localhost:9000/health > /dev/null; then exit 0; fi
+            if curl --silent --fail http://localhost:9000/health > /dev/null; then break; fi
             sleep 2
           done
-          echo "::error::RustFS de pruebas no estuvo disponible"
-          exit 1
+          if ! curl --silent --fail http://localhost:9000/health > /dev/null; then
+            echo "::error::RustFS de pruebas no estuvo disponible"
+            exit 1
+          fi
+          go test -count=1 -run '^TestS3RuntimeRoundTrip$' ./internal/platform/storage
       - name: Pruebas con PostgreSQL, Redis, RustFS y SMTP local
         # SMTP se crea dentro de TestPostgresOutboxSMTPRealTestServer.
         run: go test -count=1 -race -json ./... > integration-results.json
