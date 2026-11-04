@@ -15,7 +15,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/worker ./cmd/worker
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/migrate ./cmd/migrate
-RUN mkdir -p /out/data
+RUN mkdir -p /out/data && cp -r data/* /out/data/ 2>/dev/null || true
 
 # --- Etapa del worker -----------------------------------------------------
 # El worker cumple las colas en segundo plano sin servir tráfico HTTP. Puede
