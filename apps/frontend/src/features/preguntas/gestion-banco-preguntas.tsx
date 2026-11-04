@@ -7,10 +7,12 @@ import {
   FileCodeIcon,
   HelpCircleIcon,
   LockIcon,
+  PencilIcon,
   PlusIcon,
   SettingsIcon,
   ShieldAlertIcon,
   SlidersIcon,
+  Trash2Icon,
 } from "lucide-react"
 
 import { EstadoCargando, EstadoError } from "@/components/estados"
@@ -41,6 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Table,
   TableBody,
@@ -120,11 +123,106 @@ export function GestionBancoPreguntas() {
 
   // Estado modales
   const [modalNuevaVersion, setModalNuevaVersion] = useState(false)
-  const [referenciaNueva, setReferenciaNueva] = useState("")
+  const [tabModoCreacion, setTabModoCreacion] = useState<"visual" | "json">("visual")
+  const [referenciaNueva, setReferenciaNueva] = useState(
+    "Resolución No. C.D. 701 - Banco Oficial Aprobado",
+  )
   const [jsonPreguntas, setJsonPreguntas] = useState(EJEMPLO_PREGUNTAS_JSON)
   const [errorValidacionJson, setErrorValidacionJson] = useState<string | null>(
     null,
   )
+
+  // Preguntas para el editor visual
+  const [preguntasVisuales, setPreguntasVisuales] = useState<PreguntaBancoDto[]>(() => {
+    try {
+      return JSON.parse(EJEMPLO_PREGUNTAS_JSON)
+    } catch {
+      return []
+    }
+  })
+
+  // Sincronizar editor visual a JSON cuando se cambia al tab json
+  const sincronizarAJson = (lista: PreguntaBancoDto[]) => {
+    setPreguntasVisuales(lista)
+    setJsonPreguntas(JSON.stringify(lista, null, 2))
+  }
+
+  // Agregar nueva pregunta en blanco
+  const agregarPreguntaVisual = () => {
+    const nuevoId = `p${preguntasVisuales.length + 1}`
+    const nueva: PreguntaBancoDto = {
+      id: nuevoId,
+      enunciado: "",
+      opciones: [
+        { id: `${nuevoId}-a`, texto: "" },
+        { id: `${nuevoId}-b`, texto: "" },
+        { id: `${nuevoId}-c`, texto: "" },
+        { id: `${nuevoId}-d`, texto: "" },
+      ],
+      correcta: `${nuevoId}-a`,
+    }
+    const actualizada = [...preguntasVisuales, nueva]
+    sincronizarAJson(actualizada)
+  }
+
+  // Eliminar pregunta
+  const eliminarPreguntaVisual = (index: number) => {
+    const actualizada = preguntasVisuales.filter((_, i) => i !== index)
+    sincronizarAJson(actualizada)
+  }
+
+  // Modificar enunciado de una pregunta
+  const modificarEnunciadoVisual = (index: number, enunciado: string) => {
+    const actualizada = [...preguntasVisuales]
+    actualizada[index] = { ...actualizada[index], enunciado }
+    sincronizarAJson(actualizada)
+  }
+
+  // Modificar texto de una opción
+  const modificarOpcionVisual = (
+    pIndex: number,
+    opIndex: number,
+    texto: string,
+  ) => {
+    const actualizada = [...preguntasVisuales]
+    const opciones = [...actualizada[pIndex].opciones]
+    opciones[opIndex] = { ...opciones[opIndex], texto }
+    actualizada[pIndex] = { ...actualizada[pIndex], opciones }
+    sincronizarAJson(actualizada)
+  }
+
+  // Cambiar la opción correcta
+  const setCorrectaVisual = (pIndex: number, opcionId: string) => {
+    const actualizada = [...preguntasVisuales]
+    actualizada[pIndex] = { ...actualizada[pIndex], correcta: opcionId }
+    sincronizarAJson(actualizada)
+  }
+
+  // Agregar una opción a una pregunta
+  const agregarOpcionVisual = (pIndex: number) => {
+    const p = preguntasVisuales[pIndex]
+    if (p.opciones.length >= 8) return
+    const letra = String.fromCharCode(97 + p.opciones.length)
+    const nuevaOp = { id: `${p.id}-${letra}`, texto: "" }
+    const actualizada = [...preguntasVisuales]
+    actualizada[pIndex] = { ...p, opciones: [...p.opciones, nuevaOp] }
+    sincronizarAJson(actualizada)
+  }
+
+  // Eliminar una opción
+  const eliminarOpcionVisual = (pIndex: number, opIndex: number) => {
+    const p = preguntasVisuales[pIndex]
+    if (p.opciones.length <= 2) return
+    const idEliminado = p.opciones[opIndex].id
+    const opciones = p.opciones.filter((_, i) => i !== opIndex)
+    let correcta = p.correcta
+    if (correcta === idEliminado) {
+      correcta = opciones[0]?.id ?? ""
+    }
+    const actualizada = [...preguntasVisuales]
+    actualizada[pIndex] = { ...p, opciones, correcta }
+    sincronizarAJson(actualizada)
+  }
 
   const [bancoIdDetalle, setBancoIdDetalle] = useState<string | null>(null)
   const consultaDetalle = useVersionBancoDetalle(bancoIdDetalle ?? "")
@@ -497,20 +595,18 @@ export function GestionBancoPreguntas() {
 
       {/* Modal: Crear / Cargar nueva versión del banco */}
       <Dialog open={modalNuevaVersion} onOpenChange={setModalNuevaVersion}>
-        <DialogContent className="max-w-2xl sm:max-h-[90vh] sm:overflow-y-auto">
+        <DialogContent className="max-w-4xl sm:max-h-[90vh] sm:overflow-y-auto flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileCodeIcon className="size-5 text-primary" />
-              Cargar Nueva Versión del Banco de Preguntas
+              Gestión y Registro de Banco de Preguntas
             </DialogTitle>
             <DialogDescription>
-              Cargue una definición completa e inmutable. El formato debe ser un
-              arreglo JSON con enunciados, opciones y clave de respuesta
-              correcta.
+              Diseñe visualmente las preguntas o pegue el formato JSON. La versión generada será inmutable y firmada criptográficamente.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 flex-1">
             <div className="space-y-1.5">
               <Label htmlFor="referencia-banco">
                 Referencia institucional / Acta de aprobación *
@@ -523,28 +619,221 @@ export function GestionBancoPreguntas() {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="json-preguntas">
-                  Estructura JSON de reactivos *
-                </Label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-xs text-primary"
-                  onClick={() => setJsonPreguntas(EJEMPLO_PREGUNTAS_JSON)}
-                >
-                  Restaurar formato de ejemplo
-                </Button>
-              </div>
-              <Textarea
-                id="json-preguntas"
-                rows={12}
-                className="font-mono text-xs"
-                value={jsonPreguntas}
-                onChange={(e) => setJsonPreguntas(e.target.value)}
-              />
-            </div>
+            <Tabs
+              value={tabModoCreacion}
+              onValueChange={(val) => {
+                const modo = val as "visual" | "json"
+                if (modo === "visual") {
+                  try {
+                    const parsed = JSON.parse(jsonPreguntas)
+                    if (Array.isArray(parsed)) {
+                      setPreguntasVisuales(parsed)
+                    }
+                  } catch {
+                    // conservar lo que haya si el JSON es inválido
+                  }
+                } else {
+                  setJsonPreguntas(JSON.stringify(preguntasVisuales, null, 2))
+                }
+                setTabModoCreacion(modo)
+              }}
+              className="w-full space-y-4"
+            >
+              <TabsList className="grid w-full max-w-xs grid-cols-2">
+                <TabsTrigger value="visual" className="flex items-center gap-1.5">
+                  <PencilIcon className="size-3.5" />
+                  <span>Editor visual ({preguntasVisuales.length})</span>
+                </TabsTrigger>
+                <TabsTrigger value="json" className="flex items-center gap-1.5">
+                  <FileCodeIcon className="size-3.5" />
+                  <span>Modo JSON</span>
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="visual" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    Cree preguntas, redacte las opciones y marque el radio button de la respuesta correcta.
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs"
+                    onClick={agregarPreguntaVisual}
+                  >
+                    <PlusIcon className="mr-1 size-3.5" />
+                    Agregar pregunta
+                  </Button>
+                </div>
+
+                <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+                  {preguntasVisuales.map((p, pIndex) => (
+                    <Card key={pIndex} className="border shadow-xs">
+                      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between bg-muted/20">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="font-mono text-xs">
+                            Pregunta #{pIndex + 1}
+                          </Badge>
+                          <span className="text-[11px] font-mono text-muted-foreground">
+                            ID: {p.id}
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
+                          onClick={() => eliminarPreguntaVisual(pIndex)}
+                          title="Eliminar pregunta"
+                        >
+                          <Trash2Icon className="size-3.5" />
+                        </Button>
+                      </CardHeader>
+                      <CardContent className="p-4 space-y-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Enunciado de la pregunta *</Label>
+                          <Input
+                            placeholder="Escriba el enunciado de la pregunta..."
+                            value={p.enunciado}
+                            onChange={(e) =>
+                              modificarEnunciadoVisual(pIndex, e.target.value)
+                            }
+                          />
+                        </div>
+
+                        <div className="space-y-2 pt-1">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs text-muted-foreground">
+                              Opciones de respuesta (marque el círculo de la correcta) *
+                            </Label>
+                            {p.opciones.length < 8 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-[11px] text-primary"
+                                onClick={() => agregarOpcionVisual(pIndex)}
+                              >
+                                + Agregar opción
+                              </Button>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            {p.opciones.map((op, opIndex) => {
+                              const esCorrecta = p.correcta === op.id
+                              return (
+                                <div
+                                  key={op.id}
+                                  className={`flex items-center gap-2 p-2 rounded-md border transition-colors ${
+                                    esCorrecta
+                                      ? "border-emerald-500/50 bg-emerald-500/5"
+                                      : "border-border"
+                                  }`}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`correcta-${pIndex}`}
+                                    checked={esCorrecta}
+                                    onChange={() => setCorrectaVisual(pIndex, op.id)}
+                                    className="size-4 accent-emerald-600 cursor-pointer"
+                                    title="Marcar como respuesta correcta"
+                                  />
+                                  <span className="font-mono text-xs font-semibold w-5 text-center text-muted-foreground">
+                                    {String.fromCharCode(65 + opIndex)}
+                                  </span>
+                                  <Input
+                                    placeholder={`Opción ${String.fromCharCode(65 + opIndex)}`}
+                                    value={op.texto}
+                                    onChange={(e) =>
+                                      modificarOpcionVisual(
+                                        pIndex,
+                                        opIndex,
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="h-8 text-xs flex-1"
+                                  />
+                                  {p.opciones.length > 2 && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                                      onClick={() =>
+                                        eliminarOpcionVisual(pIndex, opIndex)
+                                      }
+                                      title="Quitar opción"
+                                    >
+                                      <Trash2Icon className="size-3" />
+                                    </Button>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {preguntasVisuales.length === 0 && (
+                    <div className="p-8 text-center border rounded-lg border-dashed text-muted-foreground">
+                      <p className="text-sm">No hay preguntas agregadas todavía.</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 text-xs"
+                        onClick={agregarPreguntaVisual}
+                      >
+                        <PlusIcon className="mr-1 size-3.5" />
+                        Agregar la primera pregunta
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="json" className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="json-preguntas" className="text-xs">
+                    Estructura JSON de reactivos *
+                  </Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs text-primary"
+                    onClick={() => {
+                      setJsonPreguntas(EJEMPLO_PREGUNTAS_JSON)
+                      try {
+                        setPreguntasVisuales(JSON.parse(EJEMPLO_PREGUNTAS_JSON))
+                      } catch {
+                        // ignorar
+                      }
+                    }}
+                  >
+                    Restaurar formato de ejemplo
+                  </Button>
+                </div>
+                <Textarea
+                  id="json-preguntas"
+                  rows={13}
+                  className="font-mono text-xs"
+                  value={jsonPreguntas}
+                  onChange={(e) => {
+                    setJsonPreguntas(e.target.value)
+                    try {
+                      const p = JSON.parse(e.target.value)
+                      if (Array.isArray(p)) setPreguntasVisuales(p)
+                    } catch {
+                      // mantener estado visual actual
+                    }
+                  }}
+                />
+              </TabsContent>
+            </Tabs>
 
             {errorValidacionJson && (
               <Alert variant="destructive">
@@ -557,7 +846,7 @@ export function GestionBancoPreguntas() {
             )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t">
             <Button
               variant="outline"
               onClick={() => setModalNuevaVersion(false)}
