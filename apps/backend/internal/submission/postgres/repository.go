@@ -77,7 +77,10 @@ func (r *Repository) create(ctx context.Context, item *submission.Submission) er
 	}
 
 	applyRow(item, row)
-	return r.writeForm(ctx, item, nil)
+	if err := r.writeForm(ctx, item, nil); err != nil {
+		return err
+	}
+	return r.Hydrate(ctx, item)
 }
 
 /**
@@ -98,6 +101,9 @@ func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (*submission.Su
 
 	item := &submission.Submission{}
 	applyRow(item, row)
+	if err := r.Hydrate(ctx, item); err != nil {
+		return nil, err
+	}
 	return item, nil
 }
 
@@ -125,6 +131,9 @@ func (r *Repository) FindByApplicantAndCompetition(ctx context.Context, applican
 
 	item := &submission.Submission{}
 	applyRow(item, row)
+	if err := r.Hydrate(ctx, item); err != nil {
+		return nil, err
+	}
 	return item, nil
 }
 
@@ -158,6 +167,9 @@ func (r *Repository) ListByApplicant(ctx context.Context, applicantID uuid.UUID,
 	for _, row := range rows {
 		item := &submission.Submission{}
 		applyRow(item, row)
+		if err := r.Hydrate(ctx, item); err != nil {
+			return nil, 0, err
+		}
 		items = append(items, item)
 	}
 
@@ -205,6 +217,9 @@ func (r *Repository) ListByApplicantCursor(ctx context.Context, applicantID uuid
 	for _, row := range rows {
 		item := &submission.Submission{}
 		applyRow(item, row)
+		if err := r.Hydrate(ctx, item); err != nil {
+			return nil, err
+		}
 		items = append(items, item)
 	}
 
@@ -265,7 +280,7 @@ func (r *Repository) update(ctx context.Context, item *submission.Submission) er
 	}
 
 	applyRow(item, row)
-	return nil
+	return r.Hydrate(ctx, item)
 }
 
 /**
@@ -338,10 +353,13 @@ func (r *Repository) Mutate(ctx context.Context, id uuid.UUID, change func(conte
 		}
 		item = &submission.Submission{}
 		applyRow(item, row)
+		adapter := &Repository{queries: queries}
+		if err := adapter.Hydrate(ctx, item); err != nil {
+			return err
+		}
 		if err := change(ctx, item); err != nil {
 			return err
 		}
-		adapter := &Repository{queries: queries}
 		if err := adapter.Update(ctx, item); err != nil {
 			return err
 		}

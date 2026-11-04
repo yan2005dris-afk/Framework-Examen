@@ -378,6 +378,34 @@ func formWriteError(err error) error {
 }
 
 /**
+ * Hydrate reemplaza el contenido de un borrador por el formulario armado desde
+ * las tablas normalizadas, su fuente desde la fase 4. Las postulaciones enviadas
+ * o cerradas conservan `content`, que es su snapshot.
+ *
+ * @param {Submission} item - Postulación recién leída.
+ * @returns {error} Fallo de lectura de las tablas.
+ */
+func (r *Repository) Hydrate(ctx context.Context, item *submission.Submission) error {
+	if item == nil || !item.IsEditable() {
+		return nil
+	}
+	form, err := r.loadForm(ctx, item.ID, time.Now())
+	if err != nil {
+		return fmt.Errorf("no se pudo leer el formulario: %w", err)
+	}
+	raw, err := json.Marshal(form)
+	if err != nil {
+		return err
+	}
+	canonical, err := submission.CanonicalContent(raw)
+	if err != nil {
+		return err
+	}
+	item.Content = canonical
+	return nil
+}
+
+/**
  * loadForm arma el formulario desde las tablas normalizadas, con la cédula y el
  * correo de la cuenta, el sector de la cabecera, los metadatos de `documents`
  * y las duraciones calculadas a la fecha indicada.

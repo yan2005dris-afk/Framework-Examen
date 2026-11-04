@@ -72,10 +72,14 @@ func (r *Repository) WithinSubmission(ctx context.Context, actor, id uuid.UUID, 
 		if !item.IsEditable() {
 			return submission.ErrNotEditable
 		}
+		// El borrador se lee desde las tablas normalizadas, como en el adaptador de postulaciones.
+		submissions := submissionpostgres.NewRepository(queries)
+		if err := submissions.Hydrate(txctx, item); err != nil {
+			return err
+		}
 		if err := change(txctx, item, r); err != nil {
 			return err
 		}
-		submissions := submissionpostgres.NewRepository(queries)
 		if err := submissions.Update(txctx, item); err != nil {
 			return err
 		}

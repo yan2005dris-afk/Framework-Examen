@@ -113,20 +113,29 @@ func TestPostgresSerializesMutationsAndRollsBack(t *testing.T) {
 	repo, item := integrationRepository(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
+	// Cada mutación responde una pregunta distinta de inhabilidades: si el bloqueo no
+	// serializara, alguna partiría de una versión vieja y borraría la respuesta de otra.
 	var wg sync.WaitGroup
 	for i := range 8 {
 		wg.Go(func() {
 			_, err := repo.Mutate(ctx, item.ID, func(ctx context.Context, current *submission.Submission) error {
-				var fields map[string]int
-				if err := json.Unmarshal(current.Content, &fields); err != nil {
-					return err
-				}
-				fields[fmt.Sprintf("campo%d", i)] = i
-				raw, err := json.Marshal(fields)
+				form, err := submission.DecodeForm(current.Content)
 				if err != nil {
 					return err
 				}
-				return current.UpdateContent(raw, time.Now().UTC())
+				answers := map[string]string{}
+				if form.Disqualifications != nil {
+					raw, _ := json.Marshal(form.Disqualifications)
+					if err := json.Unmarshal(raw, &answers); err != nil {
+						return err
+					}
+				}
+				answers[fmt.Sprintf("q%d", i+1)] = "Sí"
+				section, err := json.Marshal(answers)
+				if err != nil {
+					return err
+				}
+				return current.UpdateContent(json.RawMessage(`{"seccion9":`+string(section)+`}`), time.Now().UTC())
 			})
 			if err != nil {
 				t.Error(err)
@@ -138,12 +147,19 @@ func TestPostgresSerializesMutationsAndRollsBack(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var fields map[string]int
-	if err := json.Unmarshal(stored.Content, &fields); err != nil {
-		t.Fatal(err)
+	form, err := submission.DecodeForm(stored.Content)
+	if err != nil || form.Disqualifications == nil {
+		t.Fatalf("sección 9: %v", err)
 	}
-	if len(fields) != 8 {
-		t.Fatalf("se perdieron cambios concurrentes: %d/8", len(fields))
+	d := form.Disqualifications
+	answered := 0
+	for _, answer := range []string{d.Q1, d.Q2, d.Q3, d.Q4, d.Q5, d.Q6, d.Q7, d.Q8} {
+		if answer == "Sí" {
+			answered++
+		}
+	}
+	if answered != 8 {
+		t.Fatalf("se perdieron cambios concurrentes: %d/8", answered)
 	}
 	before, _ := submission.CanonicalContent(stored.Content)
 	rollback := errors.New("fallo forzado antes del commit")
