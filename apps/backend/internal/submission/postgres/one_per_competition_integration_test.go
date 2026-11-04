@@ -52,9 +52,11 @@ func TestPostgresOneSubmissionPerCompetition(t *testing.T) {
 		t.Fatalf("convocatoria sin postulación: %v %v", missing, err)
 	}
 
-	// El legado sin convocatoria queda fuera del índice parcial.
+	// El legado sin convocatoria queda fuera del índice parcial. regclass resuelve el
+	// índice en el esquema aislado: recorrer pg_indexes choca con los esquemas que
+	// otros paquetes borran en paralelo («could not open relation with OID»).
 	var definition string
-	if err := pool.QueryRow(ctx, `SELECT indexdef FROM pg_indexes WHERE indexname='submissions_one_per_competition'`).Scan(&definition); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT pg_get_indexdef('submissions_one_per_competition'::regclass)`).Scan(&definition); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(definition, "UNIQUE") || !strings.Contains(definition, "WHERE (competition_id IS NOT NULL)") {
