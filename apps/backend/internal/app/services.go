@@ -100,6 +100,7 @@ func (a *App) buildServices(ctx context.Context, log *slog.Logger, mode Mode) er
 	if err != nil {
 		return fmt.Errorf("no se pudo cargar la simulación controlada de elegibilidad: %w", err)
 	}
+	conditions.WithDefaultAllow(cfg.EligibilityDefaultAllow)
 	eligibilityService := eligibility.NewService(conditions, eligibilitypostgres.NewRepository(queries))
 
 	var objects document.Storage

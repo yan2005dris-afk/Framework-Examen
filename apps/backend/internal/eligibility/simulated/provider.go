@@ -11,8 +11,18 @@ import (
 	"os"
 )
 
-/** Provider carga una fixture operacional explícita por UUID, sin una aceptación por defecto. */
-type Provider struct{ accounts map[string]map[string]bool }
+/** Provider carga una fixture operacional explícita por UUID, sin una aceptación por defecto salvo configuración permisiva. */
+type Provider struct {
+	accounts     map[string]map[string]bool
+	defaultAllow bool
+}
+
+func (p *Provider) WithDefaultAllow(allow bool) *Provider {
+	if p != nil {
+		p.defaultAllow = allow
+	}
+	return p
+}
 
 func Load(path string) (*Provider, error) {
 	p := &Provider{accounts: map[string]map[string]bool{}}
@@ -69,6 +79,9 @@ func (p *Provider) Resolve(ctx context.Context, account uuid.UUID, sector string
 	}
 	value, ok := p.accounts[account.String()][sector]
 	if !ok {
+		if p.defaultAllow {
+			return eligibility.Condition{Eligible: true, Source: "simulacion_controlada_servidor"}, nil
+		}
 		return eligibility.Condition{}, submission.ErrEligibilityUnavailable
 	}
 	return eligibility.Condition{Eligible: value, Source: "simulacion_controlada_servidor"}, nil
