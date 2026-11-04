@@ -33,7 +33,8 @@ apps/backend/bin/
 
 # Documentos y adjuntos. Los postulantes suben titulos, certificados y
 # documentos de identidad: contienen datos personales y no van al repositorio.
-apps/backend/data/
+apps/backend/data/*
+!apps/backend/data/eligibility.json
 /data/uploads/
 /uploads/
 /storage/
